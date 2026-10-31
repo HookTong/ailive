@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Live2DCanvas } from './Live2DCanvas'
 import type { ModelManifest, ModelSource } from '../modelTypes'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
@@ -8,10 +9,8 @@ type ControlPanelProps = {
   configError: boolean
   modelSources: ModelSource[]
   activeModelId: string
-  onlineModelUrl: string
-  onOnlineModelUrlChange: (value: string) => void
   onModelSelect: (id: string) => void
-  onLoadOnlineModel: () => void
+  onAddOnlineModel: (url: string, name: string) => void
   activeMotion: string
   onMotionChange: (motion: string) => void
   selectedExpressions: string[]
@@ -29,10 +28,8 @@ export function ControlPanel({
   configError,
   modelSources,
   activeModelId,
-  onlineModelUrl,
-  onOnlineModelUrlChange,
   onModelSelect,
-  onLoadOnlineModel,
+  onAddOnlineModel,
   activeMotion,
   onMotionChange,
   selectedExpressions,
@@ -45,6 +42,13 @@ export function ControlPanel({
   onResetAll,
 }: ControlPanelProps) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [addModelOpen, setAddModelOpen] = useState(false)
+  const [modelNameDraft, setModelNameDraft] = useState('')
+  const [modelUrlDraft, setModelUrlDraft] = useState('')
+  const [previewModelUrl, setPreviewModelUrl] = useState<string | null>(null)
+  const [previewStatus, setPreviewStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle')
+  const [previewError, setPreviewError] = useState('')
+  const [previewResetKey, setPreviewResetKey] = useState(0)
   const modelPickerRef = useRef<HTMLDivElement>(null)
   const motionOptions = useMemo(() => Object.entries(manifest?.motions ?? {}), [manifest])
   const expressionOptions = useMemo(() => Object.keys(manifest?.expressions ?? {}), [manifest])
@@ -62,6 +66,60 @@ export function ControlPanel({
   const selectModel = (id: string) => {
     onModelSelect(id)
     setModelMenuOpen(false)
+  }
+
+  const openAddModel = () => {
+    setAddModelOpen(true)
+    setModelNameDraft('')
+    setModelUrlDraft('')
+    setPreviewModelUrl(null)
+    setPreviewStatus('idle')
+    setPreviewError('')
+  }
+
+  const closeAddModel = () => {
+    setAddModelOpen(false)
+    setModelNameDraft('')
+    setPreviewModelUrl(null)
+    setPreviewStatus('idle')
+    setPreviewError('')
+  }
+
+  const handlePreviewUrlChange = (value: string) => {
+    setModelUrlDraft(value)
+    setPreviewModelUrl(null)
+    setPreviewStatus('idle')
+    setPreviewError('')
+  }
+
+  const loadModelPreview = () => {
+    const value = modelUrlDraft.trim()
+    try {
+      if (!value) throw new Error('请输入模型地址')
+      const parsed = new URL(value, window.location.href)
+      if (!/^https?:$/i.test(parsed.protocol)) throw new Error('模型地址必须使用 HTTP 或 HTTPS')
+      setPreviewError('')
+      setPreviewStatus('loading')
+      setPreviewModelUrl(parsed.toString())
+      setPreviewResetKey((current) => current + 1)
+    } catch (error) {
+      setPreviewModelUrl(null)
+      setPreviewStatus('missing')
+      setPreviewError(error instanceof Error ? error.message : '模型地址无效')
+    }
+  }
+
+  const handlePreviewLoadState = (state: 'loading' | 'ready' | 'missing') => {
+    setPreviewStatus(state)
+    if (state === 'missing') setPreviewError('模型资源加载失败，请检查地址及跨域设置')
+    if (state === 'ready') setPreviewError('')
+  }
+
+  const addPreviewModel = () => {
+    if (previewStatus !== 'ready' || !previewModelUrl) return
+    const fallbackName = new URL(previewModelUrl).hostname
+    onAddOnlineModel(previewModelUrl, modelNameDraft.trim() || fallbackName)
+    closeAddModel()
   }
 
   return (
@@ -106,16 +164,7 @@ export function ControlPanel({
             </div>
           )}
         </div>
-        <div className="online-model-row">
-          <input
-            type="url"
-            value={onlineModelUrl}
-            onChange={(event) => onOnlineModelUrlChange(event.target.value)}
-            placeholder="输入线上 model3.json 地址"
-            aria-label="线上模型地址"
-          />
-          <button type="button" onClick={onLoadOnlineModel}>加载</button>
-        </div>
+        <button className="add-model-button" type="button" onClick={openAddModel}>＋ 添加模型</button>
         {configError && <div className="control-error">模型配置或线上资源加载失败</div>}
       </div>
 
@@ -231,6 +280,66 @@ export function ControlPanel({
         </div>
         <button className="reset-all" type="button" onClick={onResetAll}>↺ 全部重置</button>
       </div>
+
+      {addModelOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeAddModel()}>
+          <section className="model-modal" role="dialog" aria-modal="true" aria-labelledby="add-model-title">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">MODEL IMPORT</span>
+                <h2 id="add-model-title">添加线上模型</h2>
+              </div>
+              <button className="modal-close" type="button" aria-label="关闭" onClick={closeAddModel}>×</button>
+            </div>
+            <label className="modal-field">
+              <span>模型名称</span>
+              <input
+                type="text"
+                value={modelNameDraft}
+                onChange={(event) => setModelNameDraft(event.target.value)}
+                placeholder="输入名称，用于下拉列表展示"
+                aria-label="模型名称"
+                maxLength={40}
+              />
+            </label>
+            <span className="modal-field-label">模型地址</span>
+            <div className="modal-url-row">
+              <input
+                type="url"
+                value={modelUrlDraft}
+                onChange={(event) => handlePreviewUrlChange(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && loadModelPreview()}
+                placeholder="输入 model3.json 地址"
+                aria-label="线上模型地址"
+                autoFocus
+              />
+              <button type="button" onClick={loadModelPreview} disabled={!modelUrlDraft.trim()}>加载</button>
+            </div>
+            <div className="model-preview-box">
+              {previewModelUrl ? (
+                <Live2DCanvas
+                  key={previewModelUrl}
+                  modelUrl={previewModelUrl}
+                  motion=""
+                  expressions={[]}
+                  size={0.78}
+                  positionResetKey={previewResetKey}
+                  onLoadStateChange={handlePreviewLoadState}
+                />
+              ) : (
+                <div className="model-preview-placeholder">输入模型地址后加载预览</div>
+              )}
+            </div>
+            {previewError && <div className="control-error modal-error">{previewError}</div>}
+            {previewStatus === 'loading' && <div className="modal-status">正在加载模型预览...</div>}
+            {previewStatus === 'ready' && <div className="modal-status ready">模型加载成功，可以添加</div>}
+            <div className="modal-actions">
+              <button className="modal-secondary" type="button" onClick={closeAddModel}>取消</button>
+              <button className="modal-primary" type="button" onClick={addPreviewModel} disabled={previewStatus !== 'ready'}>添加模型</button>
+            </div>
+          </section>
+        </div>
+      )}
     </aside>
   )
 }

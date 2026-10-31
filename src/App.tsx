@@ -45,7 +45,6 @@ function App() {
   const [configError, setConfigError] = useState(false)
   const [modelSources, setModelSources] = useState<ModelSource[]>([DEFAULT_MODEL_SOURCE])
   const [modelSource, setModelSource] = useState(DEFAULT_MODEL_SOURCE)
-  const [onlineModelUrl, setOnlineModelUrl] = useState('')
   const [activeMotion, setActiveMotion] = useState('idle')
   const [selectedExpressions, setSelectedExpressions] = useState<string[]>([])
   const [modelSize, setModelSize] = useState(0.78)
@@ -110,15 +109,13 @@ function App() {
     setPositionResetKey((current) => current + 1)
   }
 
-  const handleLoadOnlineModel = () => {
-    const url = onlineModelUrl.trim()
+  const handleAddOnlineModel = (url: string, name: string) => {
     try {
-      if (!url) throw new Error('Model URL is required')
       const parsed = new URL(url, window.location.href)
       if (!/^https?:$/i.test(parsed.protocol)) throw new Error('Unsupported model URL protocol')
       const nextSource: ModelSource = {
         id: `online:${parsed.toString()}`,
-        name: parsed.hostname,
+        name: name.trim() || parsed.hostname,
         modelUrl: parsed.toString(),
       }
       setModelSources((current) => current.some((source) => source.id === nextSource.id) ? current : [...current, nextSource])
@@ -177,10 +174,8 @@ function App() {
           configError={configError}
           modelSources={modelSources}
           activeModelId={modelSource.id}
-          onlineModelUrl={onlineModelUrl}
-          onOnlineModelUrlChange={setOnlineModelUrl}
           onModelSelect={handleModelSelect}
-          onLoadOnlineModel={handleLoadOnlineModel}
+          onAddOnlineModel={handleAddOnlineModel}
           activeMotion={activeMotion}
           onMotionChange={handleMotionChange}
           selectedExpressions={selectedExpressions}

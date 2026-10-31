@@ -12,9 +12,10 @@ type Live2DCanvasProps = {
   expressions: ExpressionSelection[]
   size: number
   positionResetKey: number
+  onLoadStateChange?: (state: 'loading' | 'ready' | 'missing') => void
 }
 
-export function Live2DCanvas({ modelUrl, motion, expressions, size, positionResetKey }: Live2DCanvasProps) {
+export function Live2DCanvas({ modelUrl, motion, expressions, size, positionResetKey, onLoadStateChange }: Live2DCanvasProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const modelRef = useRef<Live2DModel<any> | null>(null)
   const expressionStackRef = useRef<ExpressionDefinition[]>([])
@@ -24,7 +25,13 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
 
+  const updateStatus = (nextStatus: 'loading' | 'ready' | 'missing') => {
+    setStatus(nextStatus)
+    onLoadStateChange?.(nextStatus)
+  }
+
   useEffect(() => {
+    updateStatus('loading')
     ;(window as Window & { PIXI?: typeof PIXI }).PIXI = PIXI
     Live2DModel.registerTicker(PIXI.Ticker)
 
@@ -34,7 +41,7 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
     try {
       app = new PIXI.Application({ backgroundAlpha: 0, resizeTo: host, antialias: true })
     } catch {
-      setStatus('missing')
+      updateStatus('missing')
       return
     }
     host.appendChild(app.view as HTMLCanvasElement)
@@ -185,7 +192,7 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
           }
         }
         setErrorMessage('')
-        setStatus('ready')
+        updateStatus('ready')
       })
       .catch((error) => {
         console.error('Live2D model failed to load', error)
@@ -193,7 +200,7 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
         setErrorMessage(message.includes('Unknown settings format')
           ? '模型格式不受支持，请确认是 Cubism 2.1 或 Cubism 3/4 模型'
           : '模型资源加载失败，请检查模型地址及跨域设置')
-        setStatus('missing')
+        updateStatus('missing')
       })
 
     const resize = () => {
