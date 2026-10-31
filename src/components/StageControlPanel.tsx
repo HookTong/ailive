@@ -111,14 +111,12 @@ export function StageControlPanel({
     audio.src = source
     audio.volume = volume
     const retryAfterLoad = () => {
-      void audio.play().then(() => setIsPlaying(true)).catch((error: unknown) => {
-        setIsPlaying(false)
+      void audio.play().catch((error: unknown) => {
         if (showError && !(error instanceof DOMException && error.name === 'AbortError')) setMusicError('浏览器阻止了播放，请再次点击播放')
       })
     }
     audio.addEventListener('canplay', retryAfterLoad, { once: true })
-    void audio.play().then(() => setIsPlaying(true)).catch((error: unknown) => {
-      setIsPlaying(false)
+    void audio.play().catch((error: unknown) => {
       if (showError && !(error instanceof DOMException && error.name === 'AbortError')) setMusicError('浏览器阻止了播放，请再次点击播放')
     })
   }
@@ -159,13 +157,13 @@ export function StageControlPanel({
 
   const getMusicDisplayName = (value: string, preset?: typeof MUSIC_PRESETS[number]) => {
     if (preset) return preset.label
-    if (value.startsWith('blob:')) return musicName || '本地音频'
+    if (value.startsWith('blob:')) return '未知音乐'
     try {
       const parsed = new URL(value, window.location.href)
       const fileName = decodeURIComponent(parsed.pathname.split('/').pop() ?? '').trim()
-      return fileName || parsed.hostname || '在线音频'
+      return fileName || parsed.hostname || '未知音乐'
     } catch {
-      return value.trim() || '未设置音乐'
+      return value.trim() || '未知音乐'
     }
   }
 
@@ -190,7 +188,6 @@ export function StageControlPanel({
     if (musicObjectUrlRef.current) URL.revokeObjectURL(musicObjectUrlRef.current)
     musicObjectUrlRef.current = null
     setMusicError('')
-    setIsPlaying(false)
     if (!file) return
     const objectUrl = URL.createObjectURL(file)
     const filePath = (file as File & { path?: string }).path || objectUrl
@@ -199,7 +196,6 @@ export function StageControlPanel({
     setMusicPreset('')
     setMusicDraft(filePath)
     setMusicName(file.name)
-    setIsPlaying(true)
     playAudioSource(objectUrl, false)
   }
 
@@ -208,7 +204,6 @@ export function StageControlPanel({
     setMusicDraft(preset.url)
     setMusicUrl(preset.url)
     setMusicName(preset.label)
-    setIsPlaying(true)
     setMusicError('')
     playAudioSource(preset.url, false)
   }
@@ -217,10 +212,9 @@ export function StageControlPanel({
     const audio = audioRef.current
     if (!audio || !musicUrl) return
     if (audio.paused) {
-      void audio.play().then(() => setIsPlaying(true)).catch(() => setMusicError('浏览器阻止了播放，请再次点击播放'))
+      void audio.play().catch(() => setMusicError('浏览器阻止了播放，请再次点击播放'))
     } else {
       audio.pause()
-      setIsPlaying(false)
     }
   }
 
@@ -245,7 +239,6 @@ export function StageControlPanel({
         <div className="stage-background-actions">
           <button type="button" onClick={onClearBackground}>清除</button>
           <label><span>本地图片</span><input type="file" accept="image/*" onChange={(event) => onBackgroundFile(event.target.files?.[0] ?? null)} /></label>
-          <button type="button" onClick={onResetBackground}>默认</button>
         </div>
       </section>
 
@@ -293,12 +286,12 @@ export function StageControlPanel({
         </div>
         <div className="stage-url-row">
           <input value={musicDraft} onChange={(event) => { setMusicDraft(event.target.value); setMusicError('') }} placeholder="粘贴音频 URL" aria-label="背景音乐 URL" />
-          <button type="button" onClick={handleMusicUrl} disabled={!musicDraft.trim()}>设置</button>
+          <button type="button" title="加载并播放音乐" aria-label="加载并播放音乐" onClick={handleMusicUrl} disabled={!musicDraft.trim()}>▶</button>
         </div>
         {musicError && <div className="stage-error">{musicError}</div>}
-        <div className="music-file-row"><button type="button" className="music-play-toggle" onClick={toggleMusic} disabled={!musicUrl}>{isPlaying ? '暂停' : '播放'}</button><label className="stage-file"><span>选择本地音频</span><input type="file" accept="audio/*" onChange={(event) => handleMusicFile(event.target.files?.[0] ?? null)} /></label></div>
-        <div className="music-controls"><label><span>音量</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label></div>
-        <audio ref={audioRef} src={musicUrl} loop preload="auto" onEnded={() => setIsPlaying(false)} />
+        <div className="music-file-row"><button type="button" className="music-play-toggle" onClick={toggleMusic} disabled={!musicUrl}>{isPlaying ? '暂停' : '播放'}</button><label className="stage-file"><span>本地音乐</span><input type="file" accept="audio/*" onChange={(event) => handleMusicFile(event.target.files?.[0] ?? null)} /></label></div>
+        <div className="music-controls"><label><span>音量 <b>{Math.round(volume * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label></div>
+        <audio ref={audioRef} src={musicUrl} loop preload="auto" onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} onEnded={() => setIsPlaying(false)} />
       </section>
     </aside>
   )

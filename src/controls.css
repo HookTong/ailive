@@ -950,7 +950,7 @@
 
 .stage-background-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
   margin-top: 6px;
 }
@@ -1273,7 +1273,7 @@
 
 .music-controls {
   align-items: flex-end;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .music-controls > button {
@@ -1286,8 +1286,21 @@
   font: 9px 'DM Mono', monospace;
 }
 
+.music-controls label > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.music-controls label b {
+  color: #637983;
+  font: 9px 'DM Mono', monospace;
+  font-weight: 400;
+}
+
 .music-controls input {
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .music-block audio {
