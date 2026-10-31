@@ -21,6 +21,7 @@ export type ModelSource = {
   name: string
   modelUrl: string
   manifestUrl?: string
+  useConfigName?: boolean
 }
 
 export type Model3Config = {

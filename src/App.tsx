@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Live2DCanvas } from './components/Live2DCanvas'
 import { ControlPanel } from './components/ControlPanel'
+import { StageAtmosphere, type ParticlePreset } from './components/StageAtmosphere'
+import { FILTER_PRESETS, StageControlPanel, type FilterPreset } from './components/StageControlPanel'
 import type { Model3Config, ModelManifest, ModelSource } from './modelTypes'
 
 const MODEL_URL = '/models/whale/c_0120.model3.json'
 const MANIFEST_URL = '/models/whale/manifest.json'
+const DEFAULT_BACKGROUND_URL = '/background.png'
 const DEFAULT_MODEL_SOURCE: ModelSource = {
   id: 'whale-local',
   name: 'DS 鲸鱼娘',
@@ -49,8 +52,22 @@ function App() {
   const [selectedExpressions, setSelectedExpressions] = useState<string[]>([])
   const [modelSize, setModelSize] = useState(0.78)
   const [positionResetKey, setPositionResetKey] = useState(0)
-  const [backgroundUrl, setBackgroundUrl] = useState('')
+  const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND_URL)
   const backgroundObjectUrlRef = useRef<string | null>(null)
+  const [particleEnabled, setParticleEnabled] = useState(true)
+  const [particleIntensity, setParticleIntensity] = useState(0.55)
+  const [particleSpeed, setParticleSpeed] = useState(1)
+  const [particleOpacity, setParticleOpacity] = useState(1)
+  const [particlePreset, setParticlePreset] = useState<ParticlePreset>('stardust')
+  const [particleColor, setParticleColor] = useState('#66e4c7')
+  const [particleSize, setParticleSize] = useState(1)
+  const [filterBrightness, setFilterBrightness] = useState(1)
+  const [filterContrast, setFilterContrast] = useState(1)
+  const [filterSaturation, setFilterSaturation] = useState(1)
+  const [filterBlur, setFilterBlur] = useState(0)
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>('standard')
+  const [filterEnabled, setFilterEnabled] = useState(true)
+  const [vignette, setVignette] = useState(true)
   const [isTalking, setIsTalking] = useState(false)
   const [message, setMessage] = useState('你好，我是你的 Live2D 助手。')
 
@@ -69,6 +86,15 @@ function App() {
         setConfigError(false)
         setManifest(nextManifest)
         setActiveMotion((current) => nextManifest.motions[current] ? current : Object.keys(nextManifest.motions)[0] ?? '')
+        if (modelSource.useConfigName && nextManifest.displayName?.trim()) {
+          const configuredName = nextManifest.displayName.trim()
+          setModelSources((current) => current.map((source) => source.id === modelSource.id
+            ? { ...source, name: configuredName, useConfigName: false }
+            : source))
+          setModelSource((current) => current.id === modelSource.id
+            ? { ...current, name: configuredName, useConfigName: false }
+            : current)
+        }
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -109,6 +135,25 @@ function App() {
     setPositionResetKey((current) => current + 1)
   }
 
+  const handleDeleteModel = (id: string) => {
+    if (!id.startsWith('online:')) return
+    const deletedIndex = modelSources.findIndex((source) => source.id === id)
+    if (deletedIndex < 0) return
+    const remainingSources = modelSources.filter((source) => source.id !== id)
+    if (remainingSources.length === 0) return
+    if (modelSource.id !== id) {
+      setModelSources(remainingSources)
+      return
+    }
+    const nextSource = remainingSources[deletedIndex] ?? remainingSources[0]
+    setModelSources(remainingSources)
+    setModelSource(nextSource)
+    setManifest(null)
+    setConfigError(false)
+    setSelectedExpressions([])
+    setPositionResetKey((current) => current + 1)
+  }
+
   const handleAddOnlineModel = (url: string, name: string) => {
     try {
       const parsed = new URL(url, window.location.href)
@@ -117,6 +162,7 @@ function App() {
         id: `online:${parsed.toString()}`,
         name: name.trim() || parsed.hostname,
         modelUrl: parsed.toString(),
+        useConfigName: !name.trim(),
       }
       setModelSources((current) => current.some((source) => source.id === nextSource.id) ? current : [...current, nextSource])
       setModelSource(nextSource)
@@ -155,7 +201,33 @@ function App() {
     setPositionResetKey((current) => current + 1)
     if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
     backgroundObjectUrlRef.current = null
-    setBackgroundUrl('')
+    setBackgroundUrl(DEFAULT_BACKGROUND_URL)
+    setParticleEnabled(true)
+    setParticleIntensity(0.55)
+    setParticleSpeed(1)
+    setParticleOpacity(1)
+    setParticlePreset('stardust')
+    setParticleColor('#66e4c7')
+    setParticleSize(1)
+    setFilterBrightness(1)
+    setFilterContrast(1)
+    setFilterSaturation(1)
+    setFilterBlur(0)
+    setFilterPreset('standard')
+    setFilterEnabled(true)
+    setVignette(true)
+  }
+
+  const handleFilterPresetChange = (id: Exclude<FilterPreset, 'custom'>) => {
+    const preset = FILTER_PRESETS.find((item) => item.id === id)
+    if (!preset) return
+    setFilterPreset(id)
+    setFilterEnabled(true)
+    setFilterBrightness(preset.brightness)
+    setFilterContrast(preset.contrast)
+    setFilterSaturation(preset.saturation)
+    setFilterBlur(preset.blur)
+    setVignette(preset.vignette)
   }
 
   useEffect(() => () => {
@@ -175,6 +247,7 @@ function App() {
           modelSources={modelSources}
           activeModelId={modelSource.id}
           onModelSelect={handleModelSelect}
+          onDeleteModel={handleDeleteModel}
           onAddOnlineModel={handleAddOnlineModel}
           activeMotion={activeMotion}
           onMotionChange={handleMotionChange}
@@ -182,16 +255,53 @@ function App() {
           onExpressionToggle={handleExpressionToggle}
           modelSize={modelSize}
           onModelSizeChange={handleModelSizeChange}
-          backgroundUrl={backgroundUrl}
-          onBackgroundUrlChange={handleBackgroundUrlChange}
-          onBackgroundFile={handleBackgroundFile}
           onResetAll={handleResetAll}
         />
         <section className="stage-panel">
           <div className="stage-toolbar"><div><span className="live-dot" /> LIVE PREVIEW</div><div className="toolbar-actions"><button title="全屏">↗</button><button title="更多">•••</button></div></div>
-          <div className="preview" style={backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}><Live2DCanvas key={modelSource.id} modelUrl={modelSource.modelUrl} motion={activeMotion} expressions={selectedExpressionConfigs} size={modelSize} positionResetKey={positionResetKey} /><div className="preview-caption"><span>{manifest?.displayName ?? modelSource.name}</span><span>{activeMotionConfig?.label ?? '读取配置中'} · {currentExpressionLabel}</span></div></div>
+          <div className="preview"><div className="stage-background" style={{ ...(backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")` } : {}), filter: filterEnabled ? `brightness(${filterBrightness}) contrast(${filterContrast}) saturate(${filterSaturation}) blur(${filterBlur}px)` : 'none' }} /><StageAtmosphere enabled={particleEnabled} intensity={particleIntensity} speed={particleSpeed} opacity={particleOpacity} preset={particlePreset} color={particleColor} size={particleSize} /><Live2DCanvas key={modelSource.id} modelUrl={modelSource.modelUrl} motion={activeMotion} expressions={selectedExpressionConfigs} size={modelSize} positionResetKey={positionResetKey} /><div className={filterEnabled && vignette ? 'stage-vignette active' : 'stage-vignette'} /><div className="preview-caption"><span>{manifest?.displayName ?? modelSource.name}</span><span>{activeMotionConfig?.label ?? '读取配置中'} · {currentExpressionLabel}</span></div></div>
           <div className="interaction-bar"><div className="input-wrap"><span>⌕</span><input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && setIsTalking(true)} placeholder="输入一句话，让角色回应..." /><button onClick={() => setIsTalking(true)}>发送</button></div><button className={isTalking ? 'talk-button active' : 'talk-button'} onClick={() => setIsTalking(!isTalking)}><span>◉</span>{isTalking ? '正在聆听' : '开始对话'}</button></div>
         </section>
+        <StageControlPanel
+          backgroundUrl={backgroundUrl}
+          onBackgroundUrlChange={handleBackgroundUrlChange}
+          onBackgroundFile={handleBackgroundFile}
+          onClearBackground={() => handleBackgroundUrlChange('')}
+          onResetBackground={() => handleBackgroundUrlChange(DEFAULT_BACKGROUND_URL)}
+          particleEnabled={particleEnabled}
+          onParticleEnabledChange={setParticleEnabled}
+          particleIntensity={particleIntensity}
+          onParticleIntensityChange={setParticleIntensity}
+          particleSpeed={particleSpeed}
+          onParticleSpeedChange={setParticleSpeed}
+          particleOpacity={particleOpacity}
+          onParticleOpacityChange={setParticleOpacity}
+          particlePreset={particlePreset}
+          onParticlePresetChange={setParticlePreset}
+          particleColor={particleColor}
+          onParticleColorChange={setParticleColor}
+          particleSize={particleSize}
+          onParticleSizeChange={setParticleSize}
+          filterBrightness={filterBrightness}
+          onFilterBrightnessChange={(value) => { setFilterPreset('custom'); setFilterBrightness(value) }}
+          filterContrast={filterContrast}
+          onFilterContrastChange={(value) => { setFilterPreset('custom'); setFilterContrast(value) }}
+          filterSaturation={filterSaturation}
+          onFilterSaturationChange={(value) => { setFilterPreset('custom'); setFilterSaturation(value) }}
+          filterBlur={filterBlur}
+          onFilterBlurChange={(value) => { setFilterPreset('custom'); setFilterBlur(value) }}
+          filterPreset={filterPreset}
+          onFilterPresetChange={handleFilterPresetChange}
+          filterEnabled={filterEnabled}
+          onFilterEnabledChange={(enabled) => {
+            if (enabled) {
+              handleFilterPresetChange('standard')
+            } else {
+              setFilterEnabled(false)
+              setFilterPreset('custom')
+            }
+          }}
+        />
       </section>
       <footer className="footer"><span>AI LIVE STUDIO</span><span>模型资源由 Live2D Cubism 提供支持</span><span>⌘ K 快捷键</span></footer>
     </main>

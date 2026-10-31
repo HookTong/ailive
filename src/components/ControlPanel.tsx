@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Live2DCanvas } from './Live2DCanvas'
+import { AddModelModal } from './AddModelModal'
 import type { ModelManifest, ModelSource } from '../modelTypes'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
@@ -10,6 +10,7 @@ type ControlPanelProps = {
   modelSources: ModelSource[]
   activeModelId: string
   onModelSelect: (id: string) => void
+  onDeleteModel: (id: string) => void
   onAddOnlineModel: (url: string, name: string) => void
   activeMotion: string
   onMotionChange: (motion: string) => void
@@ -17,9 +18,6 @@ type ControlPanelProps = {
   onExpressionToggle: (expression: string) => void
   modelSize: number
   onModelSizeChange: (size: number) => void
-  backgroundUrl: string
-  onBackgroundUrlChange: (value: string) => void
-  onBackgroundFile: (file: File | null) => void
   onResetAll: () => void
 }
 
@@ -29,6 +27,7 @@ export function ControlPanel({
   modelSources,
   activeModelId,
   onModelSelect,
+  onDeleteModel,
   onAddOnlineModel,
   activeMotion,
   onMotionChange,
@@ -36,19 +35,11 @@ export function ControlPanel({
   onExpressionToggle,
   modelSize,
   onModelSizeChange,
-  backgroundUrl,
-  onBackgroundUrlChange,
-  onBackgroundFile,
   onResetAll,
 }: ControlPanelProps) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<ModelSource | null>(null)
   const [addModelOpen, setAddModelOpen] = useState(false)
-  const [modelNameDraft, setModelNameDraft] = useState('')
-  const [modelUrlDraft, setModelUrlDraft] = useState('')
-  const [previewModelUrl, setPreviewModelUrl] = useState<string | null>(null)
-  const [previewStatus, setPreviewStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle')
-  const [previewError, setPreviewError] = useState('')
-  const [previewResetKey, setPreviewResetKey] = useState(0)
   const modelPickerRef = useRef<HTMLDivElement>(null)
   const motionOptions = useMemo(() => Object.entries(manifest?.motions ?? {}), [manifest])
   const expressionOptions = useMemo(() => Object.keys(manifest?.expressions ?? {}), [manifest])
@@ -70,56 +61,6 @@ export function ControlPanel({
 
   const openAddModel = () => {
     setAddModelOpen(true)
-    setModelNameDraft('')
-    setModelUrlDraft('')
-    setPreviewModelUrl(null)
-    setPreviewStatus('idle')
-    setPreviewError('')
-  }
-
-  const closeAddModel = () => {
-    setAddModelOpen(false)
-    setModelNameDraft('')
-    setPreviewModelUrl(null)
-    setPreviewStatus('idle')
-    setPreviewError('')
-  }
-
-  const handlePreviewUrlChange = (value: string) => {
-    setModelUrlDraft(value)
-    setPreviewModelUrl(null)
-    setPreviewStatus('idle')
-    setPreviewError('')
-  }
-
-  const loadModelPreview = () => {
-    const value = modelUrlDraft.trim()
-    try {
-      if (!value) throw new Error('请输入模型地址')
-      const parsed = new URL(value, window.location.href)
-      if (!/^https?:$/i.test(parsed.protocol)) throw new Error('模型地址必须使用 HTTP 或 HTTPS')
-      setPreviewError('')
-      setPreviewStatus('loading')
-      setPreviewModelUrl(parsed.toString())
-      setPreviewResetKey((current) => current + 1)
-    } catch (error) {
-      setPreviewModelUrl(null)
-      setPreviewStatus('missing')
-      setPreviewError(error instanceof Error ? error.message : '模型地址无效')
-    }
-  }
-
-  const handlePreviewLoadState = (state: 'loading' | 'ready' | 'missing') => {
-    setPreviewStatus(state)
-    if (state === 'missing') setPreviewError('模型资源加载失败，请检查地址及跨域设置')
-    if (state === 'ready') setPreviewError('')
-  }
-
-  const addPreviewModel = () => {
-    if (previewStatus !== 'ready' || !previewModelUrl) return
-    const fallbackName = new URL(previewModelUrl).hostname
-    onAddOnlineModel(previewModelUrl, modelNameDraft.trim() || fallbackName)
-    closeAddModel()
   }
 
   return (
@@ -141,9 +82,9 @@ export function ControlPanel({
             aria-expanded={modelMenuOpen}
             onClick={() => setModelMenuOpen((open) => !open)}
           >
-            <div className="mini-orb">{(manifest?.displayName ?? currentSource?.name ?? '模').slice(0, 1)}</div>
+            <div className="mini-orb">{(currentSource?.name ?? manifest?.displayName ?? '模').slice(0, 1)}</div>
             <div>
-              <strong>{manifest?.displayName ?? currentSource?.name ?? 'Live2D 模型'}</strong>
+              <strong>{currentSource?.name ?? manifest?.displayName ?? 'Live2D 模型'}</strong>
               <span>{activeModelId.startsWith('online:') ? '线上模型' : '本地模型'}</span>
             </div>
             <span className="chevron" aria-hidden="true" />
@@ -151,15 +92,27 @@ export function ControlPanel({
           {modelMenuOpen && (
             <div className="model-menu" role="listbox">
               {modelSources.map((source) => (
-                <button
-                  className={source.id === activeModelId ? 'model-option active' : 'model-option'}
-                  type="button"
-                  key={source.id}
-                  onClick={() => selectModel(source.id)}
-                >
-                  <span>{source.name}</span>
-                  <small>{source.id.startsWith('online:') ? '线上模型' : '本地模型'}</small>
-                </button>
+                <div className={source.id === activeModelId ? 'model-option-row active' : 'model-option-row'} key={source.id}>
+                  <button
+                    className="model-option"
+                    type="button"
+                    onClick={() => selectModel(source.id)}
+                  >
+                    <span>{source.name}</span>
+                    <small>{source.id.startsWith('online:') ? '线上模型' : '本地模型'}</small>
+                  </button>
+                  {source.id.startsWith('online:') && (
+                    <button
+                      className="model-delete"
+                      type="button"
+                      title={`删除 ${source.name}`}
+                      aria-label={`删除 ${source.name}`}
+                      onClick={() => setDeleteTarget(source)}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -247,25 +200,6 @@ export function ControlPanel({
         </div>
       </div>
 
-      <div className="side-block background-control">
-        <div className="label-row">
-          <span>舞台背景</span>
-          <span className="count">可选</span>
-        </div>
-        <input
-          className="background-url"
-          type="url"
-          value={backgroundUrl.startsWith('blob:') ? '' : backgroundUrl}
-          onChange={(event) => onBackgroundUrlChange(event.target.value)}
-          placeholder="粘贴背景图 URL"
-          aria-label="舞台背景图 URL"
-        />
-        <label className="background-file">
-          <span>选择本地图片</span>
-          <input type="file" accept="image/*" onChange={(event) => onBackgroundFile(event.target.files?.[0] ?? null)} />
-        </label>
-      </div>
-
       {/* 底部信息 */}
       <div className="side-footer">
         <div className="side-footer-meta">
@@ -282,60 +216,36 @@ export function ControlPanel({
       </div>
 
       {addModelOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeAddModel()}>
-          <section className="model-modal" role="dialog" aria-modal="true" aria-labelledby="add-model-title">
+        <AddModelModal
+          onClose={() => setAddModelOpen(false)}
+          onAddOnlineModel={onAddOnlineModel}
+        />
+      )}
+
+      {deleteTarget && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-model-title">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">MODEL IMPORT</span>
-                <h2 id="add-model-title">添加线上模型</h2>
+                <span className="eyebrow">MODEL REMOVE</span>
+                <h2 id="delete-model-title">删除模型</h2>
               </div>
-              <button className="modal-close" type="button" aria-label="关闭" onClick={closeAddModel}>×</button>
+              <button className="modal-close" type="button" aria-label="关闭" onClick={() => setDeleteTarget(null)}>×</button>
             </div>
-            <label className="modal-field">
-              <span>模型名称</span>
-              <input
-                type="text"
-                value={modelNameDraft}
-                onChange={(event) => setModelNameDraft(event.target.value)}
-                placeholder="输入名称，用于下拉列表展示"
-                aria-label="模型名称"
-                maxLength={40}
-              />
-            </label>
-            <span className="modal-field-label">模型地址</span>
-            <div className="modal-url-row">
-              <input
-                type="url"
-                value={modelUrlDraft}
-                onChange={(event) => handlePreviewUrlChange(event.target.value)}
-                onKeyDown={(event) => event.key === 'Enter' && loadModelPreview()}
-                placeholder="输入 model3.json 地址"
-                aria-label="线上模型地址"
-                autoFocus
-              />
-              <button type="button" onClick={loadModelPreview} disabled={!modelUrlDraft.trim()}>加载</button>
-            </div>
-            <div className="model-preview-box">
-              {previewModelUrl ? (
-                <Live2DCanvas
-                  key={previewModelUrl}
-                  modelUrl={previewModelUrl}
-                  motion=""
-                  expressions={[]}
-                  size={0.78}
-                  positionResetKey={previewResetKey}
-                  onLoadStateChange={handlePreviewLoadState}
-                />
-              ) : (
-                <div className="model-preview-placeholder">输入模型地址后加载预览</div>
-              )}
-            </div>
-            {previewError && <div className="control-error modal-error">{previewError}</div>}
-            {previewStatus === 'loading' && <div className="modal-status">正在加载模型预览...</div>}
-            {previewStatus === 'ready' && <div className="modal-status ready">模型加载成功，可以添加</div>}
+            <p className="confirm-copy">确定要删除“{deleteTarget.name}”吗？删除后可重新添加模型。</p>
             <div className="modal-actions">
-              <button className="modal-secondary" type="button" onClick={closeAddModel}>取消</button>
-              <button className="modal-primary" type="button" onClick={addPreviewModel} disabled={previewStatus !== 'ready'}>添加模型</button>
+              <button className="modal-secondary" type="button" onClick={() => setDeleteTarget(null)}>取消</button>
+              <button
+                className="modal-danger"
+                type="button"
+                onClick={() => {
+                  onDeleteModel(deleteTarget.id)
+                  setDeleteTarget(null)
+                  setModelMenuOpen(false)
+                }}
+              >
+                确认删除
+              </button>
             </div>
           </section>
         </div>
