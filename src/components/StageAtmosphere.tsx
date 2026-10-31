@@ -20,30 +20,38 @@ type StageAtmosphereProps = {
 
 export const PARTICLE_COLOR_OPTIONS = ['#66e4c7', '#77bfff', '#c58cff', '#ffbf72', '#ff7898'] as const
 
-export const PARTICLE_PRESETS: ReadonlyArray<{ id: ParticlePreset; label: string }> = [
-  { id: 'stardust', label: '星尘' },
-  { id: 'aurora', label: '极光' },
-  { id: 'bubbles', label: '气泡' },
-  { id: 'comets', label: '流星' },
-  { id: 'nightSky', label: '夜空' },
-  { id: 'nebula', label: '星云' },
-  { id: 'galaxy', label: '银河' },
-  { id: 'network', label: '网络' },
-  { id: 'neural', label: '神经网络' },
-  { id: 'dataFlow', label: '数据流' },
-  { id: 'quantumLinks', label: '量子连线' },
-  { id: 'snow', label: '雪幕' },
-  { id: 'sakura', label: '樱花' },
-  { id: 'fireflies', label: '萤火' },
-  { id: 'pollen', label: '花粉' },
-  { id: 'matrix', label: '矩阵' },
-  { id: 'triangles', label: '三角几何' },
-  { id: 'cubes', label: '几何方块' },
-  { id: 'orbit', label: '轨道' },
-  { id: 'confetti', label: '彩纸' },
-  { id: 'rain', label: '雨幕' },
-  { id: 'embers', label: '余烬' },
-  { id: 'pulse', label: '脉冲' },
+export type ParticlePresetSettings = {
+  color: string
+  intensity: number
+  speed: number
+  opacity: number
+  size: number
+}
+
+export const PARTICLE_PRESETS: ReadonlyArray<{ id: ParticlePreset; label: string } & ParticlePresetSettings> = [
+  { id: 'stardust', label: '星尘', color: '#66e4c7', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'aurora', label: '极光', color: '#c58cff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'bubbles', label: '气泡', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'comets', label: '流星', color: '#ffbf72', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'nightSky', label: '夜空', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'nebula', label: '星云', color: '#c58cff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'galaxy', label: '银河', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'network', label: '网络', color: '#66e4c7', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'neural', label: '神经网络', color: '#c58cff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'dataFlow', label: '数据流', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'quantumLinks', label: '量子连线', color: '#ff7898', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'snow', label: '雪幕', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'sakura', label: '樱花', color: '#ff7898', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'fireflies', label: '萤火', color: '#ffbf72', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'pollen', label: '花粉', color: '#ffbf72', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'matrix', label: '矩阵', color: '#66e4c7', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'triangles', label: '三角几何', color: '#ff7898', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'cubes', label: '几何方块', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'orbit', label: '轨道', color: '#c58cff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'confetti', label: '彩纸', color: '#ff7898', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'rain', label: '雨幕', color: '#77bfff', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'embers', label: '余烬', color: '#ffbf72', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
+  { id: 'pulse', label: '脉冲', color: '#66e4c7', intensity: 1, speed: 2, opacity: 1, size: 2.5 },
 ]
 
 type PresetDefaults = {

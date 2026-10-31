@@ -1,24 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { PARTICLE_COLOR_OPTIONS, PARTICLE_PRESETS, type ParticlePreset } from './StageAtmosphere'
+import { FilterControlPanel, type CustomFilterPreset, type FilterPreset } from './FilterControlPanel'
+import { ParticleControlPanel } from './ParticleControlPanel'
+import type { ParticlePreset } from './StageAtmosphere'
 
-export type FilterPreset = 'standard' | 'cinematic' | 'dream' | 'neon' | 'mist' | 'monochrome' | 'custom'
+const MUSIC_PRESETS = [
+  { id: 'music-01', label: '轻柔', url: '/audio/music-01-lofi-chill.wav' },
+  { id: 'music-02', label: '赛博', url: '/audio/music-02-cyberpunk.wav' },
+  { id: 'music-03', label: '雨声', url: '/audio/music-03-rainy-piano.wav' },
+  { id: 'music-04', label: '专注', url: '/audio/music-04-gaming-focus.wav' },
+  { id: 'music-05', label: '星光', url: '/audio/music-05-starlight.wav' },
+] as const
 
-export const FILTER_PRESETS: ReadonlyArray<{
-  id: Exclude<FilterPreset, 'custom'>
-  label: string
-  brightness: number
-  contrast: number
-  saturation: number
-  blur: number
-  vignette: boolean
-}> = [
-  { id: 'standard', label: '标准', brightness: 1, contrast: 1, saturation: 1, blur: 0, vignette: true },
-  { id: 'cinematic', label: '电影', brightness: 0.9, contrast: 1.2, saturation: 0.85, blur: 0.3, vignette: true },
-  { id: 'dream', label: '梦幻', brightness: 1.1, contrast: 0.95, saturation: 1.3, blur: 1.5, vignette: false },
-  { id: 'neon', label: '霓虹', brightness: 1.05, contrast: 1.3, saturation: 1.45, blur: 0.2, vignette: true },
-  { id: 'mist', label: '薄雾', brightness: 1.12, contrast: 0.92, saturation: 0.9, blur: 2.5, vignette: false },
-  { id: 'monochrome', label: '黑白', brightness: 1.02, contrast: 1.2, saturation: 0, blur: 0, vignette: true },
-]
+const BACKGROUND_PRESETS = [
+  { id: 'default', label: '默认', url: '/background.png' },
+  { id: 'cinematic', label: '电影', url: '/bg_cinematic.png' },
+  { id: 'cyberpunk', label: '赛博', url: '/bg_cyberpunk.png' },
+  { id: 'fantasy', label: '幻想', url: '/bg_fantasy.png' },
+  { id: 'lofi', label: 'Lo-fi', url: '/bg_lofi.png' },
+] as const
 
 type StageControlPanelProps = {
   backgroundUrl: string
@@ -49,9 +48,11 @@ type StageControlPanelProps = {
   filterBlur: number
   onFilterBlurChange: (value: number) => void
   filterPreset: FilterPreset
-  onFilterPresetChange: (preset: Exclude<FilterPreset, 'custom'>) => void
+  onFilterPresetChange: (preset: FilterPreset) => void
   filterEnabled: boolean
   onFilterEnabledChange: (enabled: boolean) => void
+  customFilterPresets: CustomFilterPreset[]
+  onAddCustomFilterPreset: (preset: CustomFilterPreset) => void
 }
 
 export function StageControlPanel({
@@ -86,19 +87,41 @@ export function StageControlPanel({
   onFilterPresetChange,
   filterEnabled,
   onFilterEnabledChange,
+  customFilterPresets,
+  onAddCustomFilterPreset,
 }: StageControlPanelProps) {
   const [backgroundDraft, setBackgroundDraft] = useState(backgroundUrl.startsWith('blob:') ? '' : backgroundUrl)
   const [backgroundError, setBackgroundError] = useState('')
   const [backgroundApplying, setBackgroundApplying] = useState(false)
-  const [musicDraft, setMusicDraft] = useState('')
-  const [musicUrl, setMusicUrl] = useState('')
-  const [musicName, setMusicName] = useState('未设置音乐')
+  const [musicDraft, setMusicDraft] = useState<string>(MUSIC_PRESETS[0].url)
+  const [musicUrl, setMusicUrl] = useState<string>(MUSIC_PRESETS[0].url)
+  const [musicName, setMusicName] = useState<string>(MUSIC_PRESETS[0].label)
+  const [musicPreset, setMusicPreset] = useState<string>(MUSIC_PRESETS[0].id)
   const [musicError, setMusicError] = useState('')
   const [isPlaying, setIsPlaying] = useState(false)
   const [volume, setVolume] = useState(0.55)
   const backgroundRequestRef = useRef(0)
   const musicObjectUrlRef = useRef<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  const playAudioSource = (source: string, showError = true) => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.pause()
+    audio.src = source
+    audio.volume = volume
+    const retryAfterLoad = () => {
+      void audio.play().then(() => setIsPlaying(true)).catch((error: unknown) => {
+        setIsPlaying(false)
+        if (showError && !(error instanceof DOMException && error.name === 'AbortError')) setMusicError('浏览器阻止了播放，请再次点击播放')
+      })
+    }
+    audio.addEventListener('canplay', retryAfterLoad, { once: true })
+    void audio.play().then(() => setIsPlaying(true)).catch((error: unknown) => {
+      setIsPlaying(false)
+      if (showError && !(error instanceof DOMException && error.name === 'AbortError')) setMusicError('浏览器阻止了播放，请再次点击播放')
+    })
+  }
 
   useEffect(() => {
     setBackgroundDraft(backgroundUrl.startsWith('blob:') ? '' : backgroundUrl)
@@ -134,6 +157,18 @@ export function StageControlPanel({
     image.src = value
   }
 
+  const getMusicDisplayName = (value: string, preset?: typeof MUSIC_PRESETS[number]) => {
+    if (preset) return preset.label
+    if (value.startsWith('blob:')) return musicName || '本地音频'
+    try {
+      const parsed = new URL(value, window.location.href)
+      const fileName = decodeURIComponent(parsed.pathname.split('/').pop() ?? '').trim()
+      return fileName || parsed.hostname || '在线音频'
+    } catch {
+      return value.trim() || '未设置音乐'
+    }
+  }
+
   const handleMusicUrl = () => {
     const value = musicDraft.trim()
     if (!value) return
@@ -141,9 +176,11 @@ export function StageControlPanel({
     const probe = new Audio()
     probe.preload = 'metadata'
     probe.onloadedmetadata = () => {
+      const matchedPreset = MUSIC_PRESETS.find((preset) => preset.url === value)
       setMusicUrl(value)
-      setMusicName(new URL(value, window.location.href).hostname)
-      setIsPlaying(false)
+      setMusicPreset(matchedPreset?.id ?? '')
+      setMusicName(getMusicDisplayName(value, matchedPreset))
+      playAudioSource(value)
     }
     probe.onerror = () => setMusicError('音乐加载失败，请检查 URL 是否正确')
     probe.src = value
@@ -156,9 +193,24 @@ export function StageControlPanel({
     setIsPlaying(false)
     if (!file) return
     const objectUrl = URL.createObjectURL(file)
+    const filePath = (file as File & { path?: string }).path || objectUrl
     musicObjectUrlRef.current = objectUrl
     setMusicUrl(objectUrl)
+    setMusicPreset('')
+    setMusicDraft(filePath)
     setMusicName(file.name)
+    setIsPlaying(true)
+    playAudioSource(objectUrl, false)
+  }
+
+  const selectMusicPreset = (preset: typeof MUSIC_PRESETS[number]) => {
+    setMusicPreset(preset.id)
+    setMusicDraft(preset.url)
+    setMusicUrl(preset.url)
+    setMusicName(preset.label)
+    setIsPlaying(true)
+    setMusicError('')
+    playAudioSource(preset.url, false)
   }
 
   const toggleMusic = () => {
@@ -180,6 +232,11 @@ export function StageControlPanel({
 
       <section className="stage-block">
         <div className="stage-block-title"><span>舞台背景</span><span className="tiny-tag">IMAGE</span></div>
+        <div className="background-presets" role="group" aria-label="舞台背景预设">
+          {BACKGROUND_PRESETS.map(({ id, label, url }) => (
+            <button key={id} type="button" className={backgroundUrl === url ? 'background-preset active' : 'background-preset'} onClick={() => onBackgroundUrlChange(url)}>{label}</button>
+          ))}
+        </div>
         <div className="stage-url-row">
           <input value={backgroundDraft} onChange={(event) => { setBackgroundDraft(event.target.value); setBackgroundError('') }} placeholder="粘贴背景图 URL" aria-label="舞台背景图 URL" />
           <button type="button" onClick={applyBackground} disabled={!backgroundDraft.trim() || backgroundApplying}>设置</button>
@@ -192,50 +249,56 @@ export function StageControlPanel({
         </div>
       </section>
 
-      <section className="stage-block">
-        <div className="stage-block-title"><span>粒子特效</span><label className="stage-switch"><input type="checkbox" checked={particleEnabled} onChange={(event) => onParticleEnabledChange(event.target.checked)} /><span /></label></div>
-        <div className="particle-presets" role="group" aria-label="粒子特效快捷预设">
-          {PARTICLE_PRESETS.map(({ id: preset, label }) => (
-            <button key={preset} type="button" className={particleEnabled && particlePreset === preset ? 'particle-preset active' : 'particle-preset'} onClick={() => { onParticlePresetChange(preset); onParticleEnabledChange(true) }}>{label}</button>
-          ))}
-        </div>
-        <div className={particleEnabled ? 'particle-color-row' : 'particle-color-row particle-control-disabled'}>
-          <span>粒子颜色</span>
-          <div className="particle-swatches" role="group" aria-label="粒子颜色快捷选择">
-            {PARTICLE_COLOR_OPTIONS.map((swatch) => (
-              <button key={swatch} type="button" disabled={!particleEnabled} aria-label={`设置粒子颜色 ${swatch}`} className={particleColor === swatch ? 'particle-swatch active' : 'particle-swatch'} style={{ backgroundColor: swatch }} onClick={() => onParticleColorChange(swatch)} />
-            ))}
-          </div>
-        </div>
-        <label className={particleEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>强度 <b>{Math.round(particleIntensity * 100)}%</b></span><input type="range" disabled={!particleEnabled} min="0" max="1" step="0.05" value={particleIntensity} onChange={(event) => onParticleIntensityChange(Number(event.target.value))} /></label>
-        <label className={particleEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>速度 <b>{particleSpeed.toFixed(1)}x</b></span><input type="range" disabled={!particleEnabled} min="0.3" max="2" step="0.1" value={particleSpeed} onChange={(event) => onParticleSpeedChange(Number(event.target.value))} /></label>
-        <label className={particleEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>透明度 <b>{Math.round(particleOpacity * 100)}%</b></span><input type="range" disabled={!particleEnabled} min="0" max="1" step="0.05" value={particleOpacity} onChange={(event) => onParticleOpacityChange(Number(event.target.value))} /></label>
-        <label className={particleEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>大小 <b>{Math.round(particleSize * 100)}%</b></span><input type="range" disabled={!particleEnabled} min="0.5" max="2.5" step="0.1" value={particleSize} onChange={(event) => onParticleSizeChange(Number(event.target.value))} /></label>
-      </section>
+      <ParticleControlPanel
+        enabled={particleEnabled}
+        onEnabledChange={onParticleEnabledChange}
+        intensity={particleIntensity}
+        onIntensityChange={onParticleIntensityChange}
+        speed={particleSpeed}
+        onSpeedChange={onParticleSpeedChange}
+        opacity={particleOpacity}
+        onOpacityChange={onParticleOpacityChange}
+        preset={particlePreset}
+        onPresetChange={onParticlePresetChange}
+        color={particleColor}
+        onColorChange={onParticleColorChange}
+        size={particleSize}
+        onSizeChange={onParticleSizeChange}
+      />
 
-      <section className="stage-block">
-        <div className="stage-block-title"><span>舞台滤镜</span><label className="stage-switch"><input type="checkbox" checked={filterEnabled} onChange={(event) => onFilterEnabledChange(event.target.checked)} /><span /></label></div>
-        <div className="filter-presets" role="group" aria-label="舞台滤镜快捷预设">
-          {FILTER_PRESETS.map(({ id, label }) => (
-            <button key={id} type="button" className={filterPreset === id ? 'filter-preset active' : 'filter-preset'} onClick={() => onFilterPresetChange(id)}>{label}</button>
-          ))}
-        </div>
-        <label className={filterEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>亮度 <b>{Math.round(filterBrightness * 100)}%</b></span><input type="range" disabled={!filterEnabled} min="0.65" max="1.35" step="0.05" value={filterBrightness} onChange={(event) => onFilterBrightnessChange(Number(event.target.value))} /></label>
-        <label className={filterEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>对比度 <b>{Math.round(filterContrast * 100)}%</b></span><input type="range" disabled={!filterEnabled} min="0.7" max="1.35" step="0.05" value={filterContrast} onChange={(event) => onFilterContrastChange(Number(event.target.value))} /></label>
-        <label className={filterEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>饱和度 <b>{Math.round(filterSaturation * 100)}%</b></span><input type="range" disabled={!filterEnabled} min="0" max="1.6" step="0.05" value={filterSaturation} onChange={(event) => onFilterSaturationChange(Number(event.target.value))} /></label>
-        <label className={filterEnabled ? 'stage-slider' : 'stage-slider particle-control-disabled'}><span>柔焦 <b>{filterBlur.toFixed(1)}px</b></span><input type="range" disabled={!filterEnabled} min="0" max="3" step="0.5" value={filterBlur} onChange={(event) => onFilterBlurChange(Number(event.target.value))} /></label>
-      </section>
+      <FilterControlPanel
+        enabled={filterEnabled}
+        onEnabledChange={onFilterEnabledChange}
+        preset={filterPreset}
+        onPresetChange={onFilterPresetChange}
+        brightness={filterBrightness}
+        onBrightnessChange={onFilterBrightnessChange}
+        contrast={filterContrast}
+        onContrastChange={onFilterContrastChange}
+        saturation={filterSaturation}
+        onSaturationChange={onFilterSaturationChange}
+        blur={filterBlur}
+        onBlurChange={onFilterBlurChange}
+        backgroundUrl={backgroundUrl}
+        customPresets={customFilterPresets}
+        onAddCustomPreset={onAddCustomFilterPreset}
+      />
 
       <section className="stage-block music-block">
-        <div className="stage-block-title"><span>背景音乐</span><span className="stage-muted">{musicName}</span></div>
+        <div className="stage-block-title"><span>背景音乐</span><span className="stage-muted">{musicName || '未设置音乐'}</span></div>
+        <div className="music-presets" role="group" aria-label="背景音乐预设">
+          {MUSIC_PRESETS.map((preset) => (
+            <button key={preset.id} type="button" className={musicPreset === preset.id ? 'music-preset active' : 'music-preset'} onClick={() => selectMusicPreset(preset)}>{preset.label}</button>
+          ))}
+        </div>
         <div className="stage-url-row">
           <input value={musicDraft} onChange={(event) => { setMusicDraft(event.target.value); setMusicError('') }} placeholder="粘贴音频 URL" aria-label="背景音乐 URL" />
           <button type="button" onClick={handleMusicUrl} disabled={!musicDraft.trim()}>设置</button>
         </div>
-        <label className="stage-file"><span>选择本地音频</span><input type="file" accept="audio/*" onChange={(event) => handleMusicFile(event.target.files?.[0] ?? null)} /></label>
-        <div className="music-controls"><button type="button" onClick={toggleMusic} disabled={!musicUrl}>{isPlaying ? '暂停' : '播放'}</button><label><span>音量</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label></div>
         {musicError && <div className="stage-error">{musicError}</div>}
-        <audio ref={audioRef} src={musicUrl} loop onEnded={() => setIsPlaying(false)} />
+        <div className="music-file-row"><button type="button" className="music-play-toggle" onClick={toggleMusic} disabled={!musicUrl}>{isPlaying ? '暂停' : '播放'}</button><label className="stage-file"><span>选择本地音频</span><input type="file" accept="audio/*" onChange={(event) => handleMusicFile(event.target.files?.[0] ?? null)} /></label></div>
+        <div className="music-controls"><label><span>音量</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label></div>
+        <audio ref={audioRef} src={musicUrl} loop preload="auto" onEnded={() => setIsPlaying(false)} />
       </section>
     </aside>
   )
