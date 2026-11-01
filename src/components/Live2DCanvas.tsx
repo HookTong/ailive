@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as PIXI from 'pixi.js'
 import { Live2DModel } from 'pixi-live2d-display'
 
@@ -12,18 +12,35 @@ type Live2DCanvasProps = {
   expressions: ExpressionSelection[]
   size: number
   positionResetKey: number
+  initialPosition?: { x: number; y: number }
   onLoadStateChange?: (state: 'loading' | 'ready' | 'missing') => void
 }
 
-export function Live2DCanvas({ modelUrl, motion, expressions, size, positionResetKey, onLoadStateChange }: Live2DCanvasProps) {
+export type Live2DCanvasHandle = {
+  hitTest: (clientX: number, clientY: number) => boolean
+  beginDrag: (clientX: number, clientY: number) => boolean
+  moveDrag: (clientX: number, clientY: number) => void
+  endDrag: () => void
+}
+
+export const Live2DCanvas = forwardRef<Live2DCanvasHandle, Live2DCanvasProps>(function Live2DCanvas({ modelUrl, motion, expressions, size, positionResetKey, initialPosition, onLoadStateChange }, ref) {
   const hostRef = useRef<HTMLDivElement>(null)
   const modelRef = useRef<Live2DModel<any> | null>(null)
   const expressionStackRef = useRef<ExpressionDefinition[]>([])
   const sizeRef = useRef(size)
-  const positionRatioRef = useRef<{ x: number; y: number } | null>(null)
+  const positionRatioRef = useRef<{ x: number; y: number } | null>(initialPosition ?? null)
+  const initialPositionRef = useRef(initialPosition ?? null)
   const fitModelRef = useRef<(() => void) | null>(null)
+  const interactionApiRef = useRef<Live2DCanvasHandle | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
+
+  useImperativeHandle(ref, () => ({
+    hitTest: (clientX, clientY) => interactionApiRef.current?.hitTest(clientX, clientY) ?? false,
+    beginDrag: (clientX, clientY) => interactionApiRef.current?.beginDrag(clientX, clientY) ?? false,
+    moveDrag: (clientX, clientY) => interactionApiRef.current?.moveDrag(clientX, clientY),
+    endDrag: () => interactionApiRef.current?.endDrag(),
+  }), [])
 
   const updateStatus = (nextStatus: 'loading' | 'ready' | 'missing') => {
     setStatus(nextStatus)
@@ -59,13 +76,29 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
         const keepModelInsideStage = (x: number, y: number) => {
           model.x = x
           model.y = y
-          const bounds = model.getBounds()
+          let bounds = model.getBounds()
           let correctedX = model.x
           let correctedY = model.y
-          if (bounds.x < 0) correctedX -= bounds.x
-          if (bounds.x + bounds.width > app.screen.width) correctedX -= bounds.x + bounds.width - app.screen.width
-          if (bounds.y < 0) correctedY -= bounds.y
-          if (bounds.y + bounds.height > app.screen.height) correctedY -= bounds.y + bounds.height - app.screen.height
+          if (bounds.width > app.screen.width || bounds.height > app.screen.height) {
+            const fitScale = Math.min(
+              app.screen.width / Math.max(bounds.width, 1),
+              app.screen.height / Math.max(bounds.height, 1),
+            ) * 0.98
+            model.scale.set(model.scale.x * fitScale)
+            bounds = model.getBounds()
+          }
+          if (bounds.width <= app.screen.width) {
+            if (bounds.x < 0) correctedX += -bounds.x
+            if (bounds.x + bounds.width > app.screen.width) correctedX -= bounds.x + bounds.width - app.screen.width
+          } else {
+            correctedX = app.screen.width / 2
+          }
+          if (bounds.height <= app.screen.height) {
+            if (bounds.y < 0) correctedY += -bounds.y
+            if (bounds.y + bounds.height > app.screen.height) correctedY -= bounds.y + bounds.height - app.screen.height
+          } else {
+            correctedY = app.screen.height / 2
+          }
           model.x = correctedX
           model.y = correctedY
           return { x: correctedX, y: correctedY }
@@ -93,59 +126,47 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
         fitModel()
 
         let dragging = false
-        let pointerId: number | null = null
         let offsetX = 0
         let offsetY = 0
-        const getStagePoint = (event: PointerEvent) => {
-          const rect = app.view.getBoundingClientRect()
-          return {
-            x: ((event.clientX - rect.left) / Math.max(rect.width, 1)) * app.screen.width,
-            y: ((event.clientY - rect.top) / Math.max(rect.height, 1)) * app.screen.height,
-          }
-        }
-        const stopDragging = (event?: PointerEvent) => {
+        const stopDragging = () => {
           if (!dragging) return
           dragging = false
-          pointerId = null
-          host.style.cursor = 'grab'
-          if (event && host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId)
         }
-        const handlePointerDown = (event: PointerEvent) => {
-          const point = getStagePoint(event)
-          if (!model.getBounds().contains(point.x, point.y)) return
+        const hitTest = (clientX: number, clientY: number) => {
+          const rect = app.view.getBoundingClientRect()
+          const point = {
+            x: ((clientX - rect.left) / Math.max(rect.width, 1)) * app.screen.width,
+            y: ((clientY - rect.top) / Math.max(rect.height, 1)) * app.screen.height,
+          }
+          return model.getBounds().contains(point.x, point.y)
+        }
+        const beginDrag = (clientX: number, clientY: number) => {
+          const rect = app.view.getBoundingClientRect()
+          const point = {
+            x: ((clientX - rect.left) / Math.max(rect.width, 1)) * app.screen.width,
+            y: ((clientY - rect.top) / Math.max(rect.height, 1)) * app.screen.height,
+          }
+          if (!model.getBounds().contains(point.x, point.y)) return false
           dragging = true
-          pointerId = event.pointerId
           offsetX = point.x - model.x
           offsetY = point.y - model.y
-          host.setPointerCapture(event.pointerId)
-          host.style.cursor = 'grabbing'
-          event.preventDefault()
+          return true
         }
-        const handlePointerMove = (event: PointerEvent) => {
-          if (!dragging || event.pointerId !== pointerId) return
-          const point = getStagePoint(event)
+        const moveDrag = (clientX: number, clientY: number) => {
+          if (!dragging) return
+          const rect = app.view.getBoundingClientRect()
+          const point = {
+            x: ((clientX - rect.left) / Math.max(rect.width, 1)) * app.screen.width,
+            y: ((clientY - rect.top) / Math.max(rect.height, 1)) * app.screen.height,
+          }
           const position = keepModelInsideStage(point.x - offsetX, point.y - offsetY)
           positionRatioRef.current = {
             x: position.x / Math.max(app.screen.width, 1),
             y: position.y / Math.max(app.screen.height, 1),
           }
-          event.preventDefault()
         }
-        host.style.cursor = 'grab'
-        host.addEventListener('pointerdown', handlePointerDown)
-        host.addEventListener('pointermove', handlePointerMove)
-        host.addEventListener('pointerup', stopDragging)
-        host.addEventListener('pointercancel', stopDragging)
-        host.addEventListener('lostpointercapture', stopDragging)
-        removeDragHandlers = () => {
-          stopDragging()
-          host.style.cursor = ''
-          host.removeEventListener('pointerdown', handlePointerDown)
-          host.removeEventListener('pointermove', handlePointerMove)
-          host.removeEventListener('pointerup', stopDragging)
-          host.removeEventListener('pointercancel', stopDragging)
-          host.removeEventListener('lostpointercapture', stopDragging)
-        }
+        interactionApiRef.current = { hitTest, beginDrag, moveDrag, endDrag: stopDragging }
+        removeDragHandlers = () => { stopDragging(); interactionApiRef.current = null }
         const coreModel = model.internalModel.coreModel as {
           getParameterCount?: () => number
           getParameterValueByIndex?: (index: number) => number
@@ -247,7 +268,7 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
   }, [size])
 
   useEffect(() => {
-    positionRatioRef.current = null
+    positionRatioRef.current = initialPositionRef.current
     fitModelRef.current?.()
   }, [positionResetKey])
 
@@ -266,4 +287,4 @@ export function Live2DCanvas({ modelUrl, motion, expressions, size, positionRese
       )}
     </div>
   )
-}
+})

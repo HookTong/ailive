@@ -23,6 +23,15 @@ export const FILTER_PRESETS = [
 
 type FilterValues = Pick<CustomFilterPreset, 'brightness' | 'contrast' | 'saturation' | 'blur'>
 
+const STANDARD_FILTER_VALUES: FilterValues = {
+  brightness: 1,
+  contrast: 1,
+  saturation: 1,
+  blur: 0,
+}
+
+const DEFAULT_PREVIEW_BACKGROUND = '/background.png'
+
 export type FilterControlPanelProps = FilterValues & {
   enabled: boolean
   onEnabledChange: (enabled: boolean) => void
@@ -40,8 +49,9 @@ export type FilterControlPanelProps = FilterValues & {
 export function FilterControlPanel({ enabled, onEnabledChange, preset, onPresetChange, brightness, onBrightnessChange, contrast, onContrastChange, saturation, onSaturationChange, blur, onBlurChange, backgroundUrl, customPresets, onAddCustomPreset }: FilterControlPanelProps) {
   const [showModal, setShowModal] = useState(false)
   const [draftName, setDraftName] = useState('')
-  const [draftValues, setDraftValues] = useState<FilterValues>({ brightness, contrast, saturation, blur })
-  const openCustomModal = () => { setDraftName(''); setDraftValues({ brightness, contrast, saturation, blur }); setShowModal(true) }
+  const [draftValues, setDraftValues] = useState<FilterValues>(STANDARD_FILTER_VALUES)
+  const openCustomModal = () => { setDraftName(''); setDraftValues({ ...STANDARD_FILTER_VALUES }); setShowModal(true) }
+  const restoreStandardValues = () => setDraftValues({ ...STANDARD_FILTER_VALUES })
   const addCustomPreset = () => {
     const label = draftName.trim()
     if (!label) return
@@ -70,8 +80,8 @@ export function FilterControlPanel({ enabled, onEnabledChange, preset, onPresetC
           <label className="stage-slider"><span>饱和度 <b>{Math.round(draftValues.saturation * 100)}%</b></span><input type="range" min="0" max="1.6" step="0.05" value={draftValues.saturation} onChange={(event) => updateDraft('saturation', Number(event.target.value))} /></label>
           <label className="stage-slider"><span>柔焦 <b>{draftValues.blur.toFixed(1)}px</b></span><input type="range" min="0" max="3" step="0.5" value={draftValues.blur} onChange={(event) => updateDraft('blur', Number(event.target.value))} /></label>
         </div>
-        <div className="filter-preview-label">背景预览</div><div className="filter-preview" style={{ backgroundImage: backgroundUrl ? `url("${backgroundUrl}")` : undefined, filter: `brightness(${draftValues.brightness}) contrast(${draftValues.contrast}) saturate(${draftValues.saturation}) blur(${draftValues.blur}px)` }}><span>{backgroundUrl ? '' : '当前没有背景图片'}</span></div>
-        <div className="modal-actions"><button className="modal-secondary" type="button" onClick={() => setShowModal(false)}>取消</button><button className="modal-primary" type="button" onClick={addCustomPreset} disabled={!draftName.trim()}>添加滤镜</button></div>
+        <div className="filter-preview-label">背景预览</div><div className="filter-preview" style={{ backgroundImage: `url("${backgroundUrl || DEFAULT_PREVIEW_BACKGROUND}")`, filter: `brightness(${draftValues.brightness}) contrast(${draftValues.contrast}) saturate(${draftValues.saturation}) blur(${draftValues.blur}px)` }} />
+        <div className="modal-actions"><button className="modal-secondary" type="button" onClick={restoreStandardValues}>恢复标准</button><button className="modal-secondary" type="button" onClick={() => setShowModal(false)}>取消</button><button className="modal-primary" type="button" onClick={addCustomPreset} disabled={!draftName.trim()}>添加滤镜</button></div>
       </section></div>}
     </>
   )

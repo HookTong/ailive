@@ -25,6 +25,7 @@ type StageControlPanelProps = {
   onBackgroundFile: (file: File | null) => void
   onClearBackground: () => void
   onResetBackground: () => void
+  onResetStage: () => void
   particleEnabled: boolean
   onParticleEnabledChange: (enabled: boolean) => void
   particleIntensity: number
@@ -61,6 +62,7 @@ export function StageControlPanel({
   onBackgroundFile,
   onClearBackground,
   onResetBackground,
+  onResetStage,
   particleEnabled,
   onParticleEnabledChange,
   particleIntensity,
@@ -190,11 +192,10 @@ export function StageControlPanel({
     setMusicError('')
     if (!file) return
     const objectUrl = URL.createObjectURL(file)
-    const filePath = (file as File & { path?: string }).path || objectUrl
     musicObjectUrlRef.current = objectUrl
     setMusicUrl(objectUrl)
     setMusicPreset('')
-    setMusicDraft(filePath)
+    setMusicDraft('')
     setMusicName(file.name)
     playAudioSource(objectUrl, false)
   }
@@ -218,6 +219,19 @@ export function StageControlPanel({
     }
   }
 
+  const resetStage = () => {
+    if (musicObjectUrlRef.current) URL.revokeObjectURL(musicObjectUrlRef.current)
+    musicObjectUrlRef.current = null
+    audioRef.current?.pause()
+    onResetStage()
+    setMusicDraft(MUSIC_PRESETS[0].url)
+    setMusicUrl(MUSIC_PRESETS[0].url)
+    setMusicName(MUSIC_PRESETS[0].label)
+    setMusicPreset(MUSIC_PRESETS[0].id)
+    setMusicError('')
+    setVolume(0.55)
+  }
+
   return (
     <aside className="stage-controls">
       <div className="eyebrow">STAGE CONTROL</div>
@@ -237,7 +251,7 @@ export function StageControlPanel({
         </div>
         {backgroundError && <div className="stage-error">{backgroundError}</div>}
         <div className="stage-background-actions">
-          <button type="button" onClick={onClearBackground}>清除</button>
+          <button type="button" onClick={onClearBackground}>无背景</button>
           <label><span>本地图片</span><input type="file" accept="image/*" onChange={(event) => onBackgroundFile(event.target.files?.[0] ?? null)} /></label>
         </div>
       </section>
@@ -293,6 +307,7 @@ export function StageControlPanel({
         <div className="music-controls"><label><span>音量 <b>{Math.round(volume * 100)}%</b></span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label></div>
         <audio ref={audioRef} src={musicUrl} loop preload="auto" onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} onEnded={() => setIsPlaying(false)} />
       </section>
+      <button className="reset-all stage-reset" type="button" onClick={resetStage}>↺ 重置舞台</button>
     </aside>
   )
 }

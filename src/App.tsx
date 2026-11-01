@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Live2DCanvas } from './components/Live2DCanvas'
+import { useEffect, useRef, useState } from 'react'
+import { Live2DCanvas, type Live2DCanvasHandle } from './components/Live2DCanvas'
 import { ControlPanel } from './components/ControlPanel'
 import { PARTICLE_PRESETS, StageAtmosphere, type ParticlePreset, type ParticlePresetSettings } from './components/StageAtmosphere'
 import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from './components/FilterControlPanel'
 import { StageControlPanel } from './components/StageControlPanel'
+import { StageInfoCards } from './components/StageInfoCards'
+import { createMockLiveDataProvider } from './live/providers'
+import type { LiveDataProvider, LiveDataSnapshot } from './live/types'
 import type { Model3Config, ModelManifest, ModelSource } from './modelTypes'
 
 const MODEL_URL = '/models/whale/c_0120.model3.json'
@@ -17,6 +20,43 @@ const DEFAULT_MODEL_SOURCE: ModelSource = {
 }
 
 const CUSTOM_FILTERS_STORAGE_KEY = 'ailive.custom-filters'
+const ONLINE_MODELS_STORAGE_KEY = 'ailive.online-models'
+
+function loadOnlineModelSources(): ModelSource[] {
+  try {
+    const raw = window.localStorage.getItem(ONLINE_MODELS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    const seen = new Set<string>()
+    return parsed.filter((item): item is ModelSource => {
+      if (!item || typeof item !== 'object') return false
+      const source = item as Partial<ModelSource>
+      if (typeof source.id !== 'string' || !source.id.startsWith('online:') || seen.has(source.id)) return false
+      if (typeof source.name !== 'string' || typeof source.modelUrl !== 'string') return false
+      try {
+        const modelUrl = new URL(source.modelUrl)
+        if (!/^https?:$/i.test(modelUrl.protocol)) return false
+        if (source.manifestUrl) {
+          const manifestUrl = new URL(source.manifestUrl)
+          if (!/^https?:$/i.test(manifestUrl.protocol)) return false
+        }
+      } catch {
+        return false
+      }
+      seen.add(source.id)
+      return source.manifestUrl == null || typeof source.manifestUrl === 'string'
+    }).map((source) => ({
+      id: source.id,
+      name: source.name,
+      modelUrl: source.modelUrl,
+      ...(source.manifestUrl ? { manifestUrl: source.manifestUrl } : {}),
+      ...(source.useConfigName ? { useConfigName: true } : {}),
+    }))
+  } catch {
+    return []
+  }
+}
 
 function loadCustomFilterPresets(): CustomFilterPreset[] {
   try {
@@ -73,15 +113,38 @@ function createManifestFromModel3(config: Model3Config, source: ModelSource): Mo
   }
 }
 
+type CharacterState = {
+  manifest: ModelManifest | null
+  configError: boolean
+  activeMotion: string
+  selectedExpressions: string[]
+  modelSize: number
+  positionResetKey: number
+}
+
+const createCharacterState = (): CharacterState => ({
+  manifest: null,
+  configError: false,
+  activeMotion: 'idle',
+  selectedExpressions: [],
+  modelSize: 0.78,
+  positionResetKey: 0,
+})
+
+const MODEL_LAYOUT_POSITIONS = [
+  { x: 0.5, y: 0.54 },
+  { x: 0.74, y: 0.54 },
+  { x: 0.26, y: 0.54 },
+  { x: 0.86, y: 0.54 },
+  { x: 0.14, y: 0.54 },
+]
+
 function App() {
-  const [manifest, setManifest] = useState<ModelManifest | null>(null)
-  const [configError, setConfigError] = useState(false)
-  const [modelSources, setModelSources] = useState<ModelSource[]>([DEFAULT_MODEL_SOURCE])
-  const [modelSource, setModelSource] = useState(DEFAULT_MODEL_SOURCE)
-  const [activeMotion, setActiveMotion] = useState('idle')
-  const [selectedExpressions, setSelectedExpressions] = useState<string[]>([])
-  const [modelSize, setModelSize] = useState(0.78)
-  const [positionResetKey, setPositionResetKey] = useState(0)
+  const [modelSources, setModelSources] = useState<ModelSource[]>(() => [DEFAULT_MODEL_SOURCE, ...loadOnlineModelSources()])
+  const [activeModelId, setActiveModelId] = useState(DEFAULT_MODEL_SOURCE.id)
+  const [characterStates, setCharacterStates] = useState<Record<string, CharacterState>>({
+    ...Object.fromEntries(modelSources.map((source) => [source.id, createCharacterState()])),
+  })
   const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND_URL)
   const backgroundObjectUrlRef = useRef<string | null>(null)
   const [particleEnabled, setParticleEnabled] = useState(true)
@@ -102,69 +165,141 @@ function App() {
   const [vignette, setVignette] = useState(true)
   const [isTalking, setIsTalking] = useState(false)
   const [message, setMessage] = useState('你好，我是你的 Live2D 助手。')
+  const [showStageCards, setShowStageCards] = useState(true)
+  const liveDataProviderRef = useRef<LiveDataProvider>(createMockLiveDataProvider())
+  const [liveSnapshot, setLiveSnapshot] = useState<LiveDataSnapshot>(() => liveDataProviderRef.current.getSnapshot())
+  const modelRefs = useRef<Record<string, Live2DCanvasHandle | null>>({})
+  const draggingModelRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    const controller = new AbortController()
-    setManifest(null)
-    fetch(modelSource.manifestUrl ?? modelSource.modelUrl, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Model config request failed: ${response.status}`)
-        return response.json() as Promise<ModelManifest | Model3Config>
-      })
-      .then((config) => {
-        const nextManifest = modelSource.manifestUrl
-          ? config as ModelManifest
-          : createManifestFromModel3(config as Model3Config, modelSource)
-        setConfigError(false)
-        setManifest(nextManifest)
-        setActiveMotion((current) => nextManifest.motions[current] ? current : Object.keys(nextManifest.motions)[0] ?? '')
-        if (modelSource.useConfigName && nextManifest.displayName?.trim()) {
-          const configuredName = nextManifest.displayName.trim()
-          setModelSources((current) => current.map((source) => source.id === modelSource.id
-            ? { ...source, name: configuredName, useConfigName: false }
-            : source))
-          setModelSource((current) => current.id === modelSource.id
-            ? { ...current, name: configuredName, useConfigName: false }
-            : current)
-        }
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        console.error('Live2D manifest failed to load', error)
-        setConfigError(true)
-      })
-    return () => controller.abort()
-  }, [modelSource])
-
-  const selectedExpressionConfigs = useMemo(() => selectedExpressions.flatMap((name) => {
-    const config = manifest?.expressions[name]
-    return config ? [{ name, file: config.file }] : []
-  }), [manifest, selectedExpressions])
+  const modelSource = modelSources.find((source) => source.id === activeModelId) ?? DEFAULT_MODEL_SOURCE
+  const activeCharacter = characterStates[activeModelId] ?? createCharacterState()
+  const manifest = activeCharacter.manifest
+  const configError = activeCharacter.configError
+  const activeMotion = activeCharacter.activeMotion
+  const selectedExpressions = activeCharacter.selectedExpressions
+  const modelSize = activeCharacter.modelSize
   const activeMotionConfig = manifest?.motions[activeMotion]
   const currentExpressionLabel = selectedExpressions.length > 0 ? selectedExpressions.join(' + ') : '默认'
 
+  const modelSourceSignature = modelSources.map((source) => `${source.id}|${source.modelUrl}|${source.manifestUrl ?? ''}`).join('\n')
+
+  useEffect(() => liveDataProviderRef.current.subscribe(setLiveSnapshot), [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ONLINE_MODELS_STORAGE_KEY, JSON.stringify(modelSources.filter((source) => source.id.startsWith('online:'))))
+    } catch {
+      // Storage can be unavailable in private browsing or restrictive WebViews.
+    }
+  }, [modelSources])
+
+  useEffect(() => {
+    const controllers = modelSources.map((source) => {
+      const controller = new AbortController()
+      fetch(source.manifestUrl ?? source.modelUrl, { signal: controller.signal })
+        .then((response) => {
+          if (!response.ok) throw new Error(`Model config request failed: ${response.status}`)
+          return response.json() as Promise<ModelManifest | Model3Config>
+        })
+        .then((config) => {
+          const nextManifest = source.manifestUrl
+            ? config as ModelManifest
+            : createManifestFromModel3(config as Model3Config, source)
+          setCharacterStates((current) => {
+            const state = current[source.id]
+            if (!state) return current
+            return {
+              ...current,
+              [source.id]: {
+                ...state,
+                manifest: nextManifest,
+                configError: false,
+                activeMotion: nextManifest.motions[state.activeMotion]
+                  ? state.activeMotion
+                  : Object.keys(nextManifest.motions)[0] ?? '',
+              },
+            }
+          })
+          if (source.useConfigName && nextManifest.displayName?.trim()) {
+            const configuredName = nextManifest.displayName.trim()
+            setModelSources((current) => current.map((item) => item.id === source.id
+              ? { ...item, name: configuredName, useConfigName: false }
+              : item))
+          }
+        })
+        .catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === 'AbortError') return
+          console.error('Live2D manifest failed to load', error)
+          setCharacterStates((current) => current[source.id]
+            ? { ...current, [source.id]: { ...current[source.id], configError: true } }
+            : current)
+        })
+      return controller
+    })
+    return () => controllers.forEach((controller) => controller.abort())
+  }, [modelSourceSignature])
+
+  const updateActiveCharacter = (patch: Partial<CharacterState>) => {
+    setCharacterStates((current) => current[activeModelId]
+      ? { ...current, [activeModelId]: { ...current[activeModelId], ...patch } }
+      : current)
+  }
+
+  const getExpressionConfigs = (state: CharacterState) => state.selectedExpressions.flatMap((name) => {
+    const config = state.manifest?.expressions[name]
+    return config ? [{ name, file: config.file }] : []
+  })
+
+  const handleStagePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest('.stage-info-cards')) return
+    const orderedSources = [...modelSources].sort((left, right) => {
+      if (left.id === activeModelId) return 1
+      if (right.id === activeModelId) return -1
+      return modelSources.indexOf(left) - modelSources.indexOf(right)
+    }).reverse()
+    const hitSource = orderedSources.find((source) => modelRefs.current[source.id]?.hitTest(event.clientX, event.clientY))
+    if (!hitSource) return
+    setActiveModelId(hitSource.id)
+    if (modelRefs.current[hitSource.id]?.beginDrag(event.clientX, event.clientY)) {
+      draggingModelRef.current = hitSource.id
+      event.currentTarget.setPointerCapture(event.pointerId)
+      event.preventDefault()
+    }
+  }
+
+  const handleStagePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const modelId = draggingModelRef.current
+    if (!modelId) return
+    modelRefs.current[modelId]?.moveDrag(event.clientX, event.clientY)
+    event.preventDefault()
+  }
+
+  const handleStagePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const modelId = draggingModelRef.current
+    if (modelId) modelRefs.current[modelId]?.endDrag()
+    draggingModelRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
   const handleMotionChange = (motion: string) => {
-    setActiveMotion(motion)
+    updateActiveCharacter({ activeMotion: motion })
   }
 
   const handleExpressionToggle = (name: string) => {
-    setSelectedExpressions((current) =>
-      current.includes(name) ? current.filter((item) => item !== name) : [...current, name]
-    )
+    const nextExpressions = selectedExpressions.includes(name)
+      ? selectedExpressions.filter((item) => item !== name)
+      : [...selectedExpressions, name]
+    updateActiveCharacter({ selectedExpressions: nextExpressions })
   }
 
   const handleModelSizeChange = (size: number) => {
-    setModelSize(size)
+    updateActiveCharacter({ modelSize: size })
   }
 
   const handleModelSelect = (id: string) => {
     const nextSource = modelSources.find((source) => source.id === id)
-    if (!nextSource || nextSource.id === modelSource.id) return
-    setModelSource(nextSource)
-    setManifest(null)
-    setConfigError(false)
-    setSelectedExpressions([])
-    setPositionResetKey((current) => current + 1)
+    if (!nextSource || nextSource.id === activeModelId) return
+    setActiveModelId(nextSource.id)
   }
 
   const handleDeleteModel = (id: string) => {
@@ -173,17 +308,16 @@ function App() {
     if (deletedIndex < 0) return
     const remainingSources = modelSources.filter((source) => source.id !== id)
     if (remainingSources.length === 0) return
-    if (modelSource.id !== id) {
-      setModelSources(remainingSources)
-      return
-    }
-    const nextSource = remainingSources[deletedIndex] ?? remainingSources[0]
     setModelSources(remainingSources)
-    setModelSource(nextSource)
-    setManifest(null)
-    setConfigError(false)
-    setSelectedExpressions([])
-    setPositionResetKey((current) => current + 1)
+    setCharacterStates((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+    if (activeModelId === id) {
+      const nextSource = remainingSources[deletedIndex] ?? remainingSources[0]
+      setActiveModelId(nextSource.id)
+    }
   }
 
   const handleAddOnlineModel = (url: string, name: string) => {
@@ -197,14 +331,13 @@ function App() {
         useConfigName: !name.trim(),
       }
       setModelSources((current) => current.some((source) => source.id === nextSource.id) ? current : [...current, nextSource])
-      setModelSource(nextSource)
-      setManifest(null)
-      setConfigError(false)
-      setSelectedExpressions([])
-      setPositionResetKey((current) => current + 1)
+      setCharacterStates((current) => current[nextSource.id]
+        ? current
+        : { ...current, [nextSource.id]: createCharacterState() })
+      setActiveModelId(nextSource.id)
     } catch (error) {
       console.error('Online Live2D model URL is invalid', error)
-      setConfigError(true)
+      updateActiveCharacter({ configError: true })
     }
   }
 
@@ -269,11 +402,16 @@ function App() {
     setBackgroundUrl(value)
   }
 
-  const handleResetAll = () => {
-    setActiveMotion('idle')
-    setSelectedExpressions([])
-    setModelSize(0.78)
-    setPositionResetKey((current) => current + 1)
+  const handleResetRole = () => {
+    updateActiveCharacter({
+      activeMotion: 'idle',
+      selectedExpressions: [],
+      modelSize: 0.78,
+      positionResetKey: activeCharacter.positionResetKey + 1,
+    })
+  }
+
+  const handleResetStage = () => {
     if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
     backgroundObjectUrlRef.current = null
     setBackgroundUrl(DEFAULT_BACKGROUND_URL)
@@ -340,7 +478,7 @@ function App() {
           manifest={manifest}
           configError={configError}
           modelSources={modelSources}
-          activeModelId={modelSource.id}
+          activeModelId={activeModelId}
           onModelSelect={handleModelSelect}
           onDeleteModel={handleDeleteModel}
           onAddOnlineModel={handleAddOnlineModel}
@@ -350,11 +488,42 @@ function App() {
           onExpressionToggle={handleExpressionToggle}
           modelSize={modelSize}
           onModelSizeChange={handleModelSizeChange}
-          onResetAll={handleResetAll}
+          onResetRole={handleResetRole}
         />
         <section className="stage-panel">
-          <div className="stage-toolbar"><div><span className="live-dot" /> LIVE PREVIEW</div><div className="toolbar-actions"><button title="全屏">↗</button><button title="更多">•••</button></div></div>
-          <div className="preview"><div className="stage-background" style={{ ...(backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")` } : {}), filter: filterEnabled ? `brightness(${filterBrightness}) contrast(${filterContrast}) saturate(${filterSaturation}) blur(${filterBlur}px)` : 'none' }} /><StageAtmosphere enabled={particleEnabled} intensity={particleIntensity} speed={particleSpeed} opacity={particleOpacity} preset={particlePreset} color={particleColor} size={particleSize} /><Live2DCanvas key={modelSource.id} modelUrl={modelSource.modelUrl} motion={activeMotion} expressions={selectedExpressionConfigs} size={modelSize} positionResetKey={positionResetKey} /><div className={filterEnabled && vignette ? 'stage-vignette active' : 'stage-vignette'} /><div className="preview-caption"><span>{manifest?.displayName ?? modelSource.name}</span><span>{activeMotionConfig?.label ?? '读取配置中'} · {currentExpressionLabel}</span></div></div>
+          <div className="stage-toolbar"><div><span className="live-dot" /> LIVE PREVIEW</div><div className="toolbar-actions"><button type="button" title="顶部卡片" aria-label={showStageCards ? '隐藏顶部卡片' : '显示顶部卡片'} onClick={() => setShowStageCards((visible) => !visible)}>{showStageCards ? '▣' : '□'}</button><button type="button" title="全屏">↗</button><button type="button" title="更多">•••</button></div></div>
+          <div className="preview" onPointerDown={handleStagePointerDown} onPointerMove={handleStagePointerMove} onPointerUp={handleStagePointerUp} onPointerCancel={handleStagePointerUp}>
+            <div className="stage-background" style={{ ...(backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")` } : {}), filter: filterEnabled ? `brightness(${filterBrightness}) contrast(${filterContrast}) saturate(${filterSaturation}) blur(${filterBlur}px)` : 'none' }} />
+            <StageAtmosphere enabled={particleEnabled} intensity={particleIntensity} speed={particleSpeed} opacity={particleOpacity} preset={particlePreset} color={particleColor} size={particleSize} />
+            {showStageCards && <StageInfoCards snapshot={liveSnapshot} />}
+            {modelSources.map((source, index) => {
+              const state = characterStates[source.id]
+              if (!state) return null
+              const isActive = source.id === activeModelId
+              return (
+                <div
+                  className={isActive ? 'model-layer active' : 'model-layer'}
+                  key={source.id}
+                  style={{
+                    zIndex: isActive ? 5 : 3 + index,
+                  }}
+                >
+                  <Live2DCanvas
+                    ref={(handle) => { modelRefs.current[source.id] = handle }}
+                    modelUrl={source.modelUrl}
+                    motion={state.activeMotion}
+                    expressions={getExpressionConfigs(state)}
+                    size={state.modelSize}
+                    positionResetKey={state.positionResetKey}
+                    initialPosition={MODEL_LAYOUT_POSITIONS[index % MODEL_LAYOUT_POSITIONS.length]}
+                  />
+                </div>
+              )
+            })}
+            <div className="model-interaction-layer" aria-hidden="true" />
+            <div className={filterEnabled && vignette ? 'stage-vignette active' : 'stage-vignette'} />
+            <div className="preview-caption"><span>{manifest?.displayName ?? modelSource.name}</span><span>{activeMotionConfig?.label ?? '读取配置中'} · {currentExpressionLabel}</span></div>
+          </div>
           <div className="interaction-bar"><div className="input-wrap"><span>⌕</span><input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && setIsTalking(true)} placeholder="输入一句话，让角色回应..." /><button onClick={() => setIsTalking(true)}>发送</button></div><button className={isTalking ? 'talk-button active' : 'talk-button'} onClick={() => setIsTalking(!isTalking)}><span>◉</span>{isTalking ? '正在聆听' : '开始对话'}</button></div>
         </section>
         <StageControlPanel
@@ -363,6 +532,7 @@ function App() {
           onBackgroundFile={handleBackgroundFile}
           onClearBackground={() => handleBackgroundUrlChange('')}
           onResetBackground={() => handleBackgroundUrlChange(DEFAULT_BACKGROUND_URL)}
+          onResetStage={handleResetStage}
           particleEnabled={particleEnabled}
           onParticleEnabledChange={setParticleEnabled}
           particleIntensity={particleIntensity}

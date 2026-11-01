@@ -18,7 +18,7 @@ type ControlPanelProps = {
   onExpressionToggle: (expression: string) => void
   modelSize: number
   onModelSizeChange: (size: number) => void
-  onResetAll: () => void
+  onResetRole: () => void
 }
 
 export function ControlPanel({
@@ -35,7 +35,7 @@ export function ControlPanel({
   onExpressionToggle,
   modelSize,
   onModelSizeChange,
-  onResetAll,
+  onResetRole,
 }: ControlPanelProps) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ModelSource | null>(null)
@@ -188,7 +188,7 @@ export function ControlPanel({
         <input
           aria-label="模型大小"
           type="range"
-          min="0.55"
+          min="0.2"
           max="1.05"
           step="0.05"
           value={modelSize}
@@ -212,7 +212,7 @@ export function ControlPanel({
             <strong>{motionOptions.length + expressionOptions.length}</strong>
           </div>
         </div>
-        <button className="reset-all" type="button" onClick={onResetAll}>↺ 全部重置</button>
+        <button className="reset-all" type="button" onClick={onResetRole}>↺ 重置角色</button>
       </div>
 
       {addModelOpen && (
