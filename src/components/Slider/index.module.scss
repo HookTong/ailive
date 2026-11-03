@@ -1,5 +1,10 @@
+@use 'sass:color';
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
+
+// $accent 的 RGB 三元组，用来在 rgb(... / alpha) 里带动态透明度。
+// 整串要 unquote 成裸 CSS，否则 Sass 会把 rgb() 当内置函数求值并报缺参数。
+$sheen-color: unquote('rgb(#{color.red($accent)} #{color.green($accent)} #{color.blue($accent)} / calc(var(--slider-sheen) * 0.34))');
 
 .slider {
   display: block;
@@ -23,14 +28,92 @@
   font-weight: 400;
 }
 
+// 轨道粗细 / 滑块直径
+$track-height: 6px;
+$thumb-size: 14px;
+
+// 悬停高光的透明度。只有注册成 <number> 的自定义属性才能被 transition 插值，
+// 否则渐变只能硬切。伪元素能继承到父元素的这个值。
+@property --slider-sheen {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
 .input {
+  appearance: none;
+  -webkit-appearance: none;
   display: block;
   width: 100%;
-  height: 4px;
+  height: $thumb-size;
   // 必须用简写：只写 margin-top 会留下浏览器默认的左右 2px，轨道和上下文字就对不齐
   margin: 8px 0 0;
-  accent-color: $accent;
+  background: transparent;
   cursor: pointer;
+  --slider-sheen: 0;
+  transition: --slider-sheen $ease;
+
+  // 轨道：去掉浏览器默认的浅色描边，未填充段用低对比灰蓝，已填充段用主色。
+  // 悬停时在未填充段铺一层由主色渐隐的高光（透明度由 --slider-sheen 过渡）
+  &::-webkit-slider-runnable-track {
+    height: $track-height;
+    border: 0;
+    border-radius: $radius-pill;
+    background-color: $slider-track;
+    background-image:
+      linear-gradient(
+        to right,
+        transparent 0 calc(var(--slider-progress, 0) * 100%),
+        $sheen-color calc(var(--slider-progress, 0) * 100%),
+        transparent 100%
+      ),
+      linear-gradient(to right, $accent 0 calc(var(--slider-progress, 0) * 100%), transparent 0);
+    background-repeat: no-repeat;
+  }
+
+  &:hover:not(:disabled) {
+    --slider-sheen: 1;
+  }
+
+  // 滑块：实心圆，不加任何描边 / 光圈
+  &::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: $thumb-size;
+    height: $thumb-size;
+    margin-top: calc(($track-height - $thumb-size) / 2);
+    border: 0;
+    border-radius: 50%;
+    background: $accent;
+  }
+
+  // Firefox
+  &::-moz-range-track {
+    height: $track-height;
+    border: 0;
+    border-radius: $radius-pill;
+    background-color: $slider-track;
+    background-image: linear-gradient(
+      to right,
+      $sheen-color,
+      transparent 100%
+    );
+  }
+
+  &::-moz-range-progress {
+    height: $track-height;
+    border: 0;
+    border-radius: $radius-pill;
+    background: $accent;
+  }
+
+  &::-moz-range-thumb {
+    width: $thumb-size;
+    height: $thumb-size;
+    border: 0;
+    border-radius: 50%;
+    background: $accent;
+  }
 
   &:disabled {
     cursor: not-allowed;

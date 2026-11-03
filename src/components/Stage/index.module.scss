@@ -1,96 +1,81 @@
 @use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
 
-.stage {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  touch-action: none;
-  cursor: grab;
+.preview {
+  position: relative;
+  flex: 1;
+  min-height: 480px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #172936, $bg-deep);
 
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.canvas {
-  position: absolute;
-  inset: 0;
-
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-}
-
-.bubble {
-  position: absolute;
-  z-index: 5;
-  max-width: 220px;
-  transform: translate(-50%, -100%);
-  transform-origin: center bottom;
-  padding: 9px 12px;
-  border: 1px solid #8adbc47a;
-  border-radius: 12px;
-  background: #f4fff9f2;
-  color: #173338;
-  box-shadow: 0 8px 20px #06101666;
-  font-family: $font-ui;
-  font-size: 11px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-  pointer-events: none;
-
-  &::after {
+  &::before {
     content: '';
     position: absolute;
-    left: 50%;
-    bottom: -7px;
-    width: 12px;
-    height: 12px;
-    border-right: 1px solid #8adbc47a;
-    border-bottom: 1px solid #8adbc47a;
-    background: #f4fff9f2;
-    transform: translateX(-50%) rotate(45deg);
+    inset: 0;
+    z-index: 1;
+    opacity: 0.18;
+    background-image: linear-gradient(#7fbbc011 1px, transparent 1px), linear-gradient(90deg, #7fbbc011 1px, transparent 1px);
+    background-size: 48px 48px;
   }
 }
 
-.status {
+// 弹窗预览：铺满容器、不要渐变底和网格
+.previewBare {
+  height: 100%;
+  min-height: 0;
+  background: none;
+
+  &::before {
+    display: none;
+  }
+}
+
+.stageBackground {
   position: absolute;
-  left: 50%;
-  bottom: 18%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  z-index: 0;
+  inset: -12px;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   pointer-events: none;
 }
 
-.state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  color: #9eb1ba;
-  font-size: 12px;
+.vignette {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 44%, #050a12a8 100%);
+  transition: opacity 0.25s ease;
+}
 
-  small {
-    color: $text-dim;
-    font-family: $font-mono;
-    font-size: 10px;
+.vignetteActive {
+  opacity: 1;
+}
+
+.caption {
+  position: absolute;
+  z-index: 4;
+  bottom: 24px;
+  left: 30px;
+  right: 30px;
+  display: flex;
+  justify-content: space-between;
+  color: #8da1aa;
+  @include mono(10px);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+
+  span:last-child {
+    max-width: 60%;
+    @include ellipsis;
+    text-align: right;
   }
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #66dfc1;
-  box-shadow: 0 0 18px #66dfc1;
-}
-
-.dotWarning {
-  background: $warn;
-  box-shadow: 0 0 18px $warn;
+@media (max-width: 800px) {
+  .preview {
+    min-height: 460px;
+  }
 }

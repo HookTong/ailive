@@ -1,0 +1,372 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.panel {
+  padding: 28px 24px 16px;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid $border;
+  background: $bg-panel;
+  display: flex;
+  flex-direction: column;
+  @include scroll-thin;
+}
+
+.eyebrow {
+  @include mono(10px);
+  color: #6f8590;
+  letter-spacing: 0.16em;
+}
+
+.title {
+  margin: 14px 0 10px;
+  font-size: 25px;
+  letter-spacing: -0.04em;
+}
+
+.intro {
+  margin: 0 0 24px;
+  color: $text-muted;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.block {
+  margin-bottom: 20px;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  color: #80919b;
+  @include mono(10px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tinyTag {
+  color: #6ae0c2;
+  border: 1px solid #366158;
+  padding: 3px 6px;
+  border-radius: $radius-xs;
+  font-size: 9px;
+}
+
+.count {
+  color: #5e747f;
+}
+
+.picker {
+  position: relative;
+}
+
+.picker .trigger {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 12px 11px;
+  border: 1px solid #2b3d48;
+  border-radius: $radius-lg;
+  background: #1b2935;
+  color: $text;
+  font-family: $font-ui;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $accent-chip-line;
+    background: #20313c;
+  }
+}
+
+.picker .triggerOpen {
+  border-color: $accent-chip-line;
+  background: #20313c;
+}
+
+.orb {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: #77e5c8;
+  background: #294940;
+  font-size: 18px;
+}
+
+.modelName {
+  display: block;
+  font-size: 13px;
+}
+
+.modelKind {
+  display: block;
+  margin-top: 2px;
+  color: #7d919b;
+  @include mono(10px);
+}
+
+.chevron {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  margin-left: auto;
+  border-right: 1.5px solid #718691;
+  border-bottom: 1.5px solid #718691;
+  transform: rotate(45deg);
+  transition: transform $ease;
+}
+
+.triggerOpen .chevron {
+  transform: rotate(225deg);
+}
+
+.menu {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  border: 1px solid $border-strong;
+  border-radius: $radius-md;
+  background: $bg-panel-raised;
+  box-shadow: $shadow-pop;
+}
+
+.optionRow {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #263d48;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: #213943;
+  }
+}
+
+.optionRowActive {
+  background: #213943;
+}
+
+.option {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: #bacbd0;
+  padding: 9px 10px;
+  font-family: $font-ui;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    color: $text;
+  }
+}
+
+.optionMeta {
+  color: #718b95;
+  @include mono(9px);
+}
+
+.remove {
+  flex: 0 0 34px;
+  border: 0;
+  background: transparent;
+  color: #718b95;
+  font-size: 18px;
+  cursor: pointer;
+
+  &:hover {
+    color: #f09b91;
+  }
+}
+
+.addButton {
+  margin-top: 10px;
+}
+
+.error {
+  margin-top: 6px;
+  color: $warn;
+  @include mono(9px);
+  line-height: 1.4;
+}
+
+.motionList {
+  margin-top: 10px;
+  padding-right: 4px;
+}
+
+.motion {
+  border: 0;
+  background: transparent;
+  color: #8fa1a9;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 10px 8px;
+  border-radius: $radius;
+  font-family: $font-ui;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    background: $bg-hover;
+    color: $text;
+  }
+}
+
+.motionActive {
+  background: $bg-hover;
+  color: $text;
+
+  .play {
+    color: #64dfc1;
+    font-size: 7px;
+  }
+}
+
+.motionIcon {
+  color: #68d8ba;
+  font-size: 16px;
+  width: 15px;
+}
+
+.motionCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    @include ellipsis;
+    font-weight: 500;
+  }
+
+  small {
+    color: $text-dim;
+    @include mono(9px);
+  }
+}
+
+.play {
+  margin-left: auto;
+  color: #637b86;
+}
+
+.expressionList {
+  margin-top: 10px;
+  padding-right: 4px;
+}
+
+// 清空已选表达
+.clearExpressions {
+  margin-top: 8px;
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+.expression {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 34px;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: #8fa1a9;
+  font-family: $font-ui;
+  font-size: 12px;
+  text-align: left;
+  @include ellipsis;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #31514f;
+    background: $bg-hover;
+    color: $text;
+  }
+}
+
+.expressionActive {
+  border-color: #31514f;
+  background: $bg-hover;
+  color: $text;
+}
+
+.expressionMark {
+  flex: 0 0 auto;
+  color: $accent;
+  font-size: 7px;
+}
+
+.loading {
+  padding: 12px 8px;
+  color: #718691;
+  @include mono(10px);
+}
+
+.sizeBlock {
+  margin-top: 0;
+}
+
+.footer {
+  margin-top: auto;
+  border-top: 1px solid $border-soft;
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #73858f;
+  @include mono(10px);
+}
+
+.footerMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+
+  strong {
+    display: block;
+    color: #a8b7bd;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+}
+
+.resetButton {
+  width: 100%;
+}
+
+.confirmCopy {
+  margin: 0;
+  color: $text-soft;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+@media (max-width: 800px) {
+  .panel {
+    display: none;
+  }
+}

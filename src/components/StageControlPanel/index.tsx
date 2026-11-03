@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { FilterControlPanel, type CustomFilterPreset, type FilterPreset } from '../FilterControlPanel'
-import { ParticleControlPanel } from '../ParticleControlPanel'
-import type { ParticlePreset } from '../StageAtmosphere'
+import { FilterSetting } from '../FilterSetting'
+import { ParticleSetting } from '../ParticleSetting'
 import { Button } from '../Button'
 import { Input } from '../Input'
 import { Slider } from '../Slider'
 import { Tooltip } from '../Tooltip'
 import { cx } from '../../utils/cx'
+import { useStage } from '../../contexts'
 import styles from './index.module.scss'
 
 const MUSIC_PRESETS = [
@@ -25,79 +25,42 @@ const BACKGROUND_PRESETS = [
   { id: 'lofi', label: 'Lo-fi', url: '/bg_lofi.png' },
 ] as const
 
-type StageControlPanelProps = {
-  backgroundUrl: string
-  onBackgroundUrlChange: (value: string) => void
-  onBackgroundFile: (file: File | null) => void
-  onClearBackground: () => void
-  onResetBackground: () => void
-  onResetStage: () => void
-  particleEnabled: boolean
-  onParticleEnabledChange: (enabled: boolean) => void
-  particleIntensity: number
-  onParticleIntensityChange: (value: number) => void
-  particleSpeed: number
-  onParticleSpeedChange: (value: number) => void
-  particleOpacity: number
-  onParticleOpacityChange: (value: number) => void
-  particlePreset: ParticlePreset
-  onParticlePresetChange: (preset: ParticlePreset) => void
-  particleColor: string
-  onParticleColorChange: (color: string) => void
-  particleSize: number
-  onParticleSizeChange: (size: number) => void
-  filterBrightness: number
-  onFilterBrightnessChange: (value: number) => void
-  filterContrast: number
-  onFilterContrastChange: (value: number) => void
-  filterSaturation: number
-  onFilterSaturationChange: (value: number) => void
-  filterBlur: number
-  onFilterBlurChange: (value: number) => void
-  filterPreset: FilterPreset
-  onFilterPresetChange: (preset: FilterPreset) => void
-  filterEnabled: boolean
-  onFilterEnabledChange: (enabled: boolean) => void
-  customFilterPresets: CustomFilterPreset[]
-  onAddCustomFilterPreset: (preset: CustomFilterPreset) => void
-}
+export function StageControlPanel() {
+  const {
+    backgroundUrl,
+    setBackgroundUrl,
+    handleBackgroundFile,
+    particleEnabled,
+    setParticleEnabled,
+    particleIntensity,
+    particleSpeed,
+    particleOpacity,
+    particlePreset,
+    particleColor,
+    particleSize,
+    handleParticlePresetChange,
+    handleParticleColorChange,
+    handleParticleIntensityChange,
+    handleParticleSpeedChange,
+    handleParticleOpacityChange,
+    handleParticleSizeChange,
+    filterEnabled,
+    setFilterEnabled,
+    filterPreset,
+    filterBrightness,
+    filterContrast,
+    filterSaturation,
+    filterBlur,
+    customFilterPresets,
+    handleFilterPresetChange,
+    setFilterBrightness,
+    setFilterContrast,
+    setFilterSaturation,
+    setFilterBlur,
+    addCustomFilterPreset,
+    resetStage,
+  } = useStage()
 
-export function StageControlPanel({
-  backgroundUrl,
-  onBackgroundUrlChange,
-  onBackgroundFile,
-  onClearBackground,
-  onResetBackground,
-  onResetStage,
-  particleEnabled,
-  onParticleEnabledChange,
-  particleIntensity,
-  onParticleIntensityChange,
-  particleSpeed,
-  onParticleSpeedChange,
-  particleOpacity,
-  onParticleOpacityChange,
-  particlePreset,
-  onParticlePresetChange,
-  particleColor,
-  onParticleColorChange,
-  particleSize,
-  onParticleSizeChange,
-  filterBrightness,
-  onFilterBrightnessChange,
-  filterContrast,
-  onFilterContrastChange,
-  filterSaturation,
-  onFilterSaturationChange,
-  filterBlur,
-  onFilterBlurChange,
-  filterPreset,
-  onFilterPresetChange,
-  filterEnabled,
-  onFilterEnabledChange,
-  customFilterPresets,
-  onAddCustomFilterPreset,
-}: StageControlPanelProps) {
   const [backgroundDraft, setBackgroundDraft] = useState(backgroundUrl.startsWith('blob:') ? '' : backgroundUrl)
   const [backgroundError, setBackgroundError] = useState('')
   const [backgroundApplying, setBackgroundApplying] = useState(false)
@@ -120,12 +83,16 @@ export function StageControlPanel({
     audio.volume = volume
     const retryAfterLoad = () => {
       void audio.play().catch((error: unknown) => {
-        if (showError && !(error instanceof DOMException && error.name === 'AbortError')) setMusicError('浏览器阻止了播放，请再次点击播放')
+        if (showError && !(error instanceof DOMException && error.name === 'AbortError')) {
+          setMusicError('浏览器阻止了播放，请再次点击播放')
+        }
       })
     }
     audio.addEventListener('canplay', retryAfterLoad, { once: true })
     void audio.play().catch((error: unknown) => {
-      if (showError && !(error instanceof DOMException && error.name === 'AbortError')) setMusicError('浏览器阻止了播放，请再次点击播放')
+      if (showError && !(error instanceof DOMException && error.name === 'AbortError')) {
+        setMusicError('浏览器阻止了播放，请再次点击播放')
+      }
     })
   }
 
@@ -153,7 +120,7 @@ export function StageControlPanel({
     image.onload = () => {
       if (requestId !== backgroundRequestRef.current) return
       setBackgroundApplying(false)
-      onBackgroundUrlChange(value)
+      setBackgroundUrl(value)
     }
     image.onerror = () => {
       if (requestId !== backgroundRequestRef.current) return
@@ -225,11 +192,11 @@ export function StageControlPanel({
     }
   }
 
-  const resetStage = () => {
+  const handleResetStage = () => {
     if (musicObjectUrlRef.current) URL.revokeObjectURL(musicObjectUrlRef.current)
     musicObjectUrlRef.current = null
     audioRef.current?.pause()
-    onResetStage()
+    resetStage()
     setMusicDraft(MUSIC_PRESETS[0].url)
     setMusicUrl(MUSIC_PRESETS[0].url)
     setMusicName(MUSIC_PRESETS[0].label)
@@ -253,7 +220,7 @@ export function StageControlPanel({
               variant="chip"
               size="xs"
               active={backgroundUrl === url}
-              onClick={() => onBackgroundUrlChange(url)}
+              onClick={() => setBackgroundUrl(url)}
             >
               {label}
             </Button>
@@ -271,47 +238,53 @@ export function StageControlPanel({
         </div>
         {backgroundError && <div className={styles.error}>{backgroundError}</div>}
         <div className={styles.actions}>
-          <Button variant="ghost" size="sm" className={styles.actionButton} onClick={onClearBackground}>无背景</Button>
+          <Button variant="ghost" size="sm" className={styles.actionButton} onClick={() => setBackgroundUrl('')}>无背景</Button>
           <label className={styles.fileLabel}>
             <span>本地图片</span>
-            <input type="file" accept="image/*" onChange={(event) => onBackgroundFile(event.target.files?.[0] ?? null)} />
+            <input type="file" accept="image/*" onChange={(event) => handleBackgroundFile(event.target.files?.[0] ?? null)} />
           </label>
         </div>
       </section>
 
-      <ParticleControlPanel
+      <ParticleSetting
         enabled={particleEnabled}
-        onEnabledChange={onParticleEnabledChange}
+        onEnabledChange={setParticleEnabled}
         intensity={particleIntensity}
-        onIntensityChange={onParticleIntensityChange}
+        onIntensityChange={handleParticleIntensityChange}
         speed={particleSpeed}
-        onSpeedChange={onParticleSpeedChange}
+        onSpeedChange={handleParticleSpeedChange}
         opacity={particleOpacity}
-        onOpacityChange={onParticleOpacityChange}
+        onOpacityChange={handleParticleOpacityChange}
         preset={particlePreset}
-        onPresetChange={onParticlePresetChange}
+        onPresetChange={handleParticlePresetChange}
         color={particleColor}
-        onColorChange={onParticleColorChange}
+        onColorChange={handleParticleColorChange}
         size={particleSize}
-        onSizeChange={onParticleSizeChange}
+        onSizeChange={handleParticleSizeChange}
       />
 
-      <FilterControlPanel
+      <FilterSetting
         enabled={filterEnabled}
-        onEnabledChange={onFilterEnabledChange}
+        onEnabledChange={(enabled) => {
+          if (enabled) {
+            handleFilterPresetChange('standard')
+          } else {
+            setFilterEnabled(false)
+          }
+        }}
         preset={filterPreset}
-        onPresetChange={onFilterPresetChange}
+        onPresetChange={handleFilterPresetChange}
         brightness={filterBrightness}
-        onBrightnessChange={onFilterBrightnessChange}
+        onBrightnessChange={(value) => { setFilterBrightness(value) }}
         contrast={filterContrast}
-        onContrastChange={onFilterContrastChange}
+        onContrastChange={(value) => { setFilterContrast(value) }}
         saturation={filterSaturation}
-        onSaturationChange={onFilterSaturationChange}
+        onSaturationChange={(value) => { setFilterSaturation(value) }}
         blur={filterBlur}
-        onBlurChange={onFilterBlurChange}
+        onBlurChange={(value) => { setFilterBlur(value) }}
         backgroundUrl={backgroundUrl}
         customPresets={customFilterPresets}
-        onAddCustomPreset={onAddCustomFilterPreset}
+        onAddCustomPreset={addCustomFilterPreset}
       />
 
       <section className={cx(styles.block, styles.musicBlock)}>
@@ -363,7 +336,7 @@ export function StageControlPanel({
         </div>
         <audio ref={audioRef} src={musicUrl} loop preload="auto" onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} onEnded={() => setIsPlaying(false)} />
       </section>
-      <Button size="md" block className={styles.resetButton} onClick={resetStage}>↺ 重置舞台</Button>
+      <Button size="md" block className={styles.resetButton} onClick={handleResetStage}>↺ 重置舞台</Button>
     </aside>
   )
 }

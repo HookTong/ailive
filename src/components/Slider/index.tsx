@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
@@ -38,6 +39,9 @@ export function Slider({
   ariaLabel,
   className,
 }: SliderProps) {
+  // 已填充比例，交给 CSS 画轨道渐变（0 ~ 1）
+  const progress = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0
+
   const input = (
     <input
       className={styles.input}
@@ -48,6 +52,7 @@ export function Slider({
       value={value}
       disabled={disabled}
       aria-label={ariaLabel ?? label}
+      style={{ '--slider-progress': progress } as CSSProperties}
       onChange={(event) => onChange(Number(event.target.value))}
     />
   )

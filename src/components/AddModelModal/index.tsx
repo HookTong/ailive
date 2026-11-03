@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
 import { Input } from '../Input'
 import { Modal } from '../Modal'
-import { ModelPreview } from '../ModelPreview'
+import { Stage, type StageLoadState, type StageModel } from '../Stage'
 import styles from './index.module.scss'
 
 type AddModelModalProps = {
@@ -12,6 +12,8 @@ type AddModelModalProps = {
 }
 
 type PreviewStatus = 'idle' | 'loading' | 'ready' | 'missing'
+
+const PREVIEW_MODEL_ID = 'model-preview'
 
 function readModelName(config: unknown): string {
   if (!config || typeof config !== 'object') return ''
@@ -39,6 +41,21 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle')
   const [previewError, setPreviewError] = useState('')
   const requestRef = useRef(0)
+
+  // 预览直接复用 Stage：弹窗里挂一张独立的小舞台（自己的 PIXI 应用 + canvas），
+  // 与首页舞台互不影响。
+  const previewModels = useMemo<StageModel[]>(() => (previewModelUrl
+    ? [{
+      id: PREVIEW_MODEL_ID,
+      modelUrl: previewModelUrl,
+      motion: '',
+      expressions: [],
+      size: 1,
+      positionResetKey: 0,
+      initialPosition: { x: 0.5, y: 0.52 },
+      zIndex: 1,
+    }]
+    : []), [previewModelUrl])
 
   const handlePreviewUrlChange = (value: string) => {
     requestRef.current += 1
@@ -93,7 +110,7 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
   }
 
   // 预览失败时由 Stage 在预览框内直接显示原因，这里只同步状态以控制按钮可用性
-  const handlePreviewStateChange = (state: PreviewStatus) => {
+  const handlePreviewStateChange = (state: StageLoadState) => {
     setPreviewStatus(state)
     if (state !== 'missing') setPreviewError('')
   }
@@ -147,7 +164,14 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
       </label>
       <div className={styles.previewBox}>
         {previewModelUrl
-          ? <ModelPreview modelUrl={previewModelUrl} onStateChange={handlePreviewStateChange} />
+          ? (
+            <Stage
+              bare
+              models={previewModels}
+              activeModelId={PREVIEW_MODEL_ID}
+              onModelStateChange={(_id, state) => handlePreviewStateChange(state)}
+            />
+          )
           : (
             <div className={styles.placeholder}>
               {previewStatus === 'loading'
