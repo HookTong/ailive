@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import type { LiveDataSnapshot } from '../../live/types'
+import type { LiveDataType } from '../../live/types'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
 type LiveInfoProps = {
-  snapshot: LiveDataSnapshot
+  snapshot: LiveDataType
 }
 
 export function LiveInfo({ snapshot }: LiveInfoProps) {

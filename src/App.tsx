@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Stage, type StageModel } from '../components/Stage'
-import { ModelControlPanel } from '../components/ModelControlPanel'
-import { StageControlPanel } from '../components/StageControlPanel'
-import { Tooltip } from '../components/Tooltip'
-import { Button } from '../components/Button'
-import { cx } from '../utils/cx'
-import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider } from '../contexts'
-import { useModel, useVoice } from '../contexts'
-import styles from './index.module.scss'
+import { Stage, type StageModel } from './components/Stage'
+import { Footer } from './components/Footer'
+import { ModelControlPanel } from './components/ModelControlPanel'
+import { StageControlPanel } from './components/StageControlPanel'
+import { StageToolbar } from './components/StageToolbar'
+import { TopBar } from './components/TopBar'
+import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider } from './contexts'
+import { useModel, useVoice } from './contexts'
 
 const MODEL_LAYOUT_POSITIONS = [
   { x: 0.5, y: 0.54 },
@@ -50,41 +49,15 @@ function AppContent() {
   }), [activeModelId, characterStates, modelSources, modelSource, speakingModel])
 
   return (
-    <main className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
-          <span>AI LIVE<span className={styles.brandMuted}>.studio</span></span>
-        </div>
-        <div className={styles.topbarMeta}>
-          <span className={styles.statusPill}><i /> 系统在线</span>
-          <span className={styles.avatar}>A</span>
-        </div>
-      </header>
-      <section className={styles.workspace}>
+    <main className="shell">
+      <TopBar />
+      <section className="workspace">
         <ModelControlPanel />
-        <section className={styles.stagePanel}>
-          <div className={styles.stageToolbar}>
-            <div><span className={styles.liveDot} /> LIVE PREVIEW</div>
-            <div className={styles.toolbarActions}>
-              <Tooltip placement="bottom" title={showStageCards ? '隐藏顶部卡片' : '显示顶部卡片'}>
-                <Button
-                  variant="bare"
-                  className={styles.toolButton}
-                  aria-label={showStageCards ? '隐藏顶部卡片' : '显示顶部卡片'}
-                  onClick={() => setShowStageCards((visible) => !visible)}
-                >
-                  {showStageCards ? '▣' : '□'}
-                </Button>
-              </Tooltip>
-              <Tooltip placement="bottom" title="全屏">
-                <Button variant="bare" className={styles.toolButton}>↗</Button>
-              </Tooltip>
-              <Tooltip placement="bottom" title="更多">
-                <Button variant="bare" className={styles.toolButton}>•••</Button>
-              </Tooltip>
-            </div>
-          </div>
+        <section className="stagePanel">
+          <StageToolbar
+            showInfoCards={showStageCards}
+            onToggleInfoCards={() => setShowStageCards((visible) => !visible)}
+          />
           <Stage
             models={stageModels}
             activeModelId={activeModelId}
@@ -98,11 +71,7 @@ function AppContent() {
         </section>
         <StageControlPanel />
       </section>
-      <footer className={styles.footer}>
-        <span>AI LIVE STUDIO</span>
-        <span>模型资源由 Live2D Cubism 提供支持</span>
-        <span>⌘ K 快捷键</span>
-      </footer>
+      <Footer />
     </main>
   )
 }

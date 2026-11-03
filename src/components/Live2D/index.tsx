@@ -492,9 +492,14 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     hoveredIdRef.current = null
   }
 
-  const pending = models
+  // 加载态合并成一条提示：不管同时有几个模型在加载，都只显示一个
+  const loadingCount = models.filter((model) => statuses[model.id]?.status === 'loading').length
+  // 失败态保留逐条展示，每个模型的错误原因可能不同
+  const failures = models
     .map((model) => ({ model, state: statuses[model.id] }))
-    .filter((item): item is { model: Live2DModelConfig; state: { status: Live2DLoadState; error: string } } => Boolean(item.state) && item.state!.status !== 'ready')
+    .filter((item): item is { model: Live2DModelConfig; state: { status: Live2DLoadState; error: string } } => (
+      Boolean(item.state) && item.state!.status === 'missing'
+    ))
 
   return (
     <div
@@ -518,13 +523,19 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
           {model.speechText}
         </div>
       ))}
-      {pending.length > 0 && (
+      {(loadingCount > 0 || failures.length > 0) && (
         <div className={styles.status} aria-live="polite">
-          {pending.map(({ model, state }) => (
+          {loadingCount > 0 && (
+            <div className={styles.state}>
+              <span className={styles.dot} />
+              <span>正在加载模型</span>
+            </div>
+          )}
+          {failures.map(({ model, state }) => (
             <div className={styles.state} key={model.id}>
-              <span className={cx(styles.dot, state.status === 'missing' && styles.dotWarning)} />
-              <span>{state.status === 'missing' ? '模型加载失败' : '正在加载模型'}</span>
-              {state.status === 'missing' && <small>{state.error || '请检查模型资源及跨域设置'}</small>}
+              <span className={cx(styles.dot, styles.dotWarning)} />
+              <span>模型加载失败</span>
+              <small>{state.error || '请检查模型资源及跨域设置'}</small>
             </div>
           ))}
         </div>

@@ -1,0 +1,63 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  border-bottom: 1px solid $border;
+  background: $bg-topbar;
+}
+
+.brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.brandMark {
+  color: $accent-bright;
+  font-size: 20px;
+}
+
+.brandMuted {
+  color: #73818c;
+  font-weight: 500;
+}
+
+.meta {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.statusPill {
+  @include mono(11px);
+  color: #a4b4bd;
+  letter-spacing: 0.06em;
+
+  i {
+    @include status-dot;
+  }
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #31424e;
+  color: #c9d6dc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 800px) {
+  .topbar {
+    padding: 0 20px;
+  }
+}

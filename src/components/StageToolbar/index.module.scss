@@ -1,0 +1,37 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.toolbar {
+  height: 52px;
+  padding: 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #82949d;
+  @include mono(10px);
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid $border;
+}
+
+// 圆点的间距由 status-dot 自带的 margin-right 提供，这里不再额外加 gap
+.liveDot {
+  @include status-dot;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+
+  // 覆盖 Button 基础样式要用父级复合选择器，单类名打不过
+  .toolButton {
+    border: 0;
+    background: transparent;
+    color: #82949d;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      color: $text;
+    }
+  }
+}
