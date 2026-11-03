@@ -1,0 +1,67 @@
+@use './tokens' as *;
+
+/// 等宽字体（界面里大量标签用它）
+@mixin mono($size: 9px) {
+  font-family: $font-mono;
+  font-size: $size;
+}
+
+/// 单行省略
+@mixin ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/// 细滚动条
+@mixin scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #38505a transparent;
+}
+
+/// 输入类控件的默认表面
+@mixin field {
+  border: 1px solid $border-input;
+  border-radius: $radius;
+  outline: 0;
+  background: $bg-inset;
+  color: $text-soft;
+}
+
+/// 输入类控件的聚焦态
+@mixin field-focus {
+  border-color: $accent-chip-line;
+}
+
+/// 玻璃拟态面板（舞台卡片、弹幕面板共用）
+@mixin glass {
+  border: 1px solid #6b928b66;
+  border-radius: $radius-card;
+  background: #09232bd9;
+  box-shadow: $shadow-glass;
+  backdrop-filter: blur(8px);
+}
+
+/// 控制台里的一节：底部虚线分隔
+@mixin section {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid $border-soft;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+/// 节标题：左标题右附加信息
+@mixin section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #a8b7bd;
+  font-family: $font-mono;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}

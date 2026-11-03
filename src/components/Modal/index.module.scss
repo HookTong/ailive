@@ -1,0 +1,80 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #071016b8;
+}
+
+.panel {
+  width: min(560px, 100%);
+  max-height: min(720px, calc(100vh - 40px));
+  padding: 22px;
+  border: 1px solid $border-strong;
+  border-radius: $radius-lg;
+  background: $bg-panel-raised;
+  box-shadow: $shadow-modal;
+}
+
+// 内容可能超出时开启滚动（添加模型 / 自定义滤镜）
+.scrollable {
+  overflow-y: auto;
+  @include scroll-thin;
+}
+
+// 面板色（右侧控制台同色系），滤镜 / TTS 弹窗用它
+.panelSoft {
+  border-color: #38515d;
+  background: $bg-panel;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  @include mono(10px);
+  color: #6f8590;
+  letter-spacing: 0.16em;
+}
+
+.title {
+  margin: 8px 0 0;
+  color: $text;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid $border-strong;
+  border-radius: $radius;
+  background: transparent;
+  color: $text-muted;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $accent;
+    color: $text;
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}

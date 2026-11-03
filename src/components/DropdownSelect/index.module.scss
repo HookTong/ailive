@@ -1,0 +1,87 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.root {
+  position: relative;
+}
+
+.trigger {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  border: 1px solid #42665f;
+  border-radius: $radius;
+  outline: 0;
+  background: #101b24e8;
+  color: #c9d8db;
+  font-family: $font-ui;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #66a998;
+    background: #162a31ed;
+  }
+}
+
+.open .trigger {
+  border-color: #66a998;
+  background: #162a31ed;
+}
+
+.chevron {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-right: 1.5px solid #9bb5b8;
+  border-bottom: 1.5px solid #9bb5b8;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform $ease;
+}
+
+.open .chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.menu {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  padding: 3px;
+  border: 1px solid #42665f;
+  border-radius: 7px;
+  background: #101b24ed;
+  box-shadow: 0 12px 24px #02070d99;
+}
+
+.option {
+  width: 100%;
+  height: 31px;
+  border: 0;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: #9db0b4;
+  font-family: $font-ui;
+  font-size: 10px;
+  text-align: left;
+  padding: 0 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: #24504bdb;
+    color: #e3fff4;
+  }
+}
+
+.option.active {
+  background: #24504bdb;
+  color: #e3fff4;
+}

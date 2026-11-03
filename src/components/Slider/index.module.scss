@@ -1,0 +1,48 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.slider {
+  display: block;
+  margin-top: 12px;
+  color: #80919b;
+  @include mono(10px);
+  letter-spacing: 0.08em;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.value {
+  // letter-spacing 会在末字后多留一个字距，补掉它右边缘才和轨道齐平
+  margin-right: -0.08em;
+  color: #5e747f;
+  font-weight: 400;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  height: 4px;
+  // 必须用简写：只写 margin-top 会留下浏览器默认的左右 2px，轨道和上下文字就对不齐
+  margin: 8px 0 0;
+  accent-color: $accent;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// 轨道两端的说明（较小 / 较大）
+.range {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  color: $text-dim;
+  @include mono(9px);
+  letter-spacing: normal;
+}

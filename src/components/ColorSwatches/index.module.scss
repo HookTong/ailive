@@ -1,0 +1,55 @@
+@use '../../styles/tokens' as *;
+
+.swatches {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.swatch,
+.picker {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  padding: 0;
+  border: 1px solid #51636b;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.swatch {
+  &:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.45);
+  }
+}
+
+.swatchActive {
+  outline: 2px solid $text;
+  outline-offset: 1px;
+}
+
+// 自定义取色：用一个隐藏的原生 color input 盖在彩虹圆点上
+.picker {
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(#ff5f6d, #ffc371, #66e4c7, #7dbfff, #c58cff, #ff5f6d);
+
+  input {
+    position: absolute;
+    inset: -5px;
+    width: 28px;
+    height: 28px;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+
+.pickerActive {
+  outline: 2px solid $text;
+  outline-offset: 1px;
+}
+
+.pickerDisabled {
+  cursor: not-allowed;
+}

@@ -1,0 +1,20 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.root {
+  overflow-y: auto;
+  @include scroll-thin;
+}
+
+// 内部统一用网格排列：columns=1 就是单列列表
+.grid {
+  display: grid;
+  align-content: start;
+}
+
+// 带边框与底色的容器（动作 / 表达预设那种）
+.framed {
+  border: 1px solid $border-inset;
+  border-radius: $radius-md;
+  background: $bg-inset;
+}

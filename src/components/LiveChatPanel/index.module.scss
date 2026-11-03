@@ -1,0 +1,246 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  /* 必须高于 Stage(z-index:3)，否则会被全屏拖拽层盖住 */
+  z-index: 9;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  width: 268px;
+  max-height: min(66%, 540px);
+  padding: 12px 12px 10px;
+  @include glass;
+  color: #b6d2c7;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  strong {
+    color: #f0d98b;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  small {
+    color: #7f9c94;
+    @include mono(10px);
+  }
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5d7a74;
+}
+
+.dotLive {
+  background: #66e4c7;
+  box-shadow: 0 0 0 3px #66e4c71c;
+}
+
+.dotConnecting,
+.dotReconnecting {
+  background: $warn;
+  box-shadow: 0 0 0 3px #e0ab631c;
+}
+
+.dotError,
+.dotOffline {
+  background: #d97b7b;
+  box-shadow: 0 0 0 3px #d97b7b1c;
+}
+
+.online {
+  color: #9fe1cb;
+  @include mono(10px);
+}
+
+.inputRow {
+  display: flex;
+  gap: 6px;
+}
+
+.roomInput {
+  flex: 1;
+  min-width: 0;
+}
+
+// 面板内的小号连接键，用父级选择器压过 Button 的基础样式
+.inputRow .connect {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #3b5a5d;
+  border-radius: $radius;
+  background: #1c3339;
+  color: #a4e7d2;
+  font-family: $font-mono;
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover {
+    background: #24474c;
+  }
+}
+
+.error {
+  margin: 7px 0 0;
+  color: #e79a9a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.roomTitle {
+  margin: 7px 0 0;
+  @include ellipsis;
+  color: #8fb3aa;
+  font-size: 10px;
+}
+
+.metrics {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #27414a;
+  color: #7f9c94;
+  @include mono(9px);
+
+  b {
+    color: #cfe9df;
+    font-weight: 500;
+  }
+}
+
+.feed {
+  flex: 1;
+  min-height: 80px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  padding: 3px 0;
+  color: #a9c4bc;
+  font-size: 11px;
+  line-height: 1.55;
+  word-break: break-word;
+
+  b {
+    margin-right: 4px;
+    color: #d9e9e3;
+    font-weight: 500;
+  }
+}
+
+.rowChat span {
+  color: #9db8b0;
+}
+
+.rowGift {
+  b {
+    color: #f0d98b;
+  }
+
+  em {
+    color: #f0d98b;
+    font-style: normal;
+  }
+}
+
+.rowMember,
+.rowFollow {
+  color: #7d968f;
+  font-size: 10px;
+}
+
+.rowStats {
+  margin: 4px 0;
+  padding: 3px 0;
+  border-top: 1px dashed #27414a;
+  color: #6fd3b8;
+  @include mono(9px);
+}
+
+.feedEmpty {
+  padding: 14px 0;
+  color: #6b8580;
+  font-size: 10px;
+  text-align: center;
+}
+
+.rank {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #27414a;
+
+  h4 {
+    margin: 0 0 5px;
+    color: #f0d98b;
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    font-size: 10px;
+  }
+
+  i {
+    display: grid;
+    place-items: center;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #23414a;
+    color: #9fe1cb;
+    @include mono(8px);
+    font-style: normal;
+  }
+
+  span {
+    flex: 1;
+    @include ellipsis;
+    color: #b6d2c7;
+  }
+
+  b {
+    color: #f0d98b;
+    @include mono(9px);
+    font-weight: 400;
+  }
+}
+
+@media (max-width: 900px) {
+  .panel {
+    width: 220px;
+    max-height: 54%;
+  }
+}

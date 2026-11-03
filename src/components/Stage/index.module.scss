@@ -1,0 +1,96 @@
+@use '../../styles/tokens' as *;
+
+.stage {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.bubble {
+  position: absolute;
+  z-index: 5;
+  max-width: 220px;
+  transform: translate(-50%, -100%);
+  transform-origin: center bottom;
+  padding: 9px 12px;
+  border: 1px solid #8adbc47a;
+  border-radius: 12px;
+  background: #f4fff9f2;
+  color: #173338;
+  box-shadow: 0 8px 20px #06101666;
+  font-family: $font-ui;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    width: 12px;
+    height: 12px;
+    border-right: 1px solid #8adbc47a;
+    border-bottom: 1px solid #8adbc47a;
+    background: #f4fff9f2;
+    transform: translateX(-50%) rotate(45deg);
+  }
+}
+
+.status {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #9eb1ba;
+  font-size: 12px;
+
+  small {
+    color: $text-dim;
+    font-family: $font-mono;
+    font-size: 10px;
+  }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #66dfc1;
+  box-shadow: 0 0 18px #66dfc1;
+}
+
+.dotWarning {
+  background: $warn;
+  box-shadow: 0 0 18px $warn;
+}

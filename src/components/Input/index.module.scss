@@ -1,0 +1,66 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.input {
+  @include field;
+  width: 100%;
+  padding: 0 8px;
+  font-family: $font-ui;
+  font-size: 10px;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    @include field-focus;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.sm {
+  height: 28px;
+}
+
+.md {
+  height: 32px;
+}
+
+.lg {
+  height: 36px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.bare {
+  height: auto;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  outline: 0;
+  color: inherit;
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  @include field;
+  padding: 8px;
+  color: #d9e4e5;
+  font-family: $font-ui;
+  font-size: 10px;
+
+  &::placeholder {
+    color: $text-faint;
+  }
+
+  &:focus {
+    border-color: #5ba895;
+  }
+}

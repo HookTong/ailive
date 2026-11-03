@@ -1,0 +1,296 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+.shell {
+  height: 100%;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 72px 1fr 44px;
+  background: radial-gradient(circle at 72% 32%, #1c3343 0, $bg-base 44%);
+}
+
+// 顶栏
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  border-bottom: 1px solid $border;
+  background: $bg-topbar;
+}
+
+.brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.brandMark {
+  color: $accent-bright;
+  font-size: 20px;
+}
+
+.brandMuted {
+  color: #73818c;
+  font-weight: 500;
+}
+
+.topbarMeta {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.statusPill {
+  @include mono(11px);
+  color: #a4b4bd;
+  letter-spacing: 0.06em;
+}
+
+.statusPill i,
+.liveDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #66e4c7;
+  box-shadow: 0 0 0 3px #66e4c71c;
+  margin-right: 8px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #31424e;
+  color: #c9d6dc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+// 主工作区
+.workspace {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+
+.stagePanel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stageToolbar {
+  height: 52px;
+  padding: 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #82949d;
+  @include mono(10px);
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid $border;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 10px;
+
+  .toolButton {
+    border: 0;
+    background: transparent;
+    color: #82949d;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      color: $text;
+    }
+  }
+}
+
+// 舞台
+.preview {
+  position: relative;
+  flex: 1;
+  min-height: 480px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #172936, $bg-deep);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.18;
+    background-image: linear-gradient(#7fbbc011 1px, transparent 1px), linear-gradient(90deg, #7fbbc011 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+}
+
+.stageBackground {
+  position: absolute;
+  z-index: 0;
+  inset: -12px;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.vignette {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 44%, #050a12a8 100%);
+  transition: opacity 0.25s ease;
+}
+
+.vignetteActive {
+  opacity: 1;
+}
+
+.caption {
+  position: absolute;
+  z-index: 4;
+  bottom: 24px;
+  left: 30px;
+  right: 30px;
+  display: flex;
+  justify-content: space-between;
+  color: #8da1aa;
+  @include mono(10px);
+  letter-spacing: 0.08em;
+  /* 字幕只是信息层，不能挡住舞台拖拽 */
+  pointer-events: none;
+
+  span:last-child {
+    max-width: 60%;
+    @include ellipsis;
+    text-align: right;
+  }
+}
+
+// 底部对话条
+.interactionBar {
+  padding: 20px 30px 24px;
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid $border;
+  background: $bg-panel;
+}
+
+.inputWrap {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  border: 1px solid #334752;
+  border-radius: $radius-md;
+  background: #1a2934;
+  color: #78909a;
+  padding-left: 14px;
+
+  input {
+    flex: 1;
+    padding: 0 10px;
+    color: #d9e4e5;
+    font-family: $font-ui;
+    font-size: 12px;
+  }
+
+  .send {
+    height: 30px;
+    margin-right: 8px;
+    border: 0;
+    border-radius: $radius-sm;
+    padding: 0 14px;
+    background: #2d4550;
+    color: #b5c9cd;
+    font-family: $font-ui;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:hover {
+      background: #37525f;
+    }
+  }
+}
+
+.interactionBar .talk {
+  border: 1px solid #3b5a5d;
+  border-radius: $radius-md;
+  background: #1c3339;
+  color: #a4e7d2;
+  font-family: $font-mono;
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover {
+    background: #24474c;
+  }
+}
+
+.interactionBar .talkActive,
+.interactionBar .talkActive:hover {
+  background: #317365;
+  color: #fff;
+}
+
+.talkIcon {
+  margin-right: 8px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  color: #6b7e88;
+  @include mono(10px);
+  border-top: 1px solid $border;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    padding: 0 20px;
+  }
+
+  .preview {
+    min-height: 460px;
+  }
+
+  .interactionBar {
+    padding: 14px 16px;
+  }
+
+  .interactionBar .talk {
+    padding: 0 12px;
+  }
+
+  .footer {
+    padding: 0 20px;
+
+    span:nth-child(2) {
+      display: none;
+    }
+  }
+}

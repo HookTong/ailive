@@ -1,0 +1,232 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.cards {
+  position: absolute;
+  z-index: 8;
+  top: 18px;
+  left: 24px;
+  width: min(560px, calc(100% - 48px));
+  color: #d9e8e3;
+  pointer-events: auto;
+  text-shadow: 0 1px 2px #061016;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.cards.dragging {
+  cursor: grabbing;
+}
+
+.nowPlaying,
+.card {
+  @include glass;
+}
+
+.nowPlaying {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 10px 16px;
+
+  > div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  strong,
+  b {
+    @include ellipsis;
+  }
+
+  strong {
+    color: #8ee2c2;
+    @include mono(9px);
+  }
+
+  b {
+    color: #f0f4e7;
+    font-size: 15px;
+  }
+
+  small {
+    color: #a8c2be;
+    @include mono(9px);
+  }
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #8adbc45c;
+  border-radius: 50%;
+  color: #f5d67d;
+  font-size: 17px;
+}
+
+.equalizer {
+  margin-left: auto;
+  color: #f0dfaa;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.1fr) minmax(160px, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.card {
+  min-height: 154px;
+  padding: 13px 14px;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 12px;
+    color: #f0d98b;
+    font-size: 11px;
+  }
+
+  h3 small {
+    color: #b6d2c7;
+    @include mono(9px);
+  }
+}
+
+.income > strong {
+  display: block;
+  color: #f2e5ba;
+  font-size: 24px;
+
+  small {
+    font-size: 10px;
+  }
+}
+
+.metrics {
+  display: flex;
+  gap: 18px;
+  margin: 9px 0 12px;
+  color: #8eaaa5;
+  @include mono(8px);
+
+  b {
+    display: block;
+    margin-top: 3px;
+    color: #d8e7d4;
+    font-size: 11px;
+  }
+}
+
+.income dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 12px;
+  margin: 0;
+  color: #91aaa7;
+  @include mono(8px);
+}
+
+.income dd {
+  margin: 0;
+  color: #dae7d9;
+  font-size: 10px;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+
+  .card {
+    min-height: 72px;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: #c9ddd5;
+    @include mono(9px);
+  }
+
+  li {
+    margin-top: 5px;
+  }
+}
+
+.empty {
+  height: 32px;
+  border-radius: 7px;
+  background: #07182066;
+}
+
+.guard ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #c9ddd5;
+  @include mono(9px);
+}
+
+.guard li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.guard i {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d3bc69;
+  color: #173338;
+  font-style: normal;
+  font-size: 8px;
+}
+
+.guard li:nth-child(n + 2) i {
+  background: #dde5df;
+}
+
+.guard b {
+  color: #e3e6c7;
+  font-weight: 400;
+}
+
+// 需要压过 .guard li 的网格布局，否则单个文字会被挤进 18px 列里竖排
+.guard .guardEmpty {
+  display: block;
+  padding: 8px 0;
+  color: #7d968f;
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .cards {
+    top: 10px;
+    left: 10px;
+    width: min(560px, calc(100% - 20px));
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .guard {
+    grid-column: 1 / -1;
+  }
+}

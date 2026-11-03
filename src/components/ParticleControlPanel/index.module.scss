@@ -1,0 +1,38 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.block {
+  @include section;
+}
+
+.title {
+  @include section-title;
+}
+
+.presets {
+  margin: 0 0 4px;
+  padding-right: 3px;
+}
+
+.detailToggle {
+  margin: 8px 0 2px;
+}
+
+.fineControls {
+  padding-top: 2px;
+}
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  color: $text-muted;
+  @include mono(9px);
+}
+
+// 粒子关闭时整块参数变灰
+.disabled {
+  opacity: 0.42;
+}

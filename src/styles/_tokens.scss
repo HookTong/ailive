@@ -1,0 +1,66 @@
+// 设计令牌：颜色、字体、圆角、阴影、动效。
+// 各组件模块通过 `@use '../../styles/tokens' as *;` 取用，避免样式散落硬编码。
+
+// 字体
+$font-ui: Manrope, system-ui, sans-serif;
+$font-mono: 'DM Mono', monospace;
+
+// 背景
+$bg-base: #101722;
+$bg-deep: #0f1b25;
+$bg-topbar: #111a25;
+$bg-panel: #131e29;
+$bg-panel-raised: #172732;
+$bg-inset: #101b24;
+$bg-hover: #1c2b36;
+
+// 边框
+$border: #253340;
+$border-soft: #293945;
+$border-inset: #293d48;
+$border-input: #2d4651;
+$border-strong: #35505c;
+
+// 文字
+$text: #e8f1f1;
+$text-soft: #b8c8cd;
+$text-muted: #82939d;
+$text-dim: #637983;
+$text-faint: #607680;
+
+// 主色（青绿）
+$accent: #66dfc1;
+$accent-bright: #62e8cb;
+$accent-soft: #9ee7d2;
+$accent-text: #b8f5e2;
+$accent-line: #3d615b;
+$accent-line-hover: #66dfc1;
+$accent-fill: #1a3537;
+$accent-fill-hover: #21453f;
+$accent-chip-line: #4b8178;
+$accent-chip-fill: #1d4541;
+
+// 警示 / 危险
+$warn: #e0ab63;
+$danger-text: #ffc0b5;
+$danger-line: #7b4b49;
+$danger-fill: #4b2c30;
+$danger-fill-hover: #63363a;
+$danger-line-hover: #d78276;
+
+// 圆角
+$radius-xs: 3px;
+$radius-sm: 4px;
+$radius: 5px;
+$radius-md: 6px;
+$radius-lg: 8px;
+$radius-pill: 10px;
+$radius-card: 14px;
+
+// 阴影
+$shadow-pop: 0 12px 24px #07101699;
+$shadow-modal: 0 20px 60px #071016cc;
+$shadow-glass: 0 10px 30px #06111666, inset 0 1px #b5e5d51c;
+
+// 动效
+$ease: 0.16s ease;

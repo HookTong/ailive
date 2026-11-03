@@ -1,0 +1,155 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  border-radius: $radius;
+  cursor: pointer;
+  transition: border-color $ease, background $ease, color $ease;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// 尺寸
+.xs {
+  height: 30px;
+  padding: 0 4px;
+  @include mono(9px);
+}
+
+.sm {
+  height: 32px;
+  padding: 0 9px;
+  @include mono(9px);
+}
+
+.md {
+  height: 34px;
+  padding: 0 10px;
+  @include mono(10px);
+}
+
+.lg {
+  height: 36px;
+  padding: 0 14px;
+  @include mono(10px);
+}
+
+.xl {
+  height: 46px;
+  padding: 0 18px;
+  @include mono(11px);
+}
+
+.block {
+  width: 100%;
+}
+
+.iconOnly {
+  padding: 0;
+}
+
+// 变体
+.primary {
+  border: 1px solid $accent-line;
+  background: $accent-fill;
+  color: $accent-soft;
+
+  &:hover:not(:disabled) {
+    border-color: $accent-line-hover;
+    background: $accent-fill-hover;
+    color: $text;
+  }
+
+  &:disabled {
+    border-color: $border-input;
+    background: #16252d;
+    color: #536972;
+    opacity: 0.7;
+  }
+}
+
+.secondary {
+  border: 1px solid $border-strong;
+  background: transparent;
+  color: $text-muted;
+
+  &:hover:not(:disabled) {
+    border-color: #537b7b;
+    color: $text;
+  }
+}
+
+.ghost {
+  border: 1px solid $border-input;
+  background: transparent;
+  color: $text-muted;
+
+  &:hover:not(:disabled) {
+    border-color: #537b7b;
+    background: #1b3038;
+    color: #b8d9d1;
+  }
+}
+
+.dashed {
+  border: 1px dashed $border-input;
+  background: transparent;
+  color: $text-muted;
+
+  &:hover:not(:disabled) {
+    border-color: $accent-line-hover;
+    color: $accent-text;
+  }
+}
+
+.danger {
+  border: 1px solid $danger-line;
+  background: $danger-fill;
+  color: $danger-text;
+
+  &:hover:not(:disabled) {
+    border-color: $danger-line-hover;
+    background: $danger-fill-hover;
+    color: #ffe0da;
+  }
+}
+
+// 预设胶囊：背景 / 音乐 / 粒子 / 滤镜 / 音色都在用
+.chip {
+  border: 1px solid $border-input;
+  background: $bg-inset;
+  color: $text-muted;
+  @include ellipsis;
+
+  &:hover:not(:disabled) {
+    border-color: $accent-chip-line;
+    background: $accent-chip-fill;
+    color: $accent-text;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+  }
+}
+
+.chip.active {
+  border-color: $accent-chip-line;
+  background: $accent-chip-fill;
+  color: $accent-text;
+}
+
+// 无边框无底色：工具栏图标、发送按钮、列表行等自绘按钮
+.bare {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+}

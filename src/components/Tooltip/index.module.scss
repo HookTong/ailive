@@ -1,0 +1,32 @@
+@use '../../styles/tokens' as *;
+
+.trigger {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+// 被撑满的触发器（音色胶囊、发声按钮）
+.blockTrigger {
+  display: block;
+  width: 100%;
+}
+
+.popup {
+  position: fixed;
+  z-index: 100;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #0a1820e8;
+  box-shadow: 0 8px 18px #02070d99;
+  color: #d6e8e4;
+  font-family: $font-ui;
+  font-size: 9px;
+  line-height: 1.35;
+  pointer-events: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

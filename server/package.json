@@ -1,0 +1,9 @@
+{
+  "name": "dy-live-sign",
+  "private": true,
+  "version": "1.0.0",
+  "description": "抖音直播间监听 - JS 签名运行时",
+  "dependencies": {
+    "jsrsasign": "^11.1.0"
+  }
+}

@@ -1,0 +1,58 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.block {
+  @include section;
+}
+
+.title {
+  @include section-title;
+}
+
+.presets {
+  margin: 0 0 14px;
+  padding-right: 3px;
+}
+
+.customButton {
+  margin-top: 6px;
+}
+
+.field {
+  display: block;
+  margin: 0 0 12px;
+
+  > span {
+    display: block;
+    margin-bottom: 6px;
+    color: $text-muted;
+    @include mono(10px);
+  }
+}
+
+.modalControls {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.previewLabel {
+  margin-top: 18px;
+  color: $text-muted;
+  @include mono(10px);
+}
+
+.preview {
+  display: grid;
+  min-height: 150px;
+  margin-top: 8px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid $border-input;
+  border-radius: $radius;
+  background: linear-gradient(145deg, #172936, $bg-deep);
+  background-position: center;
+  background-size: cover;
+  color: $text-muted;
+  font-size: 11px;
+}
