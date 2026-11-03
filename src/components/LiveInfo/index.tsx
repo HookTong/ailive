@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react'
-import type { LiveDataType } from '../../live/types'
+import type { LiveInfoType } from '../../live/types'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
 type LiveInfoProps = {
-  snapshot: LiveDataType
+  info: LiveInfoType
 }
 
-export function LiveInfo({ snapshot }: LiveInfoProps) {
+export function LiveInfo({ info }: LiveInfoProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const [position, setPosition] = useState({ x: 0, y: 0 })
@@ -67,41 +67,41 @@ export function LiveInfo({ snapshot }: LiveInfoProps) {
       <div className={styles.nowPlaying}>
         <span className={styles.icon}>◉</span>
         <div>
-          <strong>{snapshot.isLive ? '正在播放' : '未开播'}</strong>
-          <b>{snapshot.nowPlaying.title}</b>
-          <small>{snapshot.nowPlaying.elapsed} / {snapshot.nowPlaying.duration}</small>
+          <strong>{info.isLive ? '正在播放' : '未开播'}</strong>
+          <b>{info.nowPlaying.title}</b>
+          <small>{info.nowPlaying.elapsed} / {info.nowPlaying.duration}</small>
         </div>
         <span className={styles.equalizer}>▂▅▇▅</span>
       </div>
       <div className={styles.grid}>
         <section className={cx(styles.card, styles.income)}>
           <h3>收支面板</h3>
-          <strong>{snapshot.income.balance} <small>元</small></strong>
+          <strong>{info.income.balance} <small>元</small></strong>
           <div className={styles.metrics}>
-            <span>收入 <b>{snapshot.income.income}</b></span>
-            <span>支出 <b>{snapshot.income.expense}</b></span>
+            <span>收入 <b>{info.income.income}</b></span>
+            <span>支出 <b>{info.income.expense}</b></span>
           </div>
           <dl>
-            <dt>今日获票</dt><dd>{snapshot.income.todayVotes}</dd>
-            <dt>礼物</dt><dd>{snapshot.income.gifts}</dd>
-            <dt>今日 token</dt><dd>{snapshot.income.tokens}</dd>
+            <dt>今日获票</dt><dd>{info.income.todayVotes}</dd>
+            <dt>礼物</dt><dd>{info.income.gifts}</dd>
+            <dt>今日 token</dt><dd>{info.income.tokens}</dd>
           </dl>
         </section>
         <div className={styles.stack}>
           <section className={styles.card}>
-            <h3>点歌排队 <small>{snapshot.songQueue.length} 首</small></h3>
-            <div className={styles.empty}>{snapshot.songQueue[0]?.title ?? '暂无歌曲'}</div>
+            <h3>点歌排队 <small>{info.songQueue.length} 首</small></h3>
+            <div className={styles.empty}>{info.songQueue[0]?.title ?? '暂无歌曲'}</div>
           </section>
           <section className={styles.card}>
             <h3>最近点歌</h3>
-            <ul>{snapshot.recentSongs.length > 0 ? snapshot.recentSongs.map((song) => <li key={song.title}>◈ {song.title}</li>) : <li>暂无记录</li>}</ul>
+            <ul>{info.recentSongs.length > 0 ? info.recentSongs.map((song) => <li key={song.title}>◈ {song.title}</li>) : <li>暂无记录</li>}</ul>
           </section>
         </div>
         <section className={cx(styles.card, styles.guard)}>
           <h3>今日守护</h3>
           <ol>
-            {snapshot.guardians.length > 0
-              ? snapshot.guardians.map((guardian) => (
+            {info.guardians.length > 0
+              ? info.guardians.map((guardian) => (
                 <li key={`${guardian.rank}-${guardian.name}`}>
                   <i>{guardian.highlighted ? '☺' : guardian.rank}</i>
                   <span>{guardian.name}</span>

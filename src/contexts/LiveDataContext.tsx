@@ -1,10 +1,10 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { DOUYIN_ROOM_STORAGE_KEY } from '../live/douyin'
 import { useDouyinRoom } from '../live/useDouyinRoom'
-import type { LiveDataType } from '../live/types'
+import type { LiveInfoType } from '../live/types'
 
 /** 写死的演示数据；接入真实数据源时替换这里即可 */
-const DEMO_LIVE_SNAPSHOT: LiveDataType = {
+const DEMO_LIVE_INFO: LiveInfoType = {
   platform: 'demo',
   isLive: true,
   updatedAt: 0,
@@ -22,7 +22,7 @@ const DEMO_LIVE_SNAPSHOT: LiveDataType = {
 }
 
 type LiveDataContextValue = {
-  liveSnapshot: LiveDataType
+  liveInfo: LiveInfoType
   douyinRoomId: string | null
   douyinRoom: ReturnType<typeof useDouyinRoom>
   handleDouyinRoomChange: (roomId: string | null) => void
@@ -57,12 +57,12 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   }
 
   // 演示数据 + 真实抖音房间数据叠加
-  const liveSnapshot = useMemo<LiveDataType>(() => ({
-    ...DEMO_LIVE_SNAPSHOT,
-    platform: douyinRoom.room ? 'douyin' : DEMO_LIVE_SNAPSHOT.platform,
+  const liveInfo = useMemo<LiveInfoType>(() => ({
+    ...DEMO_LIVE_INFO,
+    platform: douyinRoom.room ? 'douyin' : DEMO_LIVE_INFO.platform,
     isLive: douyinRoom.state === 'live',
     updatedAt: Date.now(),
-    income: { ...DEMO_LIVE_SNAPSHOT.income, gifts: String(douyinRoom.stats.gift) },
+    income: { ...DEMO_LIVE_INFO.income, gifts: String(douyinRoom.stats.gift) },
     guardians: douyinRoom.giftRank.map((entry, index) => ({
       name: entry.name,
       amount: `${entry.count} 件`,
@@ -72,11 +72,11 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   }), [douyinRoom])
 
   const value = useMemo<LiveDataContextValue>(() => ({
-    liveSnapshot,
+    liveInfo,
     douyinRoomId,
     douyinRoom,
     handleDouyinRoomChange,
-  }), [liveSnapshot, douyinRoomId, douyinRoom])
+  }), [liveInfo, douyinRoomId, douyinRoom])
 
   return (
     <LiveDataContext.Provider value={value}>

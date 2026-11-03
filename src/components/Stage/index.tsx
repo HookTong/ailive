@@ -42,7 +42,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
     vignette,
   } = useStage()
 
-  const { liveSnapshot, douyinRoomId, douyinRoom, handleDouyinRoomChange } = useLiveData()
+  const { liveInfo, douyinRoomId, douyinRoom, handleDouyinRoomChange } = useLiveData()
 
   if (bare) {
     return (
@@ -77,7 +77,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
         color={particleColor}
         size={particleSize}
       />
-      {showInfoCards && <LiveInfo snapshot={liveSnapshot} />}
+      {showInfoCards && <LiveInfo info={liveInfo} />}
       <LiveChat
         roomId={douyinRoomId}
         onRoomIdChange={handleDouyinRoomChange}
