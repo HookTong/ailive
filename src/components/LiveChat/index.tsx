@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { normalizeWebRid } from '../../live/douyin'
-import { describeRoomState, type LiveFeedItem, type LiveRoomState } from '../../live/useDouyinRoom'
+import { describeRoomState, useDragPosition, type LiveFeedItem, type LiveRoomState } from '../../hooks'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
 import { Input } from '../Input'
@@ -58,6 +58,8 @@ export function LiveChat({ roomId, onRoomIdChange, live }: LiveChatProps) {
   const [draft, setDraft] = useState(roomId ?? '')
   const [inputError, setInputError] = useState<string | null>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  // 拖拽手柄只放在标题栏，避免和弹幕列表的滚动、文本选择打架
+  const { ref, transform, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging })
 
   const { state, room, error, feed, stats, giftRank } = live
 
@@ -83,8 +85,8 @@ export function LiveChat({ roomId, onRoomIdChange, live }: LiveChatProps) {
   const isConnected = state === 'live' || state === 'connecting' || state === 'reconnecting'
 
   return (
-    <aside className={styles.panel} aria-label="抖音直播间监听">
-      <header className={styles.head}>
+    <aside className={styles.panel} ref={ref} style={{ transform }} aria-label="抖音直播间监听">
+      <header className={styles.head} {...handlers}>
         <div className={styles.title}>
           <i className={cx(styles.dot, DOT_TONE[state])} />
           <strong>抖音直播</strong>

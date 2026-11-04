@@ -7,6 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   color: #82949d;
   @include mono(10px);
   letter-spacing: 0.1em;
@@ -20,17 +21,25 @@
 
 .actions {
   display: flex;
-  gap: 10px;
+  flex-shrink: 0;
+  /* 显式推到最右侧，不依赖父级 justify-content */
+  margin-left: auto;
+  gap: 12px;
 
   // 覆盖 Button 基础样式要用父级复合选择器，单类名打不过
   .toolButton {
-    border: 0;
-    background: transparent;
-    color: #82949d;
-    font-size: 16px;
+    height: 26px;
+    padding: 0 11px;
+    border: 1px solid $border-inset;
+    border-radius: $radius-pill;
+    background: #16232d;
+    color: #9db0b9;
+    @include mono(10px);
+    letter-spacing: 0.06em;
     cursor: pointer;
 
     &:hover {
+      border-color: #3d5563;
       color: $text;
     }
   }

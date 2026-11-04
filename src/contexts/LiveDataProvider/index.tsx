@@ -1,7 +1,8 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
-import { DOUYIN_ROOM_STORAGE_KEY } from '../live/douyin'
-import { useDouyinRoom } from '../live/useDouyinRoom'
-import type { LiveOverviewType } from '../live/types'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useDouyinRoom } from '../../hooks/useDouyinRoom'
+import { DOUYIN_ROOM_STORAGE_KEY } from '../../live/douyin'
+import type { LiveOverviewType } from '../../live/types'
+import { LiveDataContext, type LiveDataContextValue } from './LiveDataContext'
 
 /** 写死的演示数据；接入真实数据源时替换这里即可 */
 const DEMO_LIVE_OVERVIEW: LiveOverviewType = {
@@ -19,21 +20,6 @@ const DEMO_LIVE_OVERVIEW: LiveOverviewType = {
     { name: '行止', amount: '1.40 元', rank: 4 },
     { name: '几月是冬', amount: '1.20 元', rank: 5 },
   ],
-}
-
-type LiveDataContextValue = {
-  liveOverview: LiveOverviewType
-  douyinRoomId: string | null
-  douyinRoom: ReturnType<typeof useDouyinRoom>
-  handleDouyinRoomChange: (roomId: string | null) => void
-}
-
-const LiveDataContext = createContext<LiveDataContextValue | null>(null)
-
-export function useLiveData() {
-  const context = useContext(LiveDataContext)
-  if (!context) throw new Error('useLiveData must be used within LiveDataProvider')
-  return context
 }
 
 type LiveDataProviderProps = {

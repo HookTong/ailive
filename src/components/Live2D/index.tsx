@@ -20,6 +20,12 @@ export type Live2DModelConfig = {
   initialPosition?: { x: number; y: number }
   zIndex: number
   speechText?: string
+  /** 模型是否可见，默认 true */
+  visible?: boolean
+  /** 当前是否正在说话（用于触发说话动作） */
+  speaking?: boolean
+  /** 开始说话时触发的动作分组名 */
+  speakMotion?: string
 }
 
 export type Live2DLoadState = 'loading' | 'ready' | 'missing'
@@ -40,6 +46,9 @@ type ModelEntry = {
   loadToken: number
   drag: { offsetX: number; offsetY: number }
   cleanup: (() => void) | null
+  visible: boolean
+  speaking: boolean
+  speakMotion: string
 }
 
 type CoreModelLike = {
@@ -76,6 +85,9 @@ const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   loadToken: 0,
   drag: { offsetX: 0, offsetY: 0 },
   cleanup: null,
+  visible: model.visible ?? true,
+  speaking: Boolean(model.speaking),
+  speakMotion: model.speakMotion ?? '',
 })
 
 const keepModelInsideStage = (app: PIXI.Application, model: Live2DModel, x: number, y: number) => {
@@ -249,6 +261,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       entry.model = loaded
       loaded.anchor.set(0.5, 0.5)
       loaded.zIndex = entry.zIndex
+      loaded.visible = entry.visible
       app.stage.addChild(loaded)
       attachExpressionHooks(entry, loaded)
       fitModel(entry)
@@ -285,12 +298,18 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     const resetChanged = entry.positionResetKey !== next.positionResetKey
     const motionChanged = entry.motion !== next.motion
     const zChanged = entry.zIndex !== next.zIndex
+    const visibleChanged = entry.visible !== (next.visible ?? true)
+    // 只在「没说话 → 说话」的那一刻触发一次，气泡常显时不会反复触发
+    const speakingStarted = Boolean(next.speaking) && !entry.speaking
     const expressionKey = next.expressions.map((item) => item.file).join('|')
     const expressionsChanged = expressionKey !== entry.expressionKey
 
     entry.size = next.size
     entry.motion = next.motion
     entry.zIndex = next.zIndex
+    entry.visible = next.visible ?? true
+    entry.speaking = Boolean(next.speaking)
+    entry.speakMotion = next.speakMotion ?? ''
     entry.initialPosition = next.initialPosition ?? DEFAULT_POSITION
     if (resetChanged) {
       entry.positionResetKey = next.positionResetKey
@@ -306,8 +325,10 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       return
     }
     if (zChanged) model.zIndex = next.zIndex
+    if (visibleChanged) model.visible = entry.visible
     if (sizeChanged || resetChanged) fitModel(entry)
     if (motionChanged && next.motion) void model.motion(next.motion, 0).catch(() => undefined)
+    if (speakingStarted && entry.speakMotion) void model.motion(entry.speakMotion, 0).catch(() => undefined)
     if (expressionsChanged) {
       entry.expressionKey = expressionKey
       void loadExpressions(entry, next.expressions)
@@ -351,7 +372,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
   const findEntryAt = (point: { x: number; y: number }) => {
     const activeId = activeIdRef.current
     const candidates = Array.from(entriesRef.current.values())
-      .filter((entry) => entry.model)
+      .filter((entry) => entry.model?.visible)
       .sort((left, right) => {
         const leftActive = left.id === activeId ? 1 : 0
         const rightActive = right.id === activeId ? 1 : 0
@@ -369,7 +390,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     const scaleY = (host.clientHeight || 1) / Math.max(app.screen.height, 1)
     for (const [id, element] of bubbleRefs.current) {
       const model = entriesRef.current.get(id)?.model
-      if (!model) {
+      if (!model || !model.visible) {
         element.style.visibility = 'hidden'
         continue
       }

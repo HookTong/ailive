@@ -6,8 +6,8 @@ import { Modal } from '../Modal'
 import { ScrollArea } from '../ScrollArea'
 import { Slider } from '../Slider'
 import { cx } from '../../utils/cx'
-import { useModel } from '../../contexts'
-import { useVoice } from '../../contexts'
+import { useModel, useVoice } from '../../hooks'
+import { VOLCENGINE_VOICE_PRESETS, type VolcengineVoicePreset } from '../../voice/volcengineTts'
 import styles from './index.module.scss'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
@@ -50,7 +50,19 @@ export function ModelControlPanel() {
   const selectedExpressions = activeCharacter.selectedExpressions
   const modelSize = activeCharacter.modelSize
   const voicePresetId = activeCharacter.voicePresetId
+  const modelVisible = activeCharacter.modelVisible
+  const bubbleMode = activeCharacter.bubbleMode
+  const speakingMotion = activeCharacter.speakingMotion
   const voiceSpeaking = speakingModel?.modelId === activeModelId
+
+  // 「说话触发动作」下拉：空值表示不触发
+  const speakingMotionOptions = useMemo(() => [
+    { value: '', label: '不触发' },
+    ...Object.entries(manifest?.motions ?? {}).map(([group, config]) => ({
+      value: group,
+      label: config.label ?? group,
+    })),
+  ], [manifest])
 
   useEffect(() => {
     if (!modelMenuOpen) return
@@ -89,11 +101,11 @@ export function ModelControlPanel() {
     updateActiveCharacter({ voicePresetId: preset.id })
   }
 
-  const handleVoiceSpeak = async (text: string, preset: { id: string }) => {
-    const fullPreset = [...customVoices].find((v) => v.id === preset.id)
-    if (fullPreset) {
-      await speak(text, fullPreset, activeModelId)
-    }
+  const handleVoiceSpeak = async (text: string, preset: VolcengineVoicePreset) => {
+    // 内置音色不在 customVoices 里，必须两边一起查；查不到就退回传进来的对象，
+    // 否则选内置音色点「测试发声」会静默什么都不做
+    const fullPreset = [...VOLCENGINE_VOICE_PRESETS, ...customVoices].find((voice) => voice.id === preset.id) ?? preset
+    await speak(text, fullPreset, activeModelId)
   }
 
   return (
@@ -146,6 +158,15 @@ export function ModelControlPanel() {
           )}
         </div>
         <Button size="md" block className={styles.addButton} onClick={() => setAddModelOpen(true)}>＋ 添加模型</Button>
+        <Button
+          variant="ghost"
+          size="md"
+          block
+          className={styles.visibilityButton}
+          onClick={() => updateActiveCharacter({ modelVisible: !modelVisible })}
+        >
+          {modelVisible ? '隐藏模型' : '显示模型'}
+        </Button>
         {configError && <div className={styles.error}>模型配置或线上资源加载失败</div>}
       </div>
 
@@ -254,11 +275,16 @@ export function ModelControlPanel() {
         speaking={voiceSpeaking}
         error={voiceError}
         customVoices={customVoices}
+        bubbleMode={bubbleMode}
+        speakingMotion={speakingMotion}
+        speakingMotionOptions={speakingMotionOptions}
         onPresetChange={handleVoicePresetChange}
         onConfigChange={setVoiceConfig}
         onSpeak={handleVoiceSpeak}
         onAddVoice={addVoice}
         onDeleteVoice={deleteVoice}
+        onBubbleModeChange={(mode) => updateActiveCharacter({ bubbleMode: mode })}
+        onSpeakingMotionChange={(motion) => updateActiveCharacter({ speakingMotion: motion })}
       />
 
       {/* 底部信息 */}

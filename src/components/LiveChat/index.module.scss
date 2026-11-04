@@ -24,6 +24,15 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 9px;
+  /* 标题栏兼作拖拽手柄 */
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+// .dragging 加在 .panel 上（useDragPosition 负责挂/摘）
+.dragging .head {
+  cursor: grabbing;
 }
 
 .title {

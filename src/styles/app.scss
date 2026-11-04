@@ -22,6 +22,11 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+
+  // 全屏时铺满屏幕，只保留舞台本身
+  &:fullscreen {
+    background: $bg-base;
+  }
 }
 
 @media (max-width: 1100px) {

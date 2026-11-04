@@ -6,7 +6,7 @@ import { Input } from '../Input'
 import { Slider } from '../Slider'
 import { Tooltip } from '../Tooltip'
 import { cx } from '../../utils/cx'
-import { useStage } from '../../contexts'
+import { useStage } from '../../hooks'
 import styles from './index.module.scss'
 
 const MUSIC_PRESETS = [

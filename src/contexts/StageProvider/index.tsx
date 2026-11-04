@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { PARTICLE_PRESETS, type ParticlePreset, type ParticlePresetSettings } from '../components/Atmosphere'
-import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from '../components/FilterSetting'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { PARTICLE_PRESETS, type ParticlePreset, type ParticlePresetSettings } from '../../components/Atmosphere'
+import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from '../../components/FilterSetting'
+import { StageContext, type StageContextValue } from './StageContext'
 
 const DEFAULT_BACKGROUND_URL = '/background.png'
 const CUSTOM_FILTERS_STORAGE_KEY = 'ailive.custom-filters'
@@ -35,51 +36,6 @@ function createParticlePresetConfigs(): Record<ParticlePreset, ParticlePresetSet
       { color, intensity, speed, opacity, size }
     ])
   ) as Record<ParticlePreset, ParticlePresetSettings>
-}
-
-type StageContextValue = {
-  backgroundUrl: string
-  setBackgroundUrl: (url: string) => void
-  handleBackgroundFile: (file: File | null) => void
-  particleEnabled: boolean
-  setParticleEnabled: (enabled: boolean) => void
-  particlePreset: ParticlePreset
-  particleIntensity: number
-  particleSpeed: number
-  particleOpacity: number
-  particleColor: string
-  particleSize: number
-  handleParticlePresetChange: (preset: ParticlePreset) => void
-  handleParticleColorChange: (color: string) => void
-  handleParticleIntensityChange: (intensity: number) => void
-  handleParticleSpeedChange: (speed: number) => void
-  handleParticleOpacityChange: (opacity: number) => void
-  handleParticleSizeChange: (size: number) => void
-  filterEnabled: boolean
-  setFilterEnabled: (enabled: boolean) => void
-  filterPreset: FilterPreset
-  filterBrightness: number
-  filterContrast: number
-  filterSaturation: number
-  filterBlur: number
-  vignette: boolean
-  setVignette: (enabled: boolean) => void
-  customFilterPresets: CustomFilterPreset[]
-  handleFilterPresetChange: (preset: FilterPreset) => void
-  setFilterBrightness: (value: number) => void
-  setFilterContrast: (value: number) => void
-  setFilterSaturation: (value: number) => void
-  setFilterBlur: (value: number) => void
-  addCustomFilterPreset: (preset: CustomFilterPreset) => void
-  resetStage: () => void
-}
-
-const StageContext = createContext<StageContextValue | null>(null)
-
-export function useStage() {
-  const context = useContext(StageContext)
-  if (!context) throw new Error('useStage must be used within StageProvider')
-  return context
 }
 
 type StageProviderProps = {
@@ -286,4 +242,3 @@ export function StageProvider({ children }: StageProviderProps) {
     </StageContext.Provider>
   )
 }
-

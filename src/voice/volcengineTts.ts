@@ -94,8 +94,16 @@ export async function synthesizeVolcengineSpeech(text: string, preset: Volcengin
     }),
   })
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || `火山 TTS 请求失败（${response.status}）`)
+    const raw = await response.text()
+    // 火山失败时返回的是 JSON 信封，直接甩原文给用户看不懂，尽量抽出 message
+    let detail = raw.trim()
+    try {
+      const parsed = JSON.parse(raw) as { header?: { message?: string }; message?: string }
+      detail = parsed.header?.message || parsed.message || detail
+    } catch {
+      // 非 JSON，保留原文
+    }
+    throw new Error(detail || `火山 TTS 请求失败（${response.status}）`)
   }
   if (!response.body) throw new Error('火山 TTS 未返回音频流')
 

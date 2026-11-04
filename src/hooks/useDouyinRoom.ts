@@ -6,7 +6,7 @@ import {
   type DouyinConnectionState,
   type DouyinEvent,
   type DouyinRoomInfo,
-} from './douyin'
+} from '../live/douyin'
 
 export type LiveFeedItem = {
   id: number

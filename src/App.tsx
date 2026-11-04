@@ -6,7 +6,7 @@ import { StageControlPanel } from './components/StageControlPanel'
 import { StageToolbar } from './components/StageToolbar'
 import { TopBar } from './components/TopBar'
 import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider } from './contexts'
-import { useModel, useVoice } from './contexts'
+import { useModel, useVoice } from './hooks'
 
 const MODEL_LAYOUT_POSITIONS = [
   { x: 0.5, y: 0.54 },
@@ -18,9 +18,10 @@ const MODEL_LAYOUT_POSITIONS = [
 
 function AppContent() {
   const { modelSources, activeModelId, setActiveModelId, characterStates, activeCharacter, manifest } = useModel()
-  const { speakingModel } = useVoice()
+  const { speakingModel, lastSpoken } = useVoice()
 
   const [showStageCards, setShowStageCards] = useState(true)
+  const [showLiveChat, setShowLiveChat] = useState(true)
 
   const activeMotion = activeCharacter.activeMotion
   const modelSource = modelSources.find((source) => source.id === activeModelId)
@@ -32,6 +33,13 @@ function AppContent() {
   const stageModels = useMemo<StageModel[]>(() => modelSources.flatMap((source, index) => {
     const state = characterStates[source.id]
     if (!state) return []
+    const speaking = speakingModel?.modelId === source.id
+    // 说话时显示当前内容；常显模式退回到最近一次说过的内容
+    const speechText = speaking
+      ? speakingModel.text
+      : state.bubbleMode === 'always' && lastSpoken?.modelId === source.id
+        ? lastSpoken.text
+        : ''
     return [{
       id: source.id,
       modelUrl: source.modelUrl,
@@ -44,9 +52,12 @@ function AppContent() {
       positionResetKey: state.positionResetKey,
       initialPosition: MODEL_LAYOUT_POSITIONS[index % MODEL_LAYOUT_POSITIONS.length],
       zIndex: source.id === modelSource?.id ? (source.id.startsWith('online:') ? 20 : 30) : 5 + index,
-      speechText: speakingModel?.modelId === source.id ? speakingModel.text : '',
+      speechText,
+      speaking,
+      speakMotion: state.speakingMotion,
+      visible: state.modelVisible,
     }]
-  }), [activeModelId, characterStates, modelSources, modelSource, speakingModel])
+  }), [activeModelId, characterStates, modelSources, modelSource, speakingModel, lastSpoken])
 
   return (
     <main className="shell">
@@ -56,13 +67,16 @@ function AppContent() {
         <section className="stagePanel">
           <StageToolbar
             showInfoCards={showStageCards}
+            showLiveChat={showLiveChat}
             onToggleInfoCards={() => setShowStageCards((visible) => !visible)}
+            onToggleLiveChat={() => setShowLiveChat((visible) => !visible)}
           />
           <Stage
             models={stageModels}
             activeModelId={activeModelId}
             onActivateModel={setActiveModelId}
             showInfoCards={showStageCards}
+            showChat={showLiveChat}
             caption={{
               left: manifest?.displayName ?? modelSource?.name ?? '',
               right: `${activeMotionConfig?.label ?? '读取配置中'} · ${currentExpressionLabel}`,

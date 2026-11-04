@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Model3Config, ModelManifest, ModelSource } from '../modelTypes'
-import { VOLCENGINE_VOICE_PRESETS } from '../voice/volcengineTts'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { Model3Config, ModelManifest, ModelSource } from '../../modelTypes'
+import { VOLCENGINE_VOICE_PRESETS } from '../../voice/volcengineTts'
+import { ModelContext, type CharacterState, type ModelContextValue } from './ModelContext'
 
 const DEFAULT_MODEL_SOURCE: ModelSource = {
   id: 'whale-local',
@@ -11,16 +12,6 @@ const DEFAULT_MODEL_SOURCE: ModelSource = {
 
 const ONLINE_MODELS_STORAGE_KEY = 'ailive.online-models'
 
-type CharacterState = {
-  manifest: ModelManifest | null
-  configError: boolean
-  activeMotion: string
-  selectedExpressions: string[]
-  modelSize: number
-  positionResetKey: number
-  voicePresetId: string
-}
-
 const createCharacterState = (): CharacterState => ({
   manifest: null,
   configError: false,
@@ -29,6 +20,9 @@ const createCharacterState = (): CharacterState => ({
   modelSize: 0.6,
   positionResetKey: 0,
   voicePresetId: VOLCENGINE_VOICE_PRESETS[0].id,
+  modelVisible: true,
+  bubbleMode: 'speaking',
+  speakingMotion: '',
 })
 
 function loadOnlineModelSources(): ModelSource[] {
@@ -93,29 +87,6 @@ function createManifestFromModel3(config: Model3Config, source: ModelSource): Mo
     motions,
     expressions,
   }
-}
-
-type ModelContextValue = {
-  modelSources: ModelSource[]
-  activeModelId: string
-  characterStates: Record<string, CharacterState>
-  activeCharacter: CharacterState
-  manifest: ModelManifest | null
-  configError: boolean
-  setActiveModelId: (id: string) => void
-  updateActiveCharacter: (patch: Partial<CharacterState>) => void
-  addOnlineModel: (url: string, name: string) => void
-  deleteModel: (id: string) => void
-  resetActiveCharacter: () => void
-  resetVoicePresetForAll: (deletedPresetId: string) => void
-}
-
-const ModelContext = createContext<ModelContextValue | null>(null)
-
-export function useModel() {
-  const context = useContext(ModelContext)
-  if (!context) throw new Error('useModel must be used within ModelProvider')
-  return context
 }
 
 type ModelProviderProps = {
@@ -254,6 +225,9 @@ export function ModelProvider({ children }: ModelProviderProps) {
       modelSize: 0.6,
       positionResetKey: activeCharacter.positionResetKey + 1,
       voicePresetId: VOLCENGINE_VOICE_PRESETS[0].id,
+      modelVisible: true,
+      bubbleMode: 'speaking',
+      speakingMotion: '',
     })
   }
 
@@ -289,4 +263,3 @@ export function ModelProvider({ children }: ModelProviderProps) {
     </ModelContext.Provider>
   )
 }
-

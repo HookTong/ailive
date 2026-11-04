@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   loadCustomVolcengineVoices,
   synthesizeVolcengineSpeech,
@@ -6,28 +6,8 @@ import {
   type VolcengineTtsConfig,
   type VolcengineVoicePreset,
   VOLCENGINE_CUSTOM_VOICES_STORAGE_KEY,
-  VOLCENGINE_VOICE_PRESETS,
-} from '../voice/volcengineTts'
-
-type VoiceContextValue = {
-  voiceConfig: VolcengineTtsConfig
-  setVoiceConfig: (config: VolcengineTtsConfig) => void
-  customVoices: VolcengineVoicePreset[]
-  addVoice: (voice: VolcengineVoicePreset) => void
-  deleteVoice: (id: string) => void
-  voiceError: string
-  speakingModel: { modelId: string; text: string } | null
-  speak: (text: string, preset: VolcengineVoicePreset, modelId: string) => Promise<void>
-  stopSpeaking: () => void
-}
-
-const VoiceContext = createContext<VoiceContextValue | null>(null)
-
-export function useVoice() {
-  const context = useContext(VoiceContext)
-  if (!context) throw new Error('useVoice must be used within VoiceProvider')
-  return context
-}
+} from '../../voice/volcengineTts'
+import { VoiceContext, type VoiceContextValue } from './VoiceContext'
 
 type VoiceProviderProps = {
   children: ReactNode
@@ -39,6 +19,7 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
   const [customVoices, setCustomVoices] = useState<VolcengineVoicePreset[]>(loadCustomVolcengineVoices)
   const [voiceError, setVoiceError] = useState('')
   const [speakingModel, setSpeakingModel] = useState<{ modelId: string; text: string } | null>(null)
+  const [lastSpoken, setLastSpoken] = useState<{ modelId: string; text: string } | null>(null)
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
   const voiceObjectUrlRef = useRef<string | null>(null)
 
@@ -104,6 +85,7 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
       }
 
       setSpeakingModel({ modelId, text: text.trim() })
+      setLastSpoken({ modelId, text: text.trim() })
       await audio.play()
     } catch (error) {
       setSpeakingModel(null)
@@ -119,9 +101,10 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
     deleteVoice,
     voiceError,
     speakingModel,
+    lastSpoken,
     speak,
     stopSpeaking,
-  }), [voiceConfig, customVoices, voiceError, speakingModel])
+  }), [voiceConfig, customVoices, voiceError, speakingModel, lastSpoken])
 
   return (
     <VoiceContext.Provider value={value}>
