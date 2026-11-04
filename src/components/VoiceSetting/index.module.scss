@@ -135,24 +135,6 @@
   line-height: 1.4;
 }
 
-.block .configToggle {
-  width: 100%;
-  height: 30px;
-  margin-top: 7px;
-  border: 1px solid $border-input;
-  border-radius: $radius;
-  background: transparent;
-  color: #718691;
-  font-family: $font-mono;
-  font-size: 9px;
-  cursor: pointer;
-
-  &:hover {
-    border-color: #537b7b;
-    color: #b6c9cc;
-  }
-}
-
 .field {
   display: block;
   margin: 0 0 12px;

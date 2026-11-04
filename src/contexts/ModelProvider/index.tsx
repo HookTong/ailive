@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Model3Config, ModelManifest, ModelSource } from '../../modelTypes'
-import { VOLCENGINE_VOICE_PRESETS } from '../../voice/volcengineTts'
+import { VOLCENGINE_VOICE_PRESETS } from '../../hooks/useTts/api'
 import { ModelContext, type CharacterState, type ModelContextValue } from './ModelContext'
 
 const DEFAULT_MODEL_SOURCE: ModelSource = {

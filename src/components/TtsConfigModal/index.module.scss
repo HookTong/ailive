@@ -1,0 +1,14 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.field {
+  display: block;
+  margin: 0 0 12px;
+
+  > span {
+    display: block;
+    margin-bottom: 6px;
+    color: $text-muted;
+    @include mono(10px);
+  }
+}

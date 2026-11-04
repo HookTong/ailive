@@ -28,9 +28,17 @@
     background: #162a31ed;
   }
 
-  // 紧凑版：与 Segmented 等控件同高
+  // 紧凑版：与 Segmented 等控件同高，箭头也跟着缩小
   &.sm {
     height: 30px;
+
+    .chevron {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 6px;
+      border-width: 1px;
+      transform: translateY(-1px) rotate(45deg);
+    }
   }
 }
 
@@ -51,6 +59,11 @@
 
 .open .chevron {
   transform: translateY(2px) rotate(225deg);
+}
+
+// 紧凑版展开时箭头位移也收一半
+.open .trigger.sm .chevron {
+  transform: translateY(1px) rotate(225deg);
 }
 
 .menu {

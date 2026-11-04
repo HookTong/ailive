@@ -7,7 +7,7 @@ import { ScrollArea } from '../ScrollArea'
 import { Slider } from '../Slider'
 import { cx } from '../../utils/cx'
 import { useModel, useVoice } from '../../hooks'
-import { VOLCENGINE_VOICE_PRESETS, type VolcengineVoicePreset } from '../../voice/volcengineTts'
+import { VOLCENGINE_VOICE_PRESETS, type VolcengineVoicePreset } from '../../hooks/useTts/api'
 import styles from './index.module.scss'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
@@ -27,8 +27,6 @@ export function ModelControlPanel() {
   } = useModel()
 
   const {
-    voiceConfig,
-    setVoiceConfig,
     customVoices,
     addVoice,
     deleteVoice,
@@ -271,7 +269,6 @@ export function ModelControlPanel() {
 
       <VoiceSetting
         presetId={voicePresetId}
-        config={voiceConfig}
         speaking={voiceSpeaking}
         error={voiceError}
         customVoices={customVoices}
@@ -279,7 +276,6 @@ export function ModelControlPanel() {
         speakingMotion={speakingMotion}
         speakingMotionOptions={speakingMotionOptions}
         onPresetChange={handleVoicePresetChange}
-        onConfigChange={setVoiceConfig}
         onSpeak={handleVoiceSpeak}
         onAddVoice={addVoice}
         onDeleteVoice={deleteVoice}

@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTts } from '../../hooks/useTts'
 import {
   loadCustomVolcengineVoices,
-  synthesizeVolcengineSpeech,
   loadVolcengineTtsConfig,
   type VolcengineTtsConfig,
   type VolcengineVoicePreset,
   VOLCENGINE_CUSTOM_VOICES_STORAGE_KEY,
-} from '../../voice/volcengineTts'
+} from '../../hooks/useTts/api'
 import { VoiceContext, type VoiceContextValue } from './VoiceContext'
 
 type VoiceProviderProps = {
@@ -17,11 +17,12 @@ type VoiceProviderProps = {
 export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoiceProviderProps) {
   const [voiceConfig, setVoiceConfig] = useState<VolcengineTtsConfig>(loadVolcengineTtsConfig)
   const [customVoices, setCustomVoices] = useState<VolcengineVoicePreset[]>(loadCustomVolcengineVoices)
-  const [voiceError, setVoiceError] = useState('')
-  const [speakingModel, setSpeakingModel] = useState<{ modelId: string; text: string } | null>(null)
-  const [lastSpoken, setLastSpoken] = useState<Record<string, string>>({})
-  const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
-  const voiceObjectUrlRef = useRef<string | null>(null)
+  const [ttsConfigOpen, setTtsConfigOpen] = useState(false)
+  // 发声请求、播放与「谁在说话」都在 useTts 里，这里只持有配置和音色库
+  const { voiceError, speakingModel, lastSpoken, speak, stopSpeaking } = useTts(voiceConfig)
+
+  const openTtsConfig = useCallback(() => setTtsConfigOpen(true), [])
+  const closeTtsConfig = useCallback(() => setTtsConfigOpen(false), [])
 
   // Persist custom voices
   useEffect(() => {
@@ -32,12 +33,6 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
     }
   }, [customVoices])
 
-  // Cleanup on unmount
-  useEffect(() => () => {
-    voiceAudioRef.current?.pause()
-    if (voiceObjectUrlRef.current) URL.revokeObjectURL(voiceObjectUrlRef.current)
-  }, [])
-
   const addVoice = (voice: VolcengineVoicePreset) => {
     setCustomVoices((current) => [...current, voice])
   }
@@ -45,53 +40,6 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
   const deleteVoice = (id: string) => {
     setCustomVoices((current) => current.filter((voice) => voice.id !== id))
     onCharacterVoicePresetReset?.(id)
-  }
-
-  const stopSpeaking = () => {
-    if (voiceAudioRef.current) {
-      voiceAudioRef.current.pause()
-      voiceAudioRef.current = null
-    }
-    if (voiceObjectUrlRef.current) {
-      URL.revokeObjectURL(voiceObjectUrlRef.current)
-      voiceObjectUrlRef.current = null
-    }
-    setSpeakingModel(null)
-  }
-
-  const speak = async (text: string, preset: VolcengineVoicePreset, modelId: string) => {
-    stopSpeaking()
-    setVoiceError('')
-
-    try {
-      const blob = await synthesizeVolcengineSpeech(text, preset, voiceConfig)
-      const objectUrl = URL.createObjectURL(blob)
-      voiceObjectUrlRef.current = objectUrl
-      const audio = new Audio(objectUrl)
-      voiceAudioRef.current = audio
-
-      audio.onended = () => {
-        setSpeakingModel(null)
-        voiceAudioRef.current = null
-        if (voiceObjectUrlRef.current === objectUrl) {
-          URL.revokeObjectURL(objectUrl)
-          voiceObjectUrlRef.current = null
-        }
-      }
-
-      audio.onerror = () => {
-        setVoiceError('语音播放失败,请检查音频数据')
-        setSpeakingModel(null)
-      }
-
-      setSpeakingModel({ modelId, text: text.trim() })
-      // 按模型分别记录，多个模型常显时各自显示自己说过的话
-      setLastSpoken((current) => ({ ...current, [modelId]: text.trim() }))
-      await audio.play()
-    } catch (error) {
-      setSpeakingModel(null)
-      setVoiceError(error instanceof Error ? error.message : '火山 TTS 请求失败')
-    }
   }
 
   const value = useMemo<VoiceContextValue>(() => ({
@@ -105,7 +53,10 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
     lastSpoken,
     speak,
     stopSpeaking,
-  }), [voiceConfig, customVoices, voiceError, speakingModel, lastSpoken])
+    ttsConfigOpen,
+    openTtsConfig,
+    closeTtsConfig,
+  }), [voiceConfig, customVoices, voiceError, speakingModel, lastSpoken, speak, stopSpeaking, ttsConfigOpen, openTtsConfig, closeTtsConfig])
 
   return (
     <VoiceContext.Provider value={value}>

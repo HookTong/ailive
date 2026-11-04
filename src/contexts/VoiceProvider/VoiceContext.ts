@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { VolcengineTtsConfig, VolcengineVoicePreset } from '../../voice/volcengineTts'
+import type { VolcengineTtsConfig, VolcengineVoicePreset } from '../../hooks/useTts/api'
 
 export type VoiceContextValue = {
   voiceConfig: VolcengineTtsConfig
@@ -13,6 +13,10 @@ export type VoiceContextValue = {
   lastSpoken: Record<string, string>
   speak: (text: string, preset: VolcengineVoicePreset, modelId: string) => Promise<void>
   stopSpeaking: () => void
+  /** TTS 配置弹窗是否打开：顶栏按钮与「测试发声」共用同一份状态 */
+  ttsConfigOpen: boolean
+  openTtsConfig: () => void
+  closeTtsConfig: () => void
 }
 
 export const VoiceContext = createContext<VoiceContextValue | null>(null)

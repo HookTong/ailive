@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
-  type VolcengineTtsConfig,
   type VolcengineVoicePreset,
-  VOLCENGINE_TTS_CONFIG_STORAGE_KEY,
   VOLCENGINE_VOICE_PRESETS,
-} from '../../voice/volcengineTts'
+} from '../../hooks/useTts/api'
+import { useVoice } from '../../hooks'
 import { Button } from '../Button'
 import { DropdownSelect, type DropdownOption } from '../DropdownSelect'
 import { Input, Textarea } from '../Input'
@@ -18,11 +17,9 @@ import styles from './index.module.scss'
 
 type VoiceSettingProps = {
   presetId: string
-  config: VolcengineTtsConfig
   speaking: boolean
   error: string
   onPresetChange: (preset: VolcengineVoicePreset) => void
-  onConfigChange: (config: VolcengineTtsConfig) => void
   onSpeak: (text: string, preset: VolcengineVoicePreset) => void
   customVoices: VolcengineVoicePreset[]
   onAddVoice: (voice: VolcengineVoicePreset) => void
@@ -47,41 +44,27 @@ const BUBBLE_MODE_OPTIONS: readonly SegmentedOption<BubbleMode>[] = [
 ]
 
 export function VoiceSetting({
-  presetId, config, speaking, error, onPresetChange, onConfigChange, onSpeak, customVoices, onAddVoice, onDeleteVoice,
+  presetId, speaking, error, onPresetChange, onSpeak, customVoices, onAddVoice, onDeleteVoice,
   bubbleMode, onBubbleModeChange, speakingMotion, speakingMotionOptions, onSpeakingMotionChange,
 }: VoiceSettingProps) {
+  const { voiceConfig, openTtsConfig } = useVoice()
   const [draft, setDraft] = useState('')
-  const [showConfig, setShowConfig] = useState(false)
   const [showVoiceModal, setShowVoiceModal] = useState(false)
   const [voiceName, setVoiceName] = useState('')
   const [voiceId, setVoiceId] = useState('')
   const [voiceResourceId, setVoiceResourceId] = useState('seed-tts-2.0')
   const [voiceModalError, setVoiceModalError] = useState('')
-  const [saved, setSaved] = useState(false)
   const voices = [...VOLCENGINE_VOICE_PRESETS, ...customVoices]
   const selectedPreset = voices.find((preset) => preset.id === presetId) ?? voices[0]
 
-  useEffect(() => {
-    setSaved(false)
-  }, [config])
-
-  // 没配 Key 时按钮 disabled，disabled 元素不派发指针事件、Tooltip 弹不出来，
-  // 所以原因改用按钮下方的常显文案说明
-  const needsApiKey = !config.apiKey.trim()
-
-  const updateConfig = <K extends keyof VolcengineTtsConfig>(key: K, value: VolcengineTtsConfig[K]) => {
-    onConfigChange({ ...config, [key]: value })
-    setSaved(false)
-  }
-
-  const saveConfig = () => {
-    try {
-      window.localStorage.setItem(VOLCENGINE_TTS_CONFIG_STORAGE_KEY, JSON.stringify(config))
-      setSaved(true)
-      setShowConfig(false)
-    } catch {
-      setSaved(false)
+  // 只有文本为空时才禁用；没配 Key 时点击直接打开顶栏那份配置弹窗
+  const handleSpeakClick = () => {
+    if (!draft.trim()) return
+    if (!voiceConfig.apiKey.trim()) {
+      openTtsConfig()
+      return
     }
+    onSpeak(draft, selectedPreset)
   }
 
   const openVoiceModal = () => {
@@ -174,20 +157,16 @@ export function VoiceSetting({
         maxLength={300}
       />
       <span className={styles.speakWrap}>
-        {/* 缺 Key 时才提示，按钮本身只渲染一份 */}
-        <Tooltip block placement="top" title="请先配置APIkey" disabled={!needsApiKey}>
-          <Button
-            variant="bare"
-            className={styles.speakButton}
-            disabled={!draft.trim() || speaking || needsApiKey}
-            onClick={() => onSpeak(draft, selectedPreset)}
-          >
-            {speaking ? '正在说话…' : '▶ 测试发声'}
-          </Button>
-        </Tooltip>
+        <Button
+          variant="bare"
+          className={styles.speakButton}
+          disabled={!draft.trim()}
+          onClick={handleSpeakClick}
+        >
+          {speaking ? '正在说话…' : '▶ 测试发声'}
+        </Button>
       </span>
       {error && <div className={styles.error}>{error}</div>}
-      <Button variant="bare" className={styles.configToggle} onClick={() => setShowConfig(true)}>配置火山 TTS</Button>
 
       {/* 气泡与说话动作：标签在上，控件各占一行 */}
       <div className={styles.behavior}>
@@ -213,31 +192,6 @@ export function VoiceSetting({
         </div>
       </div>
 
-      {showConfig && (
-        <Modal
-          title="TTS 设置"
-          tone="panel"
-          scrollable={false}
-          width="min(420px, calc(100vw - 32px))"
-          zIndex={31}
-          onClose={() => setShowConfig(false)}
-          actions={(
-            <>
-              <Button variant="secondary" size="lg" onClick={() => setShowConfig(false)}>取消</Button>
-              <Button size="lg" onClick={saveConfig}>{saved ? '已保存' : '保存设置'}</Button>
-            </>
-          )}
-        >
-          <label className={styles.field}>
-            <span>API Key</span>
-            <Input size="lg" type="password" value={config.apiKey} onChange={(event) => updateConfig('apiKey', event.target.value)} placeholder="控制台 API Key" autoFocus />
-          </label>
-          <label className={styles.field}>
-            <span>接口地址</span>
-            <Input size="lg" value={config.endpoint} onChange={(event) => updateConfig('endpoint', event.target.value)} placeholder="TTS API 地址" />
-          </label>
-        </Modal>
-      )}
       {showVoiceModal && (
         <Modal
           title="添加音色"
