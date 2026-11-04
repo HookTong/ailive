@@ -4,7 +4,8 @@ import type { VolcengineTtsConfig, VolcengineVoicePreset } from '../../hooks/use
 export type VoiceContextValue = {
   voiceConfig: VolcengineTtsConfig
   setVoiceConfig: (config: VolcengineTtsConfig) => void
-  customVoices: VolcengineVoicePreset[]
+  /** 全部可用音色：内置预设 + 用户自定义，已按顺序合并好，消费方直接用即可 */
+  voices: VolcengineVoicePreset[]
   addVoice: (voice: VolcengineVoicePreset) => void
   deleteVoice: (id: string) => void
   voiceError: string

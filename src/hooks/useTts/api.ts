@@ -3,6 +3,11 @@ export type VolcengineTtsConfig = {
   endpoint: string
 }
 
+/**
+ * 一条音色预设：内置预设与用户自定义音色共用同一结构。
+ * 定义放在请求协议这一层，因为 useTts 合成音频时要用到它；
+ * 预设数据本身在 contexts/VoiceProvider/presets.ts。
+ */
 export type VolcengineVoicePreset = {
   id: string
   label: string
@@ -12,57 +17,8 @@ export type VolcengineVoicePreset = {
   pitchRatio: number
 }
 
-export const VOLCENGINE_TTS_CONFIG_STORAGE_KEY = 'ailive.volcengine-tts-config'
-export const VOLCENGINE_CUSTOM_VOICES_STORAGE_KEY = 'ailive.volcengine-custom-voices'
 export const DEFAULT_VOLCENGINE_TTS_ENDPOINT = 'https://openspeech.bytedance.com/api/v3/tts/unidirectional'
-export const DEFAULT_VOLCENGINE_TTS_RESOURCE_ID = 'seed-tts-2.0'
 const VOLCENGINE_TTS_PROXY_PATH = '/volcengine-tts'
-
-export const VOLCENGINE_VOICE_PRESETS: readonly VolcengineVoicePreset[] = [
-  { id: 'clear-female', label: '清新', voiceType: 'zh_female_vv_uranus_bigtts', resourceId: DEFAULT_VOLCENGINE_TTS_RESOURCE_ID, speedRatio: 1, pitchRatio: 1 },
-  { id: 'gentle-female', label: '温柔', voiceType: 'zh_female_roumeinvyou_uranus_bigtts', resourceId: DEFAULT_VOLCENGINE_TTS_RESOURCE_ID, speedRatio: 0.95, pitchRatio: 1 },
-  { id: 'lively-female', label: '活力', voiceType: 'ICL_uranus_zh_female_huoponvhai_tob', resourceId: 'seed-icl-2.0', speedRatio: 1.08, pitchRatio: 1 },
-  { id: 'steady-female', label: '沉稳', voiceType: 'ICL_uranus_zh_female_qingxinshaonv_tob', resourceId: 'seed-icl-2.0', speedRatio: 0.92, pitchRatio: 1 },
-  { id: 'friendly-female', label: '亲切', voiceType: 'zh_female_peiqi_uranus_bigtts', resourceId: DEFAULT_VOLCENGINE_TTS_RESOURCE_ID, speedRatio: 1, pitchRatio: 1 },
-]
-
-export function loadCustomVolcengineVoices(): VolcengineVoicePreset[] {
-  try {
-    const raw = window.localStorage.getItem(VOLCENGINE_CUSTOM_VOICES_STORAGE_KEY)
-    if (!raw) return []
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter((item): item is VolcengineVoicePreset => {
-      if (!item || typeof item !== 'object') return false
-      const voice = item as Partial<VolcengineVoicePreset>
-      return typeof voice.id === 'string' && voice.id.startsWith('custom:')
-        && typeof voice.label === 'string' && voice.label.trim().length > 0
-        && typeof voice.voiceType === 'string' && voice.voiceType.trim().length > 0
-        && (voice.resourceId === 'seed-tts-2.0' || voice.resourceId === 'seed-icl-2.0')
-        && typeof voice.speedRatio === 'number' && typeof voice.pitchRatio === 'number'
-    })
-  } catch {
-    return []
-  }
-}
-
-export function loadVolcengineTtsConfig(): VolcengineTtsConfig {
-  const fallback: VolcengineTtsConfig = {
-    apiKey: (import.meta.env.VITE_VOLCENGINE_TTS_API_KEY as string | undefined) ?? '',
-    endpoint: (import.meta.env.VITE_VOLCENGINE_TTS_ENDPOINT as string | undefined) ?? DEFAULT_VOLCENGINE_TTS_ENDPOINT,
-  }
-  try {
-    const raw = window.localStorage.getItem(VOLCENGINE_TTS_CONFIG_STORAGE_KEY)
-    if (!raw) return fallback
-    const parsed = JSON.parse(raw) as Partial<VolcengineTtsConfig>
-    return {
-      apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey : fallback.apiKey,
-      endpoint: typeof parsed.endpoint === 'string' && parsed.endpoint.trim() ? parsed.endpoint : fallback.endpoint,
-    }
-  } catch {
-    return fallback
-  }
-}
 
 export async function synthesizeVolcengineSpeech(text: string, preset: VolcengineVoicePreset, config: VolcengineTtsConfig): Promise<Blob> {
   const content = text.trim()

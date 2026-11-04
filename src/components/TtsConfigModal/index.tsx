@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useVoice } from '../../hooks'
-import { VOLCENGINE_TTS_CONFIG_STORAGE_KEY, type VolcengineTtsConfig } from '../../hooks/useTts/api'
+import type { VolcengineTtsConfig } from '../../hooks/useTts/api'
 import { Button } from '../Button'
 import { Input } from '../Input'
 import { Modal } from '../Modal'
+import { saveTtsConfig } from '../../contexts/VoiceProvider/storage'
 import styles from './index.module.scss'
 
 type TtsConfigModalProps = {
@@ -27,11 +28,7 @@ export function TtsConfigModal({ open, onClose }: TtsConfigModalProps) {
   const save = () => {
     const next: VolcengineTtsConfig = { ...draft, apiKey: draft.apiKey.trim(), endpoint: draft.endpoint.trim() || voiceConfig.endpoint }
     setVoiceConfig(next)
-    try {
-      window.localStorage.setItem(VOLCENGINE_TTS_CONFIG_STORAGE_KEY, JSON.stringify(next))
-    } catch {
-      // 隐私模式下存不了，只在内存里生效
-    }
+    saveTtsConfig(next)
     onClose()
   }
 

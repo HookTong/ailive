@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Model3Config, ModelManifest, ModelSource } from '../../modelTypes'
-import { VOLCENGINE_VOICE_PRESETS } from '../../hooks/useTts/api'
+import type { Model3Config, ModelManifest, ModelSource } from './types'
+import { DEFAULT_VOLCENGINE_VOICE_PRESET_ID } from '../VoiceProvider/presets'
 import { ModelContext, type CharacterState, type ModelContextValue } from './ModelContext'
 
 const DEFAULT_MODEL_SOURCE: ModelSource = {
@@ -19,7 +19,7 @@ const createCharacterState = (): CharacterState => ({
   selectedExpressions: [],
   modelSize: 0.6,
   positionResetKey: 0,
-  voicePresetId: VOLCENGINE_VOICE_PRESETS[0].id,
+  voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
   modelVisible: true,
   bubbleMode: 'speaking',
   speakingMotion: '',
@@ -224,7 +224,7 @@ export function ModelProvider({ children }: ModelProviderProps) {
       selectedExpressions: [],
       modelSize: 0.6,
       positionResetKey: activeCharacter.positionResetKey + 1,
-      voicePresetId: VOLCENGINE_VOICE_PRESETS[0].id,
+      voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
       modelVisible: true,
       bubbleMode: 'speaking',
       speakingMotion: '',
@@ -236,7 +236,7 @@ export function ModelProvider({ children }: ModelProviderProps) {
       Object.entries(current).map(([modelId, state]) => [
         modelId,
         state.voicePresetId === deletedPresetId
-          ? { ...state, voicePresetId: VOLCENGINE_VOICE_PRESETS[0].id }
+          ? { ...state, voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID }
           : state,
       ])
     ))

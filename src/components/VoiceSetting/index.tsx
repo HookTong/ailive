@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import {
-  type VolcengineVoicePreset,
-  VOLCENGINE_VOICE_PRESETS,
-} from '../../hooks/useTts/api'
+import type { VolcengineVoicePreset } from '../../hooks/useTts/api'
 import { useVoice } from '../../hooks'
 import { Button } from '../Button'
 import { DropdownSelect, type DropdownOption } from '../DropdownSelect'
@@ -21,7 +18,6 @@ type VoiceSettingProps = {
   error: string
   onPresetChange: (preset: VolcengineVoicePreset) => void
   onSpeak: (text: string, preset: VolcengineVoicePreset) => void
-  customVoices: VolcengineVoicePreset[]
   onAddVoice: (voice: VolcengineVoicePreset) => void
   onDeleteVoice: (id: string) => void
   /** 气泡显示策略 */
@@ -44,17 +40,17 @@ const BUBBLE_MODE_OPTIONS: readonly SegmentedOption<BubbleMode>[] = [
 ]
 
 export function VoiceSetting({
-  presetId, speaking, error, onPresetChange, onSpeak, customVoices, onAddVoice, onDeleteVoice,
+  presetId, speaking, error, onPresetChange, onSpeak, onAddVoice, onDeleteVoice,
   bubbleMode, onBubbleModeChange, speakingMotion, speakingMotionOptions, onSpeakingMotionChange,
 }: VoiceSettingProps) {
-  const { voiceConfig, openTtsConfig } = useVoice()
+  // 音色列表（内置 + 自定义）由 VoiceProvider 合并好后直接给出
+  const { voiceConfig, voices, openTtsConfig } = useVoice()
   const [draft, setDraft] = useState('')
   const [showVoiceModal, setShowVoiceModal] = useState(false)
   const [voiceName, setVoiceName] = useState('')
   const [voiceId, setVoiceId] = useState('')
   const [voiceResourceId, setVoiceResourceId] = useState('seed-tts-2.0')
   const [voiceModalError, setVoiceModalError] = useState('')
-  const voices = [...VOLCENGINE_VOICE_PRESETS, ...customVoices]
   const selectedPreset = voices.find((preset) => preset.id === presetId) ?? voices[0]
 
   // 只有文本为空时才禁用；没配 Key 时点击直接打开顶栏那份配置弹窗

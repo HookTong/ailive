@@ -7,7 +7,7 @@ import { ScrollArea } from '../ScrollArea'
 import { Slider } from '../Slider'
 import { cx } from '../../utils/cx'
 import { useModel, useVoice } from '../../hooks'
-import { VOLCENGINE_VOICE_PRESETS, type VolcengineVoicePreset } from '../../hooks/useTts/api'
+import type { VolcengineVoicePreset } from '../../hooks/useTts/api'
 import styles from './index.module.scss'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
@@ -27,7 +27,6 @@ export function ModelControlPanel() {
   } = useModel()
 
   const {
-    customVoices,
     addVoice,
     deleteVoice,
     voiceError,
@@ -100,10 +99,8 @@ export function ModelControlPanel() {
   }
 
   const handleVoiceSpeak = async (text: string, preset: VolcengineVoicePreset) => {
-    // 内置音色不在 customVoices 里，必须两边一起查；查不到就退回传进来的对象，
-    // 否则选内置音色点「测试发声」会静默什么都不做
-    const fullPreset = [...VOLCENGINE_VOICE_PRESETS, ...customVoices].find((voice) => voice.id === preset.id) ?? preset
-    await speak(text, fullPreset, activeModelId)
+    // preset 直接来自 VoiceSetting 里合并好的音色列表，无需再查一遍
+    await speak(text, preset, activeModelId)
   }
 
   return (
@@ -271,7 +268,6 @@ export function ModelControlPanel() {
         presetId={voicePresetId}
         speaking={voiceSpeaking}
         error={voiceError}
-        customVoices={customVoices}
         bubbleMode={bubbleMode}
         speakingMotion={speakingMotion}
         speakingMotionOptions={speakingMotionOptions}

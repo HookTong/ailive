@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { ModelManifest, ModelSource } from '../../modelTypes'
+import type { ModelManifest, ModelSource } from './types'
 
 /** 气泡显示策略：speaking = 只有说话时显示，always = 常显 */
 export type BubbleMode = 'speaking' | 'always'

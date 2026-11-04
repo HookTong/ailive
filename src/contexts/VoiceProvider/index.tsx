@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTts } from '../../hooks/useTts'
-import {
-  loadCustomVolcengineVoices,
-  loadVolcengineTtsConfig,
-  type VolcengineTtsConfig,
-  type VolcengineVoicePreset,
-  VOLCENGINE_CUSTOM_VOICES_STORAGE_KEY,
-} from '../../hooks/useTts/api'
+import type { VolcengineTtsConfig, VolcengineVoicePreset } from '../../hooks/useTts/api'
+// 配置与音色库的读写都收在 storage.ts 里
+import { loadCustomVolcengineVoices, loadTtsConfig, saveCustomVolcengineVoices } from './storage'
+// 内置预设是这一层的数据，不再外泄给其他模块
+import { VOLCENGINE_VOICE_PRESETS } from './presets'
 import { VoiceContext, type VoiceContextValue } from './VoiceContext'
 
 type VoiceProviderProps = {
@@ -15,7 +13,7 @@ type VoiceProviderProps = {
 }
 
 export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoiceProviderProps) {
-  const [voiceConfig, setVoiceConfig] = useState<VolcengineTtsConfig>(loadVolcengineTtsConfig)
+  const [voiceConfig, setVoiceConfig] = useState<VolcengineTtsConfig>(loadTtsConfig)
   const [customVoices, setCustomVoices] = useState<VolcengineVoicePreset[]>(loadCustomVolcengineVoices)
   const [ttsConfigOpen, setTtsConfigOpen] = useState(false)
   // 发声请求、播放与「谁在说话」都在 useTts 里，这里只持有配置和音色库
@@ -24,28 +22,30 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
   const openTtsConfig = useCallback(() => setTtsConfigOpen(true), [])
   const closeTtsConfig = useCallback(() => setTtsConfigOpen(false), [])
 
-  // Persist custom voices
+  // 自定义音色变化即落盘
   useEffect(() => {
-    try {
-      window.localStorage.setItem(VOLCENGINE_CUSTOM_VOICES_STORAGE_KEY, JSON.stringify(customVoices))
-    } catch {
-      // Storage unavailable
-    }
+    saveCustomVolcengineVoices(customVoices)
   }, [customVoices])
 
-  const addVoice = (voice: VolcengineVoicePreset) => {
+  const addVoice = useCallback((voice: VolcengineVoicePreset) => {
     setCustomVoices((current) => [...current, voice])
-  }
+  }, [])
 
-  const deleteVoice = (id: string) => {
+  const deleteVoice = useCallback((id: string) => {
     setCustomVoices((current) => current.filter((voice) => voice.id !== id))
     onCharacterVoicePresetReset?.(id)
-  }
+  }, [onCharacterVoicePresetReset])
+
+  // 内置预设 + 自定义音色的合并只在这里做，其他组件统一从上下文取
+  const voices = useMemo<VolcengineVoicePreset[]>(
+    () => [...VOLCENGINE_VOICE_PRESETS, ...customVoices],
+    [customVoices],
+  )
 
   const value = useMemo<VoiceContextValue>(() => ({
     voiceConfig,
     setVoiceConfig,
-    customVoices,
+    voices,
     addVoice,
     deleteVoice,
     voiceError,
@@ -56,7 +56,7 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
     ttsConfigOpen,
     openTtsConfig,
     closeTtsConfig,
-  }), [voiceConfig, customVoices, voiceError, speakingModel, lastSpoken, speak, stopSpeaking, ttsConfigOpen, openTtsConfig, closeTtsConfig])
+  }), [voiceConfig, voices, addVoice, deleteVoice, voiceError, speakingModel, lastSpoken, speak, stopSpeaking, ttsConfigOpen, openTtsConfig, closeTtsConfig])
 
   return (
     <VoiceContext.Provider value={value}>
