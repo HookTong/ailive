@@ -1,11 +1,11 @@
 import { createContext, useContext } from 'react'
-import type { useDouyinRoom } from '../../hooks/useDouyinRoom'
-import type { LiveOverviewType } from '../../live/types'
+import type { useLiveServer } from '../../hooks/useLiveServer'
+import type { LiveOverviewType } from '../../components/LiveOverview/types'
 
 export type LiveDataContextValue = {
   liveOverview: LiveOverviewType
   douyinRoomId: string | null
-  douyinRoom: ReturnType<typeof useDouyinRoom>
+  douyinRoom: ReturnType<typeof useLiveServer>
   handleDouyinRoomChange: (roomId: string | null) => void
 }
 

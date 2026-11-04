@@ -10,6 +10,7 @@ import { DropdownSelect, type DropdownOption } from '../DropdownSelect'
 import { Input, Textarea } from '../Input'
 import { Modal } from '../Modal'
 import { ScrollArea } from '../ScrollArea'
+import { Segmented, type SegmentedOption } from '../Segmented'
 import { Tooltip } from '../Tooltip'
 import type { BubbleMode } from '../../contexts/ModelProvider/ModelContext'
 import { cx } from '../../utils/cx'
@@ -40,6 +41,11 @@ const voiceResourceOptions = [
   { label: 'seed-icl-2.0', value: 'seed-icl-2.0' },
 ]
 
+const BUBBLE_MODE_OPTIONS: readonly SegmentedOption<BubbleMode>[] = [
+  { value: 'speaking', label: '说话显示' },
+  { value: 'always', label: '常显' },
+]
+
 export function VoiceSetting({
   presetId, config, speaking, error, onPresetChange, onConfigChange, onSpeak, customVoices, onAddVoice, onDeleteVoice,
   bubbleMode, onBubbleModeChange, speakingMotion, speakingMotionOptions, onSpeakingMotionChange,
@@ -52,7 +58,6 @@ export function VoiceSetting({
   const [voiceResourceId, setVoiceResourceId] = useState('seed-tts-2.0')
   const [voiceModalError, setVoiceModalError] = useState('')
   const [saved, setSaved] = useState(false)
-  const [speakHint, setSpeakHint] = useState('')
   const voices = [...VOLCENGINE_VOICE_PRESETS, ...customVoices]
   const selectedPreset = voices.find((preset) => preset.id === presetId) ?? voices[0]
 
@@ -60,24 +65,9 @@ export function VoiceSetting({
     setSaved(false)
   }, [config])
 
-  // 输入内容或 API Key 变化后，清掉上一次的点击提示
-  useEffect(() => {
-    setSpeakHint('')
-  }, [draft, config.apiKey])
-
   // 没配 Key 时按钮 disabled，disabled 元素不派发指针事件、Tooltip 弹不出来，
   // 所以原因改用按钮下方的常显文案说明
   const needsApiKey = !config.apiKey.trim()
-
-  const handleSpeakClick = () => {
-    if (speaking) return
-    if (!draft.trim()) {
-      setSpeakHint('请先输入要朗读的内容')
-      return
-    }
-    setSpeakHint('')
-    onSpeak(draft, selectedPreset)
-  }
 
   const updateConfig = <K extends keyof VolcengineTtsConfig>(key: K, value: VolcengineTtsConfig[K]) => {
     onConfigChange({ ...config, [key]: value })
@@ -174,32 +164,6 @@ export function VoiceSetting({
       </ScrollArea>
       <Button variant="dashed" size="xs" block className={styles.addButton} onClick={openVoiceModal}>＋ 添加音色</Button>
 
-      {/* 气泡与说话动作 */}
-      <div className={styles.behavior}>
-        <div className={styles.behaviorRow}>
-          <span>气泡显示</span>
-          <Button
-            variant="ghost"
-            size="xs"
-            className={styles.behaviorButton}
-            aria-label={`气泡显示：${bubbleMode === 'always' ? '常显' : '说话显示'}`}
-            onClick={() => onBubbleModeChange(bubbleMode === 'always' ? 'speaking' : 'always')}
-          >
-            {bubbleMode === 'always' ? '常显' : '说话显示'}
-          </Button>
-        </div>
-        <div className={styles.behaviorRow}>
-          <span>说话触发动作</span>
-          <div className={styles.behaviorControl}>
-            <DropdownSelect
-              ariaLabel="说话触发动作"
-              value={speakingMotion}
-              options={speakingMotionOptions}
-              onChange={onSpeakingMotionChange}
-            />
-          </div>
-        </div>
-      </div>
       <Textarea
         className={styles.textarea}
         value={draft}
@@ -210,20 +174,45 @@ export function VoiceSetting({
         maxLength={300}
       />
       <span className={styles.speakWrap}>
-        <Button
-          variant="bare"
-          className={styles.speakButton}
-          disabled={speaking || needsApiKey}
-          onClick={handleSpeakClick}
-        >
-          {speaking ? '正在说话…' : '▶ 测试发声'}
-        </Button>
+        {/* 缺 Key 时才提示，按钮本身只渲染一份 */}
+        <Tooltip block placement="top" title="请先配置APIkey" disabled={!needsApiKey}>
+          <Button
+            variant="bare"
+            className={styles.speakButton}
+            disabled={!draft.trim() || speaking || needsApiKey}
+            onClick={() => onSpeak(draft, selectedPreset)}
+          >
+            {speaking ? '正在说话…' : '▶ 测试发声'}
+          </Button>
+        </Tooltip>
       </span>
-      {needsApiKey
-        ? <div className={styles.speakHint}>未配置 API Key，请先点击下方「配置火山 TTS」</div>
-        : speakHint && <div className={styles.speakHint}>{speakHint}</div>}
       {error && <div className={styles.error}>{error}</div>}
       <Button variant="bare" className={styles.configToggle} onClick={() => setShowConfig(true)}>配置火山 TTS</Button>
+
+      {/* 气泡与说话动作：标签在上，控件各占一行 */}
+      <div className={styles.behavior}>
+        <div className={styles.behaviorRow}>
+          <span>气泡显示</span>
+          <Segmented
+            ariaLabel="气泡显示"
+            block
+            value={bubbleMode}
+            options={BUBBLE_MODE_OPTIONS}
+            onChange={onBubbleModeChange}
+          />
+        </div>
+        <div className={styles.behaviorRow}>
+          <span>说话触发动作</span>
+          <DropdownSelect
+            ariaLabel="说话触发动作"
+            size="sm"
+            value={speakingMotion}
+            options={speakingMotionOptions}
+            onChange={onSpeakingMotionChange}
+          />
+        </div>
+      </div>
+
       {showConfig && (
         <Modal
           title="TTS 设置"

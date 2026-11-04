@@ -34,11 +34,12 @@ function AppContent() {
     const state = characterStates[source.id]
     if (!state) return []
     const speaking = speakingModel?.modelId === source.id
-    // 说话时显示当前内容；常显模式退回到最近一次说过的内容
+    // 说话时显示当前内容；常显模式显示该模型最近说过的话，没说过就退回默认招呼语，
+    // 这样点「常显」后气泡会立刻出现在对应模型头上，不用等它先开口
     const speechText = speaking
       ? speakingModel.text
-      : state.bubbleMode === 'always' && lastSpoken?.modelId === source.id
-        ? lastSpoken.text
+      : state.bubbleMode === 'always'
+        ? lastSpoken[source.id] ?? `你好，我是${source.name}`
         : ''
     return [{
       id: source.id,

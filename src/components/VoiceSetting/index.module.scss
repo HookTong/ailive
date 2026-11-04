@@ -75,37 +75,25 @@
   margin-top: 6px;
 }
 
-// 气泡显示 / 说话触发动作
+// 气泡显示 / 说话触发动作：标签在上，控件各占一行
 .behavior {
-  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid $border-inset;
 }
 
 .behaviorRow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-
-  & + & {
-    margin-top: 8px;
-  }
+  flex-direction: column;
+  gap: 6px;
 
   > span {
     color: $text-muted;
     @include mono(10px);
-    white-space: nowrap;
   }
-}
-
-.behaviorButton {
-  min-width: 68px;
-}
-
-.behaviorControl {
-  flex: 1;
-  min-width: 0;
 }
 
 .textarea {
@@ -138,13 +126,6 @@
       opacity: 0.55;
     }
   }
-}
-
-.speakHint {
-  margin-top: 6px;
-  color: $text-muted;
-  @include mono(9px);
-  line-height: 1.4;
 }
 
 .error {

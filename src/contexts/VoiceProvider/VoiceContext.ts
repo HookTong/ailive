@@ -9,8 +9,8 @@ export type VoiceContextValue = {
   deleteVoice: (id: string) => void
   voiceError: string
   speakingModel: { modelId: string; text: string } | null
-  /** 最近一次说过的内容；说话结束后仍然保留，供「气泡常显」使用 */
-  lastSpoken: { modelId: string; text: string } | null
+  /** 每个模型最近一次说过的内容（按 modelId 索引）；说话结束后仍然保留，供「气泡常显」使用 */
+  lastSpoken: Record<string, string>
   speak: (text: string, preset: VolcengineVoicePreset, modelId: string) => Promise<void>
   stopSpeaking: () => void
 }

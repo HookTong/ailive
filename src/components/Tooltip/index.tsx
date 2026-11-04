@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
@@ -10,13 +10,24 @@ type TooltipProps = {
   children: ReactNode
   /** 触发元素需要撑满父容器时打开（音色胶囊等） */
   block?: boolean
+  /** 禁用后完全不弹提示，用于「同一个触发元素在某些状态下不该有提示」的场景 */
+  disabled?: boolean
 }
 
-export function Tooltip({ placement = 'top', title, children, block = false }: TooltipProps) {
+export function Tooltip({ placement = 'top', title, children, block = false, disabled = false }: TooltipProps) {
   const [visible, setVisible] = useState(false)
   const [style, setStyle] = useState<CSSProperties>({})
 
+  // 外部切到禁用时立刻收起已经弹出来的提示
+  useEffect(() => {
+    if (disabled) setVisible(false)
+  }, [disabled])
+
   const show = (event: React.PointerEvent<HTMLSpanElement>) => {
+    if (disabled) {
+      setVisible(false)
+      return
+    }
     if (event.target instanceof Element && event.target.closest('[data-tooltip-ignore]')) {
       setVisible(false)
       return
@@ -36,6 +47,10 @@ export function Tooltip({ placement = 'top', title, children, block = false }: T
   }
 
   const showOnFocus = (event: React.FocusEvent<HTMLSpanElement>) => {
+    if (disabled) {
+      setVisible(false)
+      return
+    }
     if (event.target instanceof Element && event.target.closest('[data-tooltip-ignore]')) {
       setVisible(false)
       return
@@ -52,7 +67,7 @@ export function Tooltip({ placement = 'top', title, children, block = false }: T
       onBlur={() => setVisible(false)}
     >
       {children}
-      {visible && <span className={styles.popup} style={style} role="tooltip">{title}</span>}
+      {visible && !disabled && <span className={styles.popup} style={style} role="tooltip">{title}</span>}
     </span>
   )
 }

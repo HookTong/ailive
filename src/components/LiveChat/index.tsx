@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { normalizeWebRid } from '../../live/douyin'
+import { normalizeWebRid } from '../../hooks/useLiveServer/api'
 import { describeRoomState, useDragPosition, type LiveFeedItem, type LiveRoomState } from '../../hooks'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
@@ -51,7 +51,7 @@ function FeedRow({ item }: { item: LiveFeedItem }) {
 }
 
 /**
- * 弹幕面板。直播状态由 App 通过 useDouyinRoom 统一持有，
+ * 弹幕面板。直播状态由 LiveDataProvider 通过 useLiveServer 统一持有，
  * 这样舞台卡片（今日守护等）和面板共享同一条 SSE 连接。
  */
 export function LiveChat({ roomId, onRoomIdChange, live }: LiveChatProps) {

@@ -142,7 +142,7 @@ SSE 消息体三种：
 
 ### 前端侧（本仓库）
 
-`src/live/douyin.ts`（协议 + EventSource 封装）、`src/live/useDouyinRoom.ts`（订阅 hook，400ms 批量提交避免高频 setState）、`src/components/LiveChatPanel.tsx`（弹幕面板）。`vite.config.ts` 里把 `/api` 代理到 `127.0.0.1:8787`。
+`src/hooks/useLiveServer/api.ts`（协议 + EventSource 封装）、`src/hooks/useLiveServer/index.ts`（订阅 hook，400ms 批量提交避免高频 setState）、`src/components/LiveChat/index.tsx`（弹幕面板）。`vite.config.ts` 里把 `/api` 代理到 `127.0.0.1:8787`。
 
 ## 已知限制
 

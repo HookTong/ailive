@@ -19,7 +19,7 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
   const [customVoices, setCustomVoices] = useState<VolcengineVoicePreset[]>(loadCustomVolcengineVoices)
   const [voiceError, setVoiceError] = useState('')
   const [speakingModel, setSpeakingModel] = useState<{ modelId: string; text: string } | null>(null)
-  const [lastSpoken, setLastSpoken] = useState<{ modelId: string; text: string } | null>(null)
+  const [lastSpoken, setLastSpoken] = useState<Record<string, string>>({})
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null)
   const voiceObjectUrlRef = useRef<string | null>(null)
 
@@ -85,7 +85,8 @@ export function VoiceProvider({ children, onCharacterVoicePresetReset }: VoicePr
       }
 
       setSpeakingModel({ modelId, text: text.trim() })
-      setLastSpoken({ modelId, text: text.trim() })
+      // 按模型分别记录，多个模型常显时各自显示自己说过的话
+      setLastSpoken((current) => ({ ...current, [modelId]: text.trim() }))
       await audio.play()
     } catch (error) {
       setSpeakingModel(null)

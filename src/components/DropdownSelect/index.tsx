@@ -14,9 +14,11 @@ type DropdownSelectProps<Value extends DropdownValue> = {
   options: DropdownOption<Value>[]
   onChange: (value: Value) => void
   ariaLabel: string
+  /** 触发区高度：md = 36px（默认），sm = 30px */
+  size?: 'sm' | 'md'
 }
 
-export function DropdownSelect<Value extends DropdownValue>({ value, options, onChange, ariaLabel }: DropdownSelectProps<Value>) {
+export function DropdownSelect<Value extends DropdownValue>({ value, options, onChange, ariaLabel, size = 'md' }: DropdownSelectProps<Value>) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const selectedOption = options.find((option) => option.value === value) ?? options[0]
@@ -49,7 +51,7 @@ export function DropdownSelect<Value extends DropdownValue>({ value, options, on
   return (
     <div className={cx(styles.root, open && styles.open)} ref={rootRef}>
       <button
-        className={styles.trigger}
+        className={cx(styles.trigger, size === 'sm' && styles.sm)}
         type="button"
         role="combobox"
         aria-haspopup="listbox"

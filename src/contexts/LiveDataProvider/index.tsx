@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { useDouyinRoom } from '../../hooks/useDouyinRoom'
-import { DOUYIN_ROOM_STORAGE_KEY } from '../../live/douyin'
-import type { LiveOverviewType } from '../../live/types'
+import { useLiveServer } from '../../hooks/useLiveServer'
+import { DOUYIN_ROOM_STORAGE_KEY } from '../../hooks/useLiveServer/api'
+import type { LiveOverviewType } from '../../components/LiveOverview/types'
 import { LiveDataContext, type LiveDataContextValue } from './LiveDataContext'
 
 /** 写死的演示数据；接入真实数据源时替换这里即可 */
@@ -30,7 +30,7 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   const [douyinRoomId, setDouyinRoomId] = useState<string | null>(
     () => window.localStorage.getItem(DOUYIN_ROOM_STORAGE_KEY) || null
   )
-  const douyinRoom = useDouyinRoom(douyinRoomId)
+  const douyinRoom = useLiveServer(douyinRoomId)
 
   const handleDouyinRoomChange = (roomId: string | null) => {
     try {

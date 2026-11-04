@@ -6,7 +6,7 @@ import {
   type DouyinConnectionState,
   type DouyinEvent,
   type DouyinRoomInfo,
-} from '../live/douyin'
+} from './api'
 
 export type LiveFeedItem = {
   id: number
@@ -116,7 +116,7 @@ function toFeedItem(event: DouyinEvent, id: number): LiveFeedItem | null {
   }
 }
 
-export function useDouyinRoom(
+export function useLiveServer(
   webRidInput: string | null,
   options?: { onEvent?: (event: DouyinEvent) => void },
 ): LiveRoomState & { reset: () => void } {

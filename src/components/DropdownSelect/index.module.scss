@@ -27,6 +27,11 @@
     border-color: #66a998;
     background: #162a31ed;
   }
+
+  // 紧凑版：与 Segmented 等控件同高
+  &.sm {
+    height: 30px;
+  }
 }
 
 .open .trigger {

@@ -2,6 +2,9 @@ import { useLiveData, useDragPosition } from '../../hooks'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
+// 概览卡片的数据结构就定义在本目录的 types.ts，组件出口一并导出
+export type { LiveOverviewType } from './types'
+
 /**
  * 舞台左上角的直播概览卡片组：正在播放 / 收支面板 / 点歌排队 / 最近点歌 / 今日守护。
  * 数据直接从 LiveDataContext 取，不需要外部传参；整块可在舞台内拖动。

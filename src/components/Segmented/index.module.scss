@@ -1,0 +1,80 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.root {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid $border-input;
+  border-radius: $radius-md;
+  background: $bg-inset;
+  // 让选中段的方角被容器圆角裁掉
+  overflow: hidden;
+}
+
+// 尺寸与 Button 对齐（xs/sm/md/lg/xl），高度含 1px 上下边框
+.xs {
+  height: 30px;
+}
+
+.sm {
+  height: 32px;
+}
+
+.md {
+  height: 34px;
+}
+
+.lg {
+  height: 36px;
+}
+
+.xl {
+  height: 46px;
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}
+
+.option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 10px;
+  border: 0;
+  border-left: 1px solid $border-input;
+  background: transparent;
+  color: $text-muted;
+  @include mono(9px);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background $ease, color $ease;
+
+  &:first-child {
+    border-left: 0;
+  }
+
+  &:hover:not(:disabled):not(.selected) {
+    background: $bg-hover;
+    color: $text;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+// 撑满时各段等宽，避免长短文案把某一段挤扁
+.block .option {
+  flex: 1 1 0;
+}
+
+.selected {
+  // 半透明填充：选中段与深色面板融合，不像实心色块那么跳
+  background: rgba($accent, 0.3);
+  color: $accent-text;
+  cursor: default;
+}
