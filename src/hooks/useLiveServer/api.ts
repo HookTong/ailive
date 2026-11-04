@@ -1,7 +1,3 @@
-/**
- * 抖音直播间事件流的前端客户端
- */
-
 export type DouyinLiveUser = {
   id: number | null
   nickname: string | null
