@@ -26,7 +26,7 @@ export type LiveGuardian = {
   highlighted?: boolean
 }
 
-export type LiveInfoType = {
+export type LiveOverviewType = {
   platform: LivePlatform
   isLive: boolean
   updatedAt: number
@@ -37,10 +37,10 @@ export type LiveInfoType = {
   guardians: LiveGuardian[]
 }
 
-export type LiveDataListener = (info: LiveInfoType) => void
+export type LiveDataListener = (info: LiveOverviewType) => void
 
 export type LiveDataProvider = {
   readonly platform: LivePlatform
-  getInfo: () => LiveInfoType
+  getInfo: () => LiveOverviewType
   subscribe: (listener: LiveDataListener) => () => void
 }

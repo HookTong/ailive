@@ -1,6 +1,6 @@
 import { Live2D, type Live2DLoadState, type Live2DModelConfig } from '../Live2D'
 import { Atmosphere } from '../Atmosphere'
-import { LiveInfo } from '../LiveInfo'
+import { LiveOverview } from '../LiveOverview'
 import { LiveChat } from '../LiveChat'
 import { cx } from '../../utils/cx'
 import { useStage } from '../../contexts'
@@ -42,7 +42,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
     vignette,
   } = useStage()
 
-  const { liveInfo, douyinRoomId, douyinRoom, handleDouyinRoomChange } = useLiveData()
+  const { douyinRoomId, douyinRoom, handleDouyinRoomChange } = useLiveData()
 
   if (bare) {
     return (
@@ -77,7 +77,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
         color={particleColor}
         size={particleSize}
       />
-      {showInfoCards && <LiveInfo info={liveInfo} />}
+      {showInfoCards && <LiveOverview />}
       <LiveChat
         roomId={douyinRoomId}
         onRoomIdChange={handleDouyinRoomChange}
