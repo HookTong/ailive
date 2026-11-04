@@ -4,7 +4,7 @@ import { useDouyinRoom } from '../live/useDouyinRoom'
 import type { LiveOverviewType } from '../live/types'
 
 /** 写死的演示数据；接入真实数据源时替换这里即可 */
-const DEMO_LIVE_INFO: LiveOverviewType = {
+const DEMO_LIVE_OVERVIEW: LiveOverviewType = {
   platform: 'demo',
   isLive: true,
   updatedAt: 0,
@@ -22,7 +22,7 @@ const DEMO_LIVE_INFO: LiveOverviewType = {
 }
 
 type LiveDataContextValue = {
-  liveInfo: LiveOverviewType
+  liveOverview: LiveOverviewType
   douyinRoomId: string | null
   douyinRoom: ReturnType<typeof useDouyinRoom>
   handleDouyinRoomChange: (roomId: string | null) => void
@@ -57,12 +57,12 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   }
 
   // 演示数据 + 真实抖音房间数据叠加
-  const liveInfo = useMemo<LiveOverviewType>(() => ({
-    ...DEMO_LIVE_INFO,
-    platform: douyinRoom.room ? 'douyin' : DEMO_LIVE_INFO.platform,
+  const liveOverview = useMemo<LiveOverviewType>(() => ({
+    ...DEMO_LIVE_OVERVIEW,
+    platform: douyinRoom.room ? 'douyin' : DEMO_LIVE_OVERVIEW.platform,
     isLive: douyinRoom.state === 'live',
     updatedAt: Date.now(),
-    income: { ...DEMO_LIVE_INFO.income, gifts: String(douyinRoom.stats.gift) },
+    income: { ...DEMO_LIVE_OVERVIEW.income, gifts: String(douyinRoom.stats.gift) },
     guardians: douyinRoom.giftRank.map((entry, index) => ({
       name: entry.name,
       amount: `${entry.count} 件`,
@@ -72,11 +72,11 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   }), [douyinRoom])
 
   const value = useMemo<LiveDataContextValue>(() => ({
-    liveInfo,
+    liveOverview,
     douyinRoomId,
     douyinRoom,
     handleDouyinRoomChange,
-  }), [liveInfo, douyinRoomId, douyinRoom])
+  }), [liveOverview, douyinRoomId, douyinRoom])
 
   return (
     <LiveDataContext.Provider value={value}>

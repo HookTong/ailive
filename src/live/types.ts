@@ -36,11 +36,3 @@ export type LiveOverviewType = {
   recentSongs: LiveQueueItem[]
   guardians: LiveGuardian[]
 }
-
-export type LiveDataListener = (info: LiveOverviewType) => void
-
-export type LiveDataProvider = {
-  readonly platform: LivePlatform
-  getInfo: () => LiveOverviewType
-  subscribe: (listener: LiveDataListener) => () => void
-}

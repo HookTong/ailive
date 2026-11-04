@@ -8,7 +8,7 @@ import styles from './index.module.scss'
  * 数据直接从 LiveDataContext 取，不需要外部传参。
  */
 export function LiveOverview() {
-  const { liveInfo } = useLiveData()
+  const { liveOverview } = useLiveData()
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null)
   const [position, setPosition] = useState({ x: 0, y: 0 })
@@ -68,41 +68,41 @@ export function LiveOverview() {
       <div className={styles.nowPlaying}>
         <span className={styles.icon}>◉</span>
         <div>
-          <strong>{liveInfo.isLive ? '正在播放' : '未开播'}</strong>
-          <b>{liveInfo.nowPlaying.title}</b>
-          <small>{liveInfo.nowPlaying.elapsed} / {liveInfo.nowPlaying.duration}</small>
+          <strong>{liveOverview.isLive ? '正在播放' : '未开播'}</strong>
+          <b>{liveOverview.nowPlaying.title}</b>
+          <small>{liveOverview.nowPlaying.elapsed} / {liveOverview.nowPlaying.duration}</small>
         </div>
         <span className={styles.equalizer}>▂▅▇▅</span>
       </div>
       <div className={styles.grid}>
         <section className={cx(styles.card, styles.income)}>
           <h3>收支面板</h3>
-          <strong>{liveInfo.income.balance} <small>元</small></strong>
+          <strong>{liveOverview.income.balance} <small>元</small></strong>
           <div className={styles.metrics}>
-            <span>收入 <b>{liveInfo.income.income}</b></span>
-            <span>支出 <b>{liveInfo.income.expense}</b></span>
+            <span>收入 <b>{liveOverview.income.income}</b></span>
+            <span>支出 <b>{liveOverview.income.expense}</b></span>
           </div>
           <dl>
-            <dt>今日获票</dt><dd>{liveInfo.income.todayVotes}</dd>
-            <dt>礼物</dt><dd>{liveInfo.income.gifts}</dd>
-            <dt>今日 token</dt><dd>{liveInfo.income.tokens}</dd>
+            <dt>今日获票</dt><dd>{liveOverview.income.todayVotes}</dd>
+            <dt>礼物</dt><dd>{liveOverview.income.gifts}</dd>
+            <dt>今日 token</dt><dd>{liveOverview.income.tokens}</dd>
           </dl>
         </section>
         <div className={styles.stack}>
           <section className={styles.card}>
-            <h3>点歌排队 <small>{liveInfo.songQueue.length} 首</small></h3>
-            <div className={styles.empty}>{liveInfo.songQueue[0]?.title ?? '暂无歌曲'}</div>
+            <h3>点歌排队 <small>{liveOverview.songQueue.length} 首</small></h3>
+            <div className={styles.empty}>{liveOverview.songQueue[0]?.title ?? '暂无歌曲'}</div>
           </section>
           <section className={styles.card}>
             <h3>最近点歌</h3>
-            <ul>{liveInfo.recentSongs.length > 0 ? liveInfo.recentSongs.map((song) => <li key={song.title}>◈ {song.title}</li>) : <li>暂无记录</li>}</ul>
+            <ul>{liveOverview.recentSongs.length > 0 ? liveOverview.recentSongs.map((song) => <li key={song.title}>◈ {song.title}</li>) : <li>暂无记录</li>}</ul>
           </section>
         </div>
         <section className={cx(styles.card, styles.guard)}>
           <h3>今日守护</h3>
           <ol>
-            {liveInfo.guardians.length > 0
-              ? liveInfo.guardians.map((guardian) => (
+            {liveOverview.guardians.length > 0
+              ? liveOverview.guardians.map((guardian) => (
                 <li key={`${guardian.rank}-${guardian.name}`}>
                   <i>{guardian.highlighted ? '☺' : guardian.rank}</i>
                   <span>{guardian.name}</span>
