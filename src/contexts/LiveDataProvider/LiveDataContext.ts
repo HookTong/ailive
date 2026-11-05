@@ -7,6 +7,13 @@ export type LiveDataContextValue = {
   douyinRoomId: string | null
   douyinRoom: ReturnType<typeof useLiveServer>
   handleDouyinRoomChange: (roomId: string | null) => void
+  /** 礼物单价（元/件），用来把礼物件数折算成收入 */
+  giftPrice: number
+  setGiftPrice: (price: number) => void
+  /** 直播配置弹窗开关 */
+  liveConfigOpen: boolean
+  openLiveConfig: () => void
+  closeLiveConfig: () => void
 }
 
 export const LiveDataContext = createContext<LiveDataContextValue | null>(null)

@@ -139,14 +139,20 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const toggle = useCallback(() => {
     const audio = audioRef.current
-    if (!audio) return
+    // 首次播放时 audio 元素还没建出来（只在真正开始播时才创建），
+    // 这里按当前曲目起一个，否则「播放」按钮点了没有任何反应
+    if (!audio) {
+      if (!track.url) return
+      startSource(track.url, track.name, presetId, true)
+      return
+    }
     if (audio.paused) {
       void audioContextRef.current?.resume()
       void audio.play().catch(() => setError('浏览器阻止了播放，请再次点击播放'))
     } else {
       audio.pause()
     }
-  }, [])
+  }, [startSource, track.url, track.name, presetId])
 
   const setVolume = useCallback((next: number) => {
     setVolumeState(next)

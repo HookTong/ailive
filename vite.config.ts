@@ -16,6 +16,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/volcengine-tts/, '/api/v3/tts/unidirectional'),
       },
+      // 方舟（豆包）同样不允许浏览器跨域，开发环境走同源代理。
+      '/volcengine-ark': {
+        target: 'https://ark.cn-beijing.volces.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/volcengine-ark/, '/api/v3'),
+      },
     },
   },
 })

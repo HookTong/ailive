@@ -1,5 +1,4 @@
 @use '../../styles/tokens' as *;
-@use '../../styles/mixins' as *;
 
 .topbar {
   display: flex;
@@ -40,26 +39,14 @@
   border-radius: $radius-pill;
 }
 
-.statusPill {
-  @include mono(11px);
-  color: #a4b4bd;
-  letter-spacing: 0.06em;
-
-  i {
-    @include status-dot;
-  }
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #31424e;
-  color: #c9d6dc;
-  font-size: 12px;
-  font-weight: 700;
+// AI 自动回复正在思考 / 播报时的高亮态
+.configButtonActive {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: $radius-pill;
+  border-color: $accent-chip-line;
+  background: $accent-chip-fill;
+  color: $accent-text;
 }
 
 @media (max-width: 800px) {

@@ -20,7 +20,10 @@ export type LiveFeedItem = {
 export type LiveRoomStats = {
   online: string | null
   chat: number
+  /** 礼物事件条数（一次连击算一条） */
   gift: number
+  /** 礼物件数（连击 ×N 按 N 累加），算收入用它 */
+  giftCount: number
   member: number
   like: number
   follow: number
@@ -77,7 +80,7 @@ function saveGuardians(roomId: string, gifts: Map<string, GiftEntry>) {
   }
 }
 
-const EMPTY_STATS: LiveRoomStats = { online: null, chat: 0, gift: 0, member: 0, like: 0, follow: 0 }
+const EMPTY_STATS: LiveRoomStats = { online: null, chat: 0, gift: 0, giftCount: 0, member: 0, like: 0, follow: 0 }
 
 function createInitialState(): LiveRoomState {
   return { state: 'idle', room: null, error: null, feed: [], stats: { ...EMPTY_STATS }, giftRank: [] }
@@ -207,6 +210,8 @@ export function useLiveServer(
             break
           case 'gift': {
             statsRef.current.gift += 1
+            // 连击一次发 N 件，收入要按件数算
+            statsRef.current.giftCount += event.count || 1
             const key = giftUserKey(event)
             const previous = giftRef.current.get(key)
             giftRef.current.set(key, {

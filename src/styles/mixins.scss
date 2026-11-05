@@ -13,10 +13,31 @@
   white-space: nowrap;
 }
 
-/// 细滚动条
+/// 细滚动条。
+/// 只用 -webkit- 伪元素：一旦写了 scrollbar-color / scrollbar-width（且不为 auto），
+/// Chrome 121+ 就会忽略 ::-webkit-scrollbar 的圆角与 hover 变色，只能得到方块状的 thumb。
 @mixin scroll-thin {
-  scrollbar-width: thin;
-  scrollbar-color: #38505a transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #4a6a78;
+
+    &:hover {
+      background: #5d8492;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 /// 状态小圆点（顶栏「系统在线」、舞台「LIVE PREVIEW」共用）
@@ -42,6 +63,18 @@
 /// 输入类控件的聚焦态
 @mixin field-focus {
   border-color: $accent-chip-line;
+}
+
+/// 兜底：万一还是被浏览器自动填充了，别让它把暗色输入框刷成浅蓝底黑字。
+/// 底色没法用 background 覆盖（Chrome 用的是内部 !important），只能拿足够大的内阴影盖住。
+@mixin autofill-reset($surface, $color) {
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus {
+    box-shadow: 0 0 0 1000px $surface inset;
+    -webkit-text-fill-color: $color;
+    caret-color: $color;
+  }
 }
 
 /// 玻璃拟态面板（舞台卡片、弹幕面板共用）

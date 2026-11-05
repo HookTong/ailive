@@ -1,15 +1,29 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useLiveServer } from '../../hooks/useLiveServer'
 import { DOUYIN_ROOM_STORAGE_KEY } from '../../hooks/useLiveServer/api'
 import type { LiveOverviewType } from '../../components/LiveOverview/types'
 import { LiveDataContext, type LiveDataContextValue } from './LiveDataContext'
+
+/** 礼物单价存储键；未配置时按 1 元/件估算 */
+const GIFT_PRICE_STORAGE_KEY = 'ailive.gift-price'
+const DEFAULT_GIFT_PRICE = 1
+
+function loadGiftPrice(): number {
+  try {
+    const raw = window.localStorage.getItem(GIFT_PRICE_STORAGE_KEY)
+    if (!raw) return DEFAULT_GIFT_PRICE
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_GIFT_PRICE
+  } catch {
+    return DEFAULT_GIFT_PRICE
+  }
+}
 
 /** 写死的演示数据；接入真实数据源时替换这里即可 */
 const DEMO_LIVE_OVERVIEW: LiveOverviewType = {
   platform: 'demo',
   isLive: true,
   updatedAt: 0,
-  income: { balance: '149.11', income: '11.10', expense: '0.37', todayVotes: '5-5', gifts: '186', tokens: '456,345' },
   guardians: [
     { name: '极限战士', amount: '6.40 元', rank: 1, highlighted: true },
     { name: '旧林', amount: '2.50 元', rank: 2 },
@@ -29,6 +43,9 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   )
   const douyinRoom = useLiveServer(douyinRoomId)
 
+  const [giftPrice, setGiftPriceState] = useState<number>(loadGiftPrice)
+  const [liveConfigOpen, setLiveConfigOpen] = useState(false)
+
   const handleDouyinRoomChange = (roomId: string | null) => {
     try {
       if (roomId) window.localStorage.setItem(DOUYIN_ROOM_STORAGE_KEY, roomId)
@@ -39,13 +56,25 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
     setDouyinRoomId(roomId)
   }
 
+  const setGiftPrice = useCallback((price: number) => {
+    const next = Number.isFinite(price) && price >= 0 ? price : DEFAULT_GIFT_PRICE
+    try {
+      window.localStorage.setItem(GIFT_PRICE_STORAGE_KEY, String(next))
+    } catch {
+      // 隐私模式下存不了，只在内存里生效
+    }
+    setGiftPriceState(next)
+  }, [])
+
+  const openLiveConfig = useCallback(() => setLiveConfigOpen(true), [])
+  const closeLiveConfig = useCallback(() => setLiveConfigOpen(false), [])
+
   // 演示数据 + 真实抖音房间数据叠加
   const liveOverview = useMemo<LiveOverviewType>(() => ({
     ...DEMO_LIVE_OVERVIEW,
     platform: douyinRoom.room ? 'douyin' : DEMO_LIVE_OVERVIEW.platform,
     isLive: douyinRoom.state === 'live',
     updatedAt: Date.now(),
-    income: { ...DEMO_LIVE_OVERVIEW.income, gifts: String(douyinRoom.stats.gift) },
     guardians: douyinRoom.giftRank.map((entry, index) => ({
       name: entry.name,
       amount: `${entry.count} 件`,
@@ -59,7 +88,12 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
     douyinRoomId,
     douyinRoom,
     handleDouyinRoomChange,
-  }), [liveOverview, douyinRoomId, douyinRoom])
+    giftPrice,
+    setGiftPrice,
+    liveConfigOpen,
+    openLiveConfig,
+    closeLiveConfig,
+  }), [liveOverview, douyinRoomId, douyinRoom, giftPrice, setGiftPrice, liveConfigOpen, openLiveConfig, closeLiveConfig])
 
   return (
     <LiveDataContext.Provider value={value}>

@@ -1,0 +1,107 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.field {
+  display: block;
+  margin: 0 0 12px;
+
+  > span {
+    display: block;
+    margin-bottom: 6px;
+    color: $text-muted;
+    @include mono(10px);
+  }
+
+  // 单位说明跟在标签后面，比单独占一行省地方
+  > span em {
+    margin-left: 4px;
+    color: $text-faint;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+}
+
+// 两个单价并排
+.prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $bg-panel-raised;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+
+  strong {
+    display: block;
+    color: $text;
+    font-size: 12px;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: $text-muted;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+}
+
+.status {
+  margin: 2px 0 0;
+  color: $text-muted;
+  @include mono(10px);
+}
+
+.history {
+  margin-top: 12px;
+
+  ul {
+    display: grid;
+    gap: 6px;
+    max-height: 180px;
+    margin: 6px 0 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    @include scroll-thin;
+  }
+
+  li {
+    display: grid;
+    gap: 2px;
+    padding: 7px 9px;
+    border: 1px solid $border-soft;
+    border-radius: $radius;
+    background: $bg-panel-raised;
+  }
+
+  small {
+    color: $text-muted;
+    @include mono(9px);
+    @include ellipsis;
+  }
+
+  b {
+    color: $text-soft;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+}
+
+.historyTitle {
+  color: $text-muted;
+  @include mono(10px);
+}

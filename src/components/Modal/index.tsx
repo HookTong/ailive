@@ -61,7 +61,7 @@ export function Modal({
           </div>
           <button className={styles.close} type="button" aria-label="关闭" onClick={onClose}>×</button>
         </div>
-        {children}
+        <div className={styles.body}>{children}</div>
         {actions && <div className={styles.actions}>{actions}</div>}
       </section>
     </div>

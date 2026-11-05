@@ -43,7 +43,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
     vignette,
   } = useStage()
 
-  const { douyinRoomId, douyinRoom, handleDouyinRoomChange } = useLiveData()
+  const { douyinRoom } = useLiveData()
 
   if (bare) {
     return (
@@ -79,13 +79,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
         size={particleSize}
       />
       {showInfoCards && <LiveOverview />}
-      {showChat && (
-        <LiveChat
-          roomId={douyinRoomId}
-          onRoomIdChange={handleDouyinRoomChange}
-          live={douyinRoom}
-        />
-      )}
+      {showChat && <LiveChat live={douyinRoom} />}
       <Live2D models={models} activeModelId={activeModelId} onActivateModel={onActivateModel} onModelStateChange={onModelStateChange} />
       <div className={cx(styles.vignette, filterEnabled && vignette && styles.vignetteActive)} />
       {caption && (

@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Stage, type StageModel } from './components/Stage'
-import { Footer } from './components/Footer'
 import { ModelControlPanel } from './components/ModelControlPanel'
 import { StageControlPanel } from './components/StageControlPanel'
 import { StageToolbar } from './components/StageToolbar'
 import { TopBar } from './components/TopBar'
-import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider } from './contexts'
+import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider, AiChatProvider } from './contexts'
 import { useModel, useVoice } from './hooks'
 
 const MODEL_LAYOUT_POSITIONS = [
@@ -86,7 +85,6 @@ function AppContent() {
         </section>
         <StageControlPanel />
       </section>
-      <Footer />
     </main>
   )
 }
@@ -108,9 +106,11 @@ function VoiceAndModelBridge() {
 
   return (
     <VoiceProvider onCharacterVoicePresetReset={resetVoicePresetForAll}>
-      <MusicProvider>
-        <AppContent />
-      </MusicProvider>
+      <AiChatProvider>
+        <MusicProvider>
+          <AppContent />
+        </MusicProvider>
+      </AiChatProvider>
     </VoiceProvider>
   )
 }

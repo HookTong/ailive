@@ -12,6 +12,8 @@
 }
 
 .panel {
+  display: flex;
+  flex-direction: column;
   width: min(560px, 100%);
   max-height: min(720px, calc(100vh - 40px));
   padding: 22px;
@@ -21,10 +23,19 @@
   box-shadow: $shadow-modal;
 }
 
-// 内容可能超出时开启滚动（添加模型 / 自定义滤镜）
-.scrollable {
+// 内容区。面板定高时由它吸收剩余空间，标题与底部按钮始终留在原位，
+// 内容再多也不会把按钮顶出面板。
+.body {
+  flex: 1;
+  min-height: 0;
+}
+
+// 内容可能超出时开启滚动（添加模型 / 自定义滤镜 / AI 配置）
+.scrollable .body {
   overflow-y: auto;
   @include scroll-thin;
+  // 滚动条会压住内容右侧，留一点呼吸
+  padding-right: 4px;
 }
 
 // 面板色（右侧控制台同色系），滤镜 / TTS 弹窗用它
@@ -35,6 +46,7 @@
 
 .header {
   display: flex;
+  flex: 0 0 auto;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
@@ -74,6 +86,7 @@
 
 .actions {
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;

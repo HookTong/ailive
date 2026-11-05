@@ -54,6 +54,13 @@ export function TtsConfigModal({ open, onClose }: TtsConfigModalProps) {
         <Input
           size="lg"
           type="password"
+          // 同 AI 配置弹窗：密码框必须用 new-password 才挡得住 Chrome 的凭据填充
+          name="volcengine-tts-key"
+          autoComplete="new-password"
+          data-1p-ignore
+          data-lpignore="true"
+          spellCheck={false}
+          autoCapitalize="off"
           value={draft.apiKey}
           onChange={(event) => setDraft({ ...draft, apiKey: event.target.value })}
           placeholder="控制台 API Key"
