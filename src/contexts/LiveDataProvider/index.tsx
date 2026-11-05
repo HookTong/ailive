@@ -1,36 +1,25 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLiveServer } from '../../hooks/useLiveServer'
 import { DOUYIN_ROOM_STORAGE_KEY } from '../../hooks/useLiveServer/api'
-import type { LiveOverviewType } from '../../components/LiveOverview/types'
 import { LiveDataContext, type LiveDataContextValue } from './LiveDataContext'
 
-/** 礼物单价存储键；未配置时按 1 元/件估算 */
-const GIFT_PRICE_STORAGE_KEY = 'ailive.gift-price'
-const DEFAULT_GIFT_PRICE = 1
+/** 礼物单价表：只存用户改过的项，没出现的礼物走 data/gifts 里的默认价 */
+const GIFT_PRICES_STORAGE_KEY = 'ailive.gift-prices'
 
-function loadGiftPrice(): number {
+function loadGiftPrices(): Record<string, number> {
   try {
-    const raw = window.localStorage.getItem(GIFT_PRICE_STORAGE_KEY)
-    if (!raw) return DEFAULT_GIFT_PRICE
-    const parsed = Number(raw)
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_GIFT_PRICE
+    const raw = window.localStorage.getItem(GIFT_PRICES_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as unknown
+    if (!parsed || typeof parsed !== 'object') return {}
+    const result: Record<string, number> = {}
+    for (const [name, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value === 'number' && Number.isFinite(value) && value >= 0) result[name] = value
+    }
+    return result
   } catch {
-    return DEFAULT_GIFT_PRICE
+    return {}
   }
-}
-
-/** 写死的演示数据；接入真实数据源时替换这里即可 */
-const DEMO_LIVE_OVERVIEW: LiveOverviewType = {
-  platform: 'demo',
-  isLive: true,
-  updatedAt: 0,
-  guardians: [
-    { name: '极限战士', amount: '6.40 元', rank: 1, highlighted: true },
-    { name: '旧林', amount: '2.50 元', rank: 2 },
-    { name: '墨墨', amount: '1.80 元', rank: 3 },
-    { name: '行止', amount: '1.40 元', rank: 4 },
-    { name: '几月是冬', amount: '1.20 元', rank: 5 },
-  ],
 }
 
 type LiveDataProviderProps = {
@@ -43,7 +32,7 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   )
   const douyinRoom = useLiveServer(douyinRoomId)
 
-  const [giftPrice, setGiftPriceState] = useState<number>(loadGiftPrice)
+  const [giftPrices, setGiftPricesState] = useState<Record<string, number>>(loadGiftPrices)
   const [liveConfigOpen, setLiveConfigOpen] = useState(false)
 
   const handleDouyinRoomChange = (roomId: string | null) => {
@@ -56,44 +45,36 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
     setDouyinRoomId(roomId)
   }
 
-  const setGiftPrice = useCallback((price: number) => {
-    const next = Number.isFinite(price) && price >= 0 ? price : DEFAULT_GIFT_PRICE
+  const setGiftPrices = useCallback((prices: Record<string, number>) => {
+    const next: Record<string, number> = {}
+    for (const [name, value] of Object.entries(prices)) {
+      if (Number.isFinite(value) && value >= 0) next[name] = value
+    }
+    setGiftPricesState(next)
+  }, [])
+
+  // 单价变化就落盘；写在 effect 里而不是 setState 的 updater 里，updater 保持纯函数
+  useEffect(() => {
     try {
-      window.localStorage.setItem(GIFT_PRICE_STORAGE_KEY, String(next))
+      window.localStorage.setItem(GIFT_PRICES_STORAGE_KEY, JSON.stringify(giftPrices))
     } catch {
       // 隐私模式下存不了，只在内存里生效
     }
-    setGiftPriceState(next)
-  }, [])
+  }, [giftPrices])
 
   const openLiveConfig = useCallback(() => setLiveConfigOpen(true), [])
   const closeLiveConfig = useCallback(() => setLiveConfigOpen(false), [])
 
-  // 演示数据 + 真实抖音房间数据叠加
-  const liveOverview = useMemo<LiveOverviewType>(() => ({
-    ...DEMO_LIVE_OVERVIEW,
-    platform: douyinRoom.room ? 'douyin' : DEMO_LIVE_OVERVIEW.platform,
-    isLive: douyinRoom.state === 'live',
-    updatedAt: Date.now(),
-    guardians: douyinRoom.giftRank.map((entry, index) => ({
-      name: entry.name,
-      amount: `${entry.count} 件`,
-      rank: index + 1,
-      highlighted: index === 0,
-    })),
-  }), [douyinRoom])
-
   const value = useMemo<LiveDataContextValue>(() => ({
-    liveOverview,
     douyinRoomId,
     douyinRoom,
     handleDouyinRoomChange,
-    giftPrice,
-    setGiftPrice,
+    giftPrices,
+    setGiftPrices,
     liveConfigOpen,
     openLiveConfig,
     closeLiveConfig,
-  }), [liveOverview, douyinRoomId, douyinRoom, giftPrice, setGiftPrice, liveConfigOpen, openLiveConfig, closeLiveConfig])
+  }), [douyinRoomId, douyinRoom, giftPrices, setGiftPrices, liveConfigOpen, openLiveConfig, closeLiveConfig])
 
   return (
     <LiveDataContext.Provider value={value}>

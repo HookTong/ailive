@@ -54,7 +54,7 @@ export function TtsConfigModal({ open, onClose }: TtsConfigModalProps) {
         <Input
           size="lg"
           type="password"
-          // 同 AI 配置弹窗：密码框必须用 new-password 才挡得住 Chrome 的凭据填充
+          // 同 AI 配置里的 Key 字段：密码框必须用 new-password 才挡得住 Chrome 的凭据填充
           name="volcengine-tts-key"
           autoComplete="new-password"
           data-1p-ignore

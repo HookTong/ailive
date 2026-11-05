@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { normalizeGiftName } from '../../data/gifts'
 import {
   normalizeWebRid,
   openDouyinStream,
@@ -35,7 +36,10 @@ export type LiveRoomState = {
   error: string | null
   feed: LiveFeedItem[]
   stats: LiveRoomStats
+  /** 送礼最多的前几名观众 */
   giftRank: { name: string; count: number }[]
+  /** 本次连接里每种礼物累计的件数，按礼物单价折算收入用它 */
+  giftTotals: { name: string; count: number }[]
 }
 
 const FEED_LIMIT = 60
@@ -43,47 +47,13 @@ const GIFT_RANK_LIMIT = 5
 // 热门直播间每秒十几条事件，逐条 setState 会把 React 打满。
 // 所有事件先进 ref，再按固定节奏批量提交。
 const FLUSH_INTERVAL_MS = 400
-const GUARDIAN_STORAGE_KEY = 'ailive.douyin-guardians'
-const GUARDIAN_SAVE_INTERVAL_MS = 5000
 
 type GiftEntry = { name: string; count: number }
-
-function localDateKey(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
-}
-
-/** 「今日守护」按天 + 房间持久化，刷新页面或断线重连不会清零，跨天自动重开 */
-function loadGuardians(roomId: string): Map<string, GiftEntry> {
-  try {
-    const raw = window.localStorage.getItem(GUARDIAN_STORAGE_KEY)
-    if (!raw) return new Map()
-    const data = JSON.parse(raw) as { date?: string; room?: string; gifts?: [string, GiftEntry][] }
-    if (data.date !== localDateKey() || data.room !== roomId || !Array.isArray(data.gifts)) return new Map()
-    return new Map(data.gifts)
-  } catch {
-    return new Map()
-  }
-}
-
-function saveGuardians(roomId: string, gifts: Map<string, GiftEntry>) {
-  try {
-    window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify({
-      date: localDateKey(),
-      room: roomId,
-      gifts: [...gifts.entries()],
-    }))
-  } catch {
-    // 存储不可用时只保留内存态
-  }
-}
 
 const EMPTY_STATS: LiveRoomStats = { online: null, chat: 0, gift: 0, giftCount: 0, member: 0, like: 0, follow: 0 }
 
 function createInitialState(): LiveRoomState {
-  return { state: 'idle', room: null, error: null, feed: [], stats: { ...EMPTY_STATS }, giftRank: [] }
+  return { state: 'idle', room: null, error: null, feed: [], stats: { ...EMPTY_STATS }, giftRank: [], giftTotals: [] }
 }
 
 function displayName(event: DouyinEvent): string {
@@ -91,7 +61,7 @@ function displayName(event: DouyinEvent): string {
   return user?.nickname || user?.sec_uid || '匿名用户'
 }
 
-/** 守护榜按 sec_uid 归并，避免同名观众被算成同一个人 */
+/** 礼物榜按 sec_uid 归并，避免同名观众被算成同一个人 */
 function giftUserKey(event: DouyinEvent): string {
   const user = 'user' in event ? event.user : undefined
   return user?.sec_uid || displayName(event)
@@ -130,9 +100,8 @@ export function useLiveServer(
   const feedRef = useRef<LiveFeedItem[]>([])
   const statsRef = useRef<LiveRoomStats>({ ...EMPTY_STATS })
   const giftRef = useRef(new Map<string, GiftEntry>())
+  const giftTotalRef = useRef(new Map<string, number>())
   const roomRef = useRef<DouyinRoomInfo | null>(null)
-  const roomIdRef = useRef<string | null>(null)
-  const lastSaveRef = useRef(0)
   const seqRef = useRef(0)
   const dirtyRef = useRef(false)
   const onEventRef = useRef(options?.onEvent)
@@ -142,19 +111,17 @@ export function useLiveServer(
   const flush = useCallback(() => {
     if (!dirtyRef.current) return
     dirtyRef.current = false
-    if (roomIdRef.current && Date.now() - lastSaveRef.current > GUARDIAN_SAVE_INTERVAL_MS) {
-      lastSaveRef.current = Date.now()
-      saveGuardians(roomIdRef.current, giftRef.current)
-    }
     const giftRank = [...giftRef.current.values()]
       .sort((left, right) => right.count - left.count)
       .slice(0, GIFT_RANK_LIMIT)
+    const giftTotals = [...giftTotalRef.current.entries()].map(([name, count]) => ({ name, count }))
     setView((current) => ({
       ...current,
       room: roomRef.current,
       feed: [...feedRef.current],
       stats: { ...statsRef.current },
       giftRank,
+      giftTotals,
     }))
   }, [])
 
@@ -162,6 +129,7 @@ export function useLiveServer(
     feedRef.current = []
     statsRef.current = { ...EMPTY_STATS }
     giftRef.current = new Map()
+    giftTotalRef.current = new Map()
     roomRef.current = null
     dirtyRef.current = false
     setView(createInitialState())
@@ -169,16 +137,16 @@ export function useLiveServer(
 
   useEffect(() => {
     if (!webRid) {
-      roomIdRef.current = null
       reset()
       return
     }
 
     feedRef.current = []
     statsRef.current = { ...EMPTY_STATS }
-    giftRef.current = loadGuardians(webRid)
+    // 礼物榜只活在这次连接里：不落盘，重新连直播间就从零开始数
+    giftRef.current = new Map()
+    giftTotalRef.current = new Map()
     roomRef.current = null
-    roomIdRef.current = webRid
     dirtyRef.current = true
     setView({ ...createInitialState(), state: 'connecting' })
 
@@ -209,15 +177,19 @@ export function useLiveServer(
             statsRef.current.chat += 1
             break
           case 'gift': {
+            const count = event.count || 1
             statsRef.current.gift += 1
             // 连击一次发 N 件，收入要按件数算
-            statsRef.current.giftCount += event.count || 1
+            statsRef.current.giftCount += count
             const key = giftUserKey(event)
             const previous = giftRef.current.get(key)
             giftRef.current.set(key, {
               name: displayName(event),
-              count: (previous?.count ?? 0) + (event.count || 1),
+              count: (previous?.count ?? 0) + count,
             })
+            // 按礼物名归并，收入 = Σ 各礼物件数 × 单价
+            const giftName = normalizeGiftName(event.gift) || '未知礼物'
+            giftTotalRef.current.set(giftName, (giftTotalRef.current.get(giftName) ?? 0) + count)
             break
           }
           case 'member':

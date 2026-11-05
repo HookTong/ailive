@@ -1,0 +1,137 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.field {
+  display: block;
+  margin: 0 0 14px;
+
+  > span {
+    display: block;
+    margin-bottom: 6px;
+    color: $text-muted;
+    @include mono(10px);
+  }
+
+  > span em {
+    margin-left: 4px;
+    color: $text-faint;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+}
+
+// 输入框 + 连接按钮
+.roomRow {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  button {
+    flex: 0 0 auto;
+  }
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  color: $text-faint;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+// 礼物单价表：图标 / 名称 / 单价输入
+.section {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid $border-soft;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+
+  > span {
+    color: $text-muted;
+    @include mono(10px);
+  }
+}
+
+.giftList {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) 132px;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 6px;
+    border-radius: $radius;
+
+    &:hover {
+      background: #ffffff08;
+    }
+  }
+}
+
+.giftIcon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+
+  img {
+    width: 22px;
+    height: 22px;
+    // emoji 图标是彩色 SVG，暗底上给一点点投影才不飘
+    filter: drop-shadow(0 1px 2px #00000059);
+  }
+}
+
+// 目录里没有的礼物，用问号占位
+.giftIconFallback {
+  width: 22px;
+  height: 22px;
+  border: 1px dashed $border-strong;
+  border-radius: 50%;
+  color: $text-faint;
+  font-size: 10px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.giftName {
+  min-width: 0;
+  color: $text-soft;
+  font-size: 12px;
+  @include ellipsis;
+}
+
+.giftPrice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+  }
+
+  em {
+    flex: 0 0 auto;
+    color: $text-faint;
+    font-size: 10px;
+    font-style: normal;
+  }
+}

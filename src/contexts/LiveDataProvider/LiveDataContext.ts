@@ -1,15 +1,14 @@
 import { createContext, useContext } from 'react'
 import type { useLiveServer } from '../../hooks/useLiveServer'
-import type { LiveOverviewType } from '../../components/LiveOverview/types'
 
 export type LiveDataContextValue = {
-  liveOverview: LiveOverviewType
   douyinRoomId: string | null
   douyinRoom: ReturnType<typeof useLiveServer>
   handleDouyinRoomChange: (roomId: string | null) => void
-  /** 礼物单价（元/件），用来把礼物件数折算成收入 */
-  giftPrice: number
-  setGiftPrice: (price: number) => void
+  /** 各礼物的单价（元/个），key 是礼物名；没配过的走 data/gifts 里的默认值 */
+  giftPrices: Record<string, number>
+  /** 整表替换；只存用户改过的项，没出现的礼物回落到默认价 */
+  setGiftPrices: (prices: Record<string, number>) => void
   /** 直播配置弹窗开关 */
   liveConfigOpen: boolean
   openLiveConfig: () => void

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { describeRoomState, useDragPosition, type LiveFeedItem, type LiveRoomState } from '../../hooks'
+import { describeRoomState, useDragPosition, useLiveData, type LiveFeedItem, type LiveRoomState } from '../../hooks'
+import { giftIcon, giftPrice } from '../../data/gifts'
 import { cx } from '../../utils/cx'
 import { Card, type CardDotTone } from '../Card'
 import { ScrollArea } from '../ScrollArea'
@@ -27,19 +28,35 @@ const ROW_TONE: Record<LiveFeedItem['kind'], string | undefined> = {
 }
 
 function FeedRow({ item }: { item: LiveFeedItem }) {
+  const { giftPrices } = useLiveData()
+
   if (item.kind === 'stats') {
     return <li className={cx(styles.row, styles.rowStats)}>{item.text}</li>
   }
+
+  // 送礼行按礼物名查单价，折算成这次打赏大概值多少钱
+  if (item.kind === 'gift') {
+    const count = item.count ?? 1
+    const amount = giftPrice(giftPrices, item.text) * count
+    const icon = giftIcon(item.text)
+    return (
+      <li className={cx(styles.row, styles.rowGift)}>
+        <b>{item.name}</b>
+        <span>
+          送出
+          {icon && <img className={styles.feedIcon} src={icon} alt="" aria-hidden />}
+          <em>{item.text}</em>
+          {count > 1 ? ` ×${count}` : ''}
+          {amount > 0 && <i className={styles.amount}>≈{amount.toFixed(2)} 元</i>}
+        </span>
+      </li>
+    )
+  }
+
   return (
     <li className={cx(styles.row, ROW_TONE[item.kind])}>
       <b>{item.name}</b>
       {item.kind === 'chat' && <span>{item.text}</span>}
-      {item.kind === 'gift' && (
-        <span>
-          送出 <em>{item.text}</em>
-          {item.count && item.count > 1 ? ` ×${item.count}` : ''}
-        </span>
-      )}
       {item.kind === 'member' && <span>{item.text}</span>}
       {item.kind === 'follow' && <span>{item.text}</span>}
     </li>
@@ -57,7 +74,7 @@ export function LiveChat({ live }: LiveChatProps) {
   // 交互元素由 useDragPosition 内部的 INTERACTIVE 守卫自动排除
   const { ref, transform, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging })
 
-  const { state, room, error, feed, stats, giftRank } = live
+  const { state, room, error, feed, stats } = live
 
   useEffect(() => {
     const list = listRef.current
@@ -97,21 +114,6 @@ export function LiveChat({ live }: LiveChatProps) {
           feed.map((item) => <FeedRow key={item.id} item={item} />)
         )}
       </ScrollArea>
-
-      {giftRank.length > 0 && (
-        <div className={styles.rank}>
-          <h4>礼物榜</h4>
-          <ol>
-            {giftRank.map((entry, index) => (
-              <li key={`${index}-${entry.name}`}>
-                <i>{index + 1}</i>
-                <span>{entry.name}</span>
-                <b>{entry.count}</b>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
     </Card>
   )
 }

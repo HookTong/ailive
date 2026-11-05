@@ -33,9 +33,9 @@
 // 内容可能超出时开启滚动（添加模型 / 自定义滤镜 / AI 配置）
 .scrollable .body {
   overflow-y: auto;
-  @include scroll-thin;
   // 滚动条会压住内容右侧，留一点呼吸
   padding-right: 4px;
+  @include scroll-thin;
 }
 
 // 面板色（右侧控制台同色系），滤镜 / TTS 弹窗用它

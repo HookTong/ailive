@@ -3,11 +3,12 @@
 
 .input {
   @include field;
-  @include autofill-reset($bg-inset, $text-soft);
   width: 100%;
   padding: 0 8px;
   font-family: $font-ui;
   font-size: 10px;
+  // 放在所有声明之后：mixin 展开的是嵌套规则，混在声明中间会触发 sass mixed-decls 警告
+  @include autofill-reset($bg-inset, $text-soft);
 
   &::placeholder {
     color: $text-faint;
@@ -20,6 +21,17 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  // 原生 spinner 在暗色主题上是个白方块，颜色还改不了，干脆藏掉换自绘的
+  &[type='number'] {
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
   }
 }
 
@@ -86,17 +98,57 @@
   }
 }
 
+// 数字框的上下步进按钮，替掉原生 spinner
+.stepper {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  transform: translateY(-50%);
+}
+
+.stepButton {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 13px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #6b818b;
+  cursor: pointer;
+  transition: color 0.12s, background-color 0.12s;
+
+  &:hover {
+    background: #ffffff0f;
+    color: $text-soft;
+  }
+
+  &:active {
+    background: #ffffff1a;
+    color: $text;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $accent-chip-line;
+    outline-offset: -1px;
+  }
+}
+
 .textarea {
   display: block;
   width: 100%;
   min-height: 58px;
   resize: vertical;
   @include field;
-  @include autofill-reset($bg-inset, #d9e4e5);
   padding: 8px;
   color: #d9e4e5;
   font-family: $font-ui;
   font-size: 10px;
+  @include autofill-reset($bg-inset, #d9e4e5);
 
   &::placeholder {
     color: $text-faint;

@@ -1,0 +1,148 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+// 动画时长：关闭 220ms / 打开 320ms
+$drawer-out: 220ms;
+$drawer-in: 320ms;
+// 固定宽度，窄屏时最多铺满视口
+$drawer-width: min(600px, 100vw);
+
+// 根节点只负责定位和层级，不做透明度过渡 ——
+// 面板必须和遮罩平级，否则会跟着遮罩一起淡入，开场几帧面板是半透明的，看不出滑动
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  // 淡出期间不挡住页面，避免刚点完关闭就误触
+  pointer-events: none;
+}
+
+.visible {
+  pointer-events: auto;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: #071016b8;
+  opacity: 0;
+  transition: opacity $drawer-out ease;
+}
+
+.visible .backdrop {
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: $drawer-width;
+  max-width: 100%;
+  padding: 22px;
+  // 贴边不留缝，所以只留朝内的一条边线，四角不做圆角
+  border: 0;
+  border-left: 1px solid $border-strong;
+  background: $bg-panel-raised;
+  box-shadow: -24px 0 64px #04090d99;
+  transform: translateX(100%);
+  transition: transform $drawer-out cubic-bezier(0.4, 0, 1, 1);
+  will-change: transform;
+
+  &.left {
+    right: auto;
+    left: 0;
+    border-right: 1px solid $border-strong;
+    border-left: 0;
+    box-shadow: 24px 0 64px #04090d99;
+    transform: translateX(-100%);
+  }
+}
+
+// 打开态：更长、先快后慢的曲线，收尾更柔和。
+// 必须排在 .panel.left 之后 —— 两者都是 (0,2,0)，靠源码顺序决定胜负。
+.visible .panel {
+  transform: translateX(0);
+  transition: transform $drawer-in cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// 抽屉色，与右侧控制台同色系
+.panelSoft {
+  border-color: #38515d;
+  background: $bg-panel;
+}
+
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid $border-soft;
+}
+
+.eyebrow {
+  @include mono(10px);
+  color: #6f8590;
+  letter-spacing: 0.16em;
+}
+
+.title {
+  margin: 8px 0 0;
+  color: $text;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid $border-strong;
+  border-radius: $radius;
+  background: transparent;
+  color: $text-muted;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $accent;
+    color: $text;
+  }
+}
+
+// 内容区吃掉剩余高度，标题与底部按钮永远留在原位
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 4px 16px 0;
+}
+
+.scrollable {
+  overflow-y: auto;
+  @include scroll-thin;
+}
+
+.actions {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid $border-soft;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .visible .backdrop,
+  .panel,
+  .visible .panel {
+    transition-duration: 1ms;
+  }
+}

@@ -1,11 +1,9 @@
 import { useLiveData, useDragPosition, useMusic, useAiChat } from '../../hooks'
+import { giftPrice } from '../../data/gifts'
 import { cx } from '../../utils/cx'
 import { Card } from '../Card'
 import { NowPlayingCard } from '../NowPlayingCard'
 import styles from './index.module.scss'
-
-// 概览卡片的数据结构就定义在本目录的 types.ts，组件出口一并导出
-export type { LiveOverviewType } from './types'
 
 /** 金额统一两位小数；token 数带千分位 */
 function money(value: number) {
@@ -17,19 +15,25 @@ function tokens(value: number) {
 }
 
 /**
- * 舞台左上角的直播概览卡片组：正在播放 / 收支面板 / 今日守护。
+ * 舞台左上角的直播概览卡片组：正在播放 / 收支面板 / 礼物榜。
  * 数据直接从 LiveDataContext 取，不需要外部传参；整块可在舞台内拖动。
  */
 export function LiveOverview() {
-  const { liveOverview, douyinRoom, giftPrice } = useLiveData()
+  const { douyinRoom, giftPrices } = useLiveData()
   const { settings, usage } = useAiChat()
   const { track, isPlaying, currentTime, duration, analyser } = useMusic()
   const { ref, transform, handlers } = useDragPosition({ draggingClassName: styles.dragging })
 
-  // 收入按「礼物件数 × 礼物单价」估算；
+  // 礼物榜只统计本次连接，断开重连即清零（useLiveServer 里不落盘）
+  const giftRank = douyinRoom.giftRank
+
+  // 收入按「每种礼物的件数 × 该礼物单价」累加；
   // 花费按 token 用量 × 单价折算（单价单位是元/百万 tokens）
   const giftCount = douyinRoom.stats.giftCount
-  const revenue = giftCount * giftPrice
+  const revenue = douyinRoom.giftTotals.reduce(
+    (sum, item) => sum + giftPrice(giftPrices, item.name) * item.count,
+    0,
+  )
   const cost = (usage.promptTokens * settings.inputPrice + usage.completionTokens * settings.outputPrice) / 1_000_000
   const profit = revenue - cost
 
@@ -61,17 +65,17 @@ export function LiveOverview() {
             <dt>今日 token</dt><dd>{tokens(usage.totalTokens)}</dd>
           </dl>
         </Card>
-        <Card className={cx(styles.card, styles.guard)} title="今日守护">
+        <Card className={cx(styles.card, styles.guard)} title="礼物榜">
           <ol>
-            {liveOverview.guardians.length > 0
-              ? liveOverview.guardians.map((guardian) => (
-                <li key={`${guardian.rank}-${guardian.name}`}>
-                  <i>{guardian.highlighted ? '☺' : guardian.rank}</i>
-                  <span>{guardian.name}</span>
-                  <b>{guardian.amount}</b>
+            {giftRank.length > 0
+              ? giftRank.map((entry, index) => (
+                <li key={`${index}-${entry.name}`}>
+                  <i>{index + 1}</i>
+                  <span>{entry.name}</span>
+                  <b>{entry.count} 件</b>
                 </li>
               ))
-              : <li className={styles.guardEmpty}>连接直播间后按礼物数排名</li>}
+              : <li className={styles.guardEmpty}>连接直播间后按礼物件数排名</li>}
           </ol>
         </Card>
       </div>

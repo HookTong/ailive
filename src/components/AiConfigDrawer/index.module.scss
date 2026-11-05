@@ -1,6 +1,14 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
+// 撑满抽屉内容区，让「最近回复」能吃掉底部剩余高度。
+// 用 min-height 而不是 height：内容超高时自己长高、交给 body 滚动，子项也不会被 flex 压扁。
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 .field {
   display: block;
   margin: 0 0 12px;
@@ -65,12 +73,20 @@
 }
 
 .history {
+  display: flex;
+  // flex-basis 用 0 而不是 auto：这样内容区不会被列表撑高、连累整个 body 一起滚，
+  // 剩余空间全部由这里吸收，只有列表自己滚
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 160px;
   margin-top: 12px;
 
   ul {
     display: grid;
+    flex: 1 1 0;
     gap: 6px;
-    max-height: 180px;
+    // 不写死高度：剩多少就多高，抽屉越高看到的回复越多
+    min-height: 0;
     margin: 6px 0 0;
     padding: 0;
     overflow-y: auto;

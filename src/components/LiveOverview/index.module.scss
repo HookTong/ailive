@@ -19,7 +19,7 @@
   cursor: grabbing;
 }
 
-// 左宽右窄：收支面板占 2/3，今日守护占 1/3
+// 左宽右窄：收支面板占 2/3，礼物榜占 1/3
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);

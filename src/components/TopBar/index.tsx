@@ -1,13 +1,13 @@
 import { useAiChat, useLiveData, useVoice } from '../../hooks'
 import { Button } from '../Button'
-import { AiConfigModal } from '../AiConfigModal'
-import { LiveConfigModal } from '../LiveConfigModal'
+import { AiConfigDrawer } from '../AiConfigDrawer'
+import { LiveConfigDrawer } from '../LiveConfigDrawer'
 import { TtsConfigModal } from '../TtsConfigModal'
 import styles from './index.module.scss'
 
 /**
  * 顶部品牌栏：左侧 logo + 站点名，右侧直播 / AI / TTS 三个配置入口。
- * 三个配置弹窗都挂在这里，全局各一份。
+ * 三个配置界面都挂在这里，全局各一份（AI 配置是右侧抽屉，另外两个是弹窗）。
  */
 export function TopBar() {
   const { ttsConfigOpen, openTtsConfig, closeTtsConfig } = useVoice()
@@ -36,11 +36,11 @@ export function TopBar() {
           AI 配置{status === 'off' ? '' : ' · ' + (status === 'thinking' ? '思考中' : status === 'speaking' ? '播报中' : '已开启')}
         </Button>
         <Button variant="ghost" size="xs" className={styles.configButton} onClick={openTtsConfig}>
-          配置火山 TTS
+          TTS 配置
         </Button>
       </div>
-      <LiveConfigModal />
-      <AiConfigModal open={aiConfigOpen} onClose={closeAiConfig} />
+      <LiveConfigDrawer />
+      <AiConfigDrawer open={aiConfigOpen} onClose={closeAiConfig} />
       <TtsConfigModal open={ttsConfigOpen} onClose={closeTtsConfig} />
     </header>
   )

@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { useRef, useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
@@ -32,6 +32,15 @@ function EyeIcon({ crossed }: { crossed: boolean }) {
   )
 }
 
+/** 数字框的上下小三角 */
+function CaretIcon({ up }: { up: boolean }) {
+  return (
+    <svg viewBox="0 0 8 5" width="7" height="5" fill="currentColor" aria-hidden="true">
+      {up ? <path d="M4 0 8 5H0z" /> : <path d="M0 0h8L4 5z" />}
+    </svg>
+  )
+}
+
 /**
  * 默认关掉浏览器自动填充：这类表单填的是接口 Key / 地址 / 人设，
  * 没有一项能从浏览器记住的表单历史里受益，被填反而会污染配置。
@@ -46,42 +55,90 @@ export function Input({
   ...rest
 }: InputProps) {
   const [revealed, setRevealed] = useState(false)
-  // 只有密码框需要眼睛；bare 是嵌在自定义外壳里的，位置由调用方决定，不掺和
+  const inputRef = useRef<HTMLInputElement>(null)
+  // 只有密码框需要眼睛、数字框需要步进器；bare 是嵌在自定义外壳里的，位置由调用方决定，不掺和
   const isPassword = type === 'password' && variant !== 'bare'
+  const isNumber = type === 'number' && variant !== 'bare'
 
   const field = (
     <input
       {...rest}
+      ref={inputRef}
       type={isPassword && revealed ? 'text' : type}
       autoComplete={autoComplete}
       className={cx(
         styles.input,
         styles[size],
         variant === 'bare' && styles.bare,
-        isPassword && styles.affixed,
+        (isPassword || isNumber) && styles.affixed,
         className,
       )}
     />
   )
 
-  if (!isPassword) return field
+  /**
+   * 原生 spinner 在暗色主题上是个白方块，Chrome 又不给改颜色，所以用 CSS 把它藏了、
+   * 自己画一对箭头。stepUp/stepDown 会遵循 min/max/step，再补发 input 事件让 React 的
+   * onChange 收到新值 —— 这样调用方的受控逻辑不用改。
+   */
+  const stepBy = (direction: 1 | -1) => {
+    const el = inputRef.current
+    if (!el) return
+    if (direction > 0) el.stepUp()
+    else el.stepDown()
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+  }
 
-  return (
-    <span className={styles.wrap}>
-      {field}
-      <button
-        type="button"
-        className={styles.reveal}
-        aria-label={revealed ? '隐藏密码' : '显示密码'}
-        aria-pressed={revealed}
-        // 别让点击抢走输入框焦点，否则光标会跳回末尾、输入法也会被打断
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => setRevealed((current) => !current)}
-      >
-        <EyeIcon crossed={revealed} />
-      </button>
-    </span>
-  )
+  if (isPassword) {
+    return (
+      <span className={styles.wrap}>
+        {field}
+        <button
+          type="button"
+          className={styles.reveal}
+          aria-label={revealed ? '隐藏密码' : '显示密码'}
+          aria-pressed={revealed}
+          // 别让点击抢走输入框焦点，否则光标会跳回末尾、输入法也会被打断
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setRevealed((current) => !current)}
+        >
+          <EyeIcon crossed={revealed} />
+        </button>
+      </span>
+    )
+  }
+
+  if (isNumber) {
+    return (
+      <span className={styles.wrap}>
+        {field}
+        <span className={styles.stepper}>
+          <button
+            type="button"
+            className={styles.stepButton}
+            aria-label="增加"
+            tabIndex={-1}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => stepBy(1)}
+          >
+            <CaretIcon up />
+          </button>
+          <button
+            type="button"
+            className={styles.stepButton}
+            aria-label="减少"
+            tabIndex={-1}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => stepBy(-1)}
+          >
+            <CaretIcon up={false} />
+          </button>
+        </span>
+      </span>
+    )
+  }
+
+  return field
 }
 
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>
