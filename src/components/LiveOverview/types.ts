@@ -1,11 +1,5 @@
 export type LivePlatform = 'douyin' | string
 
-export type LiveNowPlaying = {
-  title: string
-  elapsed: string
-  duration: string
-}
-
 export type LiveIncome = {
   balance: string
   income: string
@@ -13,10 +7,6 @@ export type LiveIncome = {
   todayVotes: string
   gifts: string
   tokens: string
-}
-
-export type LiveQueueItem = {
-  title: string
 }
 
 export type LiveGuardian = {
@@ -30,9 +20,6 @@ export type LiveOverviewType = {
   platform: LivePlatform
   isLive: boolean
   updatedAt: number
-  nowPlaying: LiveNowPlaying
   income: LiveIncome
-  songQueue: LiveQueueItem[]
-  recentSongs: LiveQueueItem[]
   guardians: LiveGuardian[]
 }

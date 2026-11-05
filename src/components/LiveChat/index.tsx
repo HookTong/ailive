@@ -3,6 +3,7 @@ import { normalizeWebRid } from '../../hooks/useLiveServer/api'
 import { describeRoomState, useDragPosition, type LiveFeedItem, type LiveRoomState } from '../../hooks'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
+import { Card, type CardDotTone } from '../Card'
 import { Input } from '../Input'
 import { ScrollArea } from '../ScrollArea'
 import styles from './index.module.scss'
@@ -13,13 +14,13 @@ type LiveChatProps = {
   live: LiveRoomState
 }
 
-// 连接状态 -> 指示灯配色；closed / idle 走基础色
-const DOT_TONE: Record<string, string | undefined> = {
-  live: styles.dotLive,
-  connecting: styles.dotConnecting,
-  reconnecting: styles.dotReconnecting,
-  error: styles.dotError,
-  offline: styles.dotOffline,
+// 连接状态 -> 标题圆点配色；未列出的状态走 idle 灰点
+const DOT_TONE: Record<string, CardDotTone | undefined> = {
+  live: 'live',
+  connecting: 'warn',
+  reconnecting: 'warn',
+  error: 'error',
+  offline: 'error',
 }
 
 const ROW_TONE: Record<LiveFeedItem['kind'], string | undefined> = {
@@ -85,16 +86,19 @@ export function LiveChat({ roomId, onRoomIdChange, live }: LiveChatProps) {
   const isConnected = state === 'live' || state === 'connecting' || state === 'reconnecting'
 
   return (
-    <aside className={styles.panel} ref={ref} style={{ transform }} aria-label="抖音直播间监听">
-      <header className={styles.head} {...handlers}>
-        <div className={styles.title}>
-          <i className={cx(styles.dot, DOT_TONE[state])} />
-          <strong>抖音直播</strong>
-          <small>{describeRoomState(state, room)}</small>
-        </div>
-        <span className={styles.online}>{stats.online ?? '—'}</span>
-      </header>
-
+    <Card
+      as="aside"
+      ref={ref}
+      className={styles.panel}
+      style={{ transform }}
+      aria-label="抖音直播间监听"
+      padding="sm"
+      title="抖音直播"
+      dot={DOT_TONE[state] ?? 'idle'}
+      status={describeRoomState(state, room)}
+      extra={stats.online ?? '—'}
+      headerProps={{ className: styles.head, ...handlers }}
+    >
       <div className={styles.inputRow}>
         <Input
           className={styles.roomInput}
@@ -142,6 +146,6 @@ export function LiveChat({ roomId, onRoomIdChange, live }: LiveChatProps) {
           </ol>
         </div>
       )}
-    </aside>
+    </Card>
   )
 }

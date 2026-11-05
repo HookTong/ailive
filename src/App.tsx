@@ -5,7 +5,7 @@ import { ModelControlPanel } from './components/ModelControlPanel'
 import { StageControlPanel } from './components/StageControlPanel'
 import { StageToolbar } from './components/StageToolbar'
 import { TopBar } from './components/TopBar'
-import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider } from './contexts'
+import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider } from './contexts'
 import { useModel, useVoice } from './hooks'
 
 const MODEL_LAYOUT_POSITIONS = [
@@ -108,7 +108,9 @@ function VoiceAndModelBridge() {
 
   return (
     <VoiceProvider onCharacterVoicePresetReset={resetVoicePresetForAll}>
-      <AppContent />
+      <MusicProvider>
+        <AppContent />
+      </MusicProvider>
     </VoiceProvider>
   )
 }

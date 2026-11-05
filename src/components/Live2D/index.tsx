@@ -69,6 +69,16 @@ type Live2DProps = {
 
 const DEFAULT_POSITION = { x: 0.5, y: 0.54 }
 
+// 气泡跟着模型大小走：以默认大小（0.6）时模型占舞台高度的比例作为 1 倍基准，
+// 这样换分辨率时气泡与模型的比例也保持一致（实测默认大小下模型约占 43%）。
+const BUBBLE_REFERENCE_HEIGHT_RATIO = 0.43
+// 气泡底边相对模型包围盒顶边的偏移（按模型高度取比例）。
+// Live2D 的包围盒顶部通常留着一圈透明边距，取小一点才不会飘得太高。
+const BUBBLE_TOP_OFFSET = 0.03
+// 夹紧范围：太小的模型也要保证气泡可读，太大的模型别让气泡盖住半个舞台
+const BUBBLE_SCALE_MIN = 0.7
+const BUBBLE_SCALE_MAX = 1.45
+
 const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   id: model.id,
   modelUrl: model.modelUrl,
@@ -126,6 +136,8 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
   const appRef = useRef<PIXI.Application | null>(null)
   const entriesRef = useRef(new Map<string, ModelEntry>())
   const bubbleRefs = useRef(new Map<string, HTMLDivElement>())
+  // 上一次写进 CSS 变量的气泡缩放，值没变就不重复写，避免每帧触发文字重排
+  const bubbleScalesRef = useRef(new Map<string, number>())
   const draggingIdRef = useRef<string | null>(null)
   const hoveredIdRef = useRef<string | null>(null)
   const mountedRef = useRef(false)
@@ -388,6 +400,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     if (!app || !host || bubbleRefs.current.size === 0) return
     const scaleX = (host.clientWidth || 1) / Math.max(app.screen.width, 1)
     const scaleY = (host.clientHeight || 1) / Math.max(app.screen.height, 1)
+    const referenceHeight = Math.max(host.clientHeight, 1) * BUBBLE_REFERENCE_HEIGHT_RATIO
     for (const [id, element] of bubbleRefs.current) {
       const model = entriesRef.current.get(id)?.model
       if (!model || !model.visible) {
@@ -396,8 +409,21 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       }
       const bounds = model.getBounds()
       element.style.visibility = 'visible'
+
+      // 气泡字号/内边距/最大宽度都由 --bubble-scale 换算，跟着模型视觉高度等比变化
+      const bubbleScale = Math.min(
+        BUBBLE_SCALE_MAX,
+        Math.max(BUBBLE_SCALE_MIN, (bounds.height * scaleY) / referenceHeight),
+      )
+      const previousScale = bubbleScalesRef.current.get(id)
+      if (previousScale === undefined || Math.abs(previousScale - bubbleScale) > 0.005) {
+        bubbleScalesRef.current.set(id, bubbleScale)
+        element.style.setProperty('--bubble-scale', bubbleScale.toFixed(3))
+      }
+
+      // 气泡底边落在模型包围盒顶边稍下方，尾巴尖正好悬在头顶
       element.style.left = `${(bounds.x + bounds.width / 2) * scaleX}px`
-      element.style.top = `${(bounds.y + bounds.height * 0.06) * scaleY}px`
+      element.style.top = `${(bounds.y + bounds.height * BUBBLE_TOP_OFFSET) * scaleY}px`
     }
   }
 
@@ -438,6 +464,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       for (const entry of entriesRef.current.values()) disposeEntry(entry)
       entriesRef.current.clear()
       bubbleRefs.current.clear()
+      bubbleScalesRef.current.clear()
       appRef.current = null
       app.destroy(true, { children: true })
     }
@@ -537,8 +564,13 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
           key={model.id}
           className={styles.bubble}
           ref={(element) => {
-            if (element) bubbleRefs.current.set(model.id, element)
-            else bubbleRefs.current.delete(model.id)
+            if (element) {
+              bubbleRefs.current.set(model.id, element)
+            } else {
+              bubbleRefs.current.delete(model.id)
+              // 元素卸载后缓存的缩放值也要清掉，否则下次挂载会误判「没变化」而不写入
+              bubbleScalesRef.current.delete(model.id)
+            }
           }}
         >
           {model.speechText}

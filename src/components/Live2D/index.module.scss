@@ -24,19 +24,21 @@
 }
 
 .bubble {
+  /* 由 Live2D 按模型大小写入，1 = 默认大小（0.6）时的气泡尺寸 */
+  --bubble-scale: 1;
+
   position: absolute;
   z-index: 5;
-  max-width: 220px;
+  max-width: calc(220px * var(--bubble-scale));
   transform: translate(-50%, -100%);
-  transform-origin: center bottom;
-  padding: 9px 12px;
+  padding: calc(9px * var(--bubble-scale)) calc(12px * var(--bubble-scale));
   border: 1px solid #8adbc47a;
-  border-radius: 12px;
+  border-radius: calc(12px * var(--bubble-scale));
   background: #f4fff9f2;
   color: #173338;
   box-shadow: 0 8px 20px #06101666;
   font-family: $font-ui;
-  font-size: 11px;
+  font-size: calc(11px * var(--bubble-scale));
   line-height: 1.5;
   overflow-wrap: anywhere;
   pointer-events: none;
@@ -45,9 +47,9 @@
     content: '';
     position: absolute;
     left: 50%;
-    bottom: -7px;
-    width: 12px;
-    height: 12px;
+    bottom: calc(-7px * var(--bubble-scale));
+    width: calc(12px * var(--bubble-scale));
+    height: calc(12px * var(--bubble-scale));
     border-right: 1px solid #8adbc47a;
     border-bottom: 1px solid #8adbc47a;
     background: #f4fff9f2;

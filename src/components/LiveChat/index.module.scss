@@ -12,73 +12,22 @@
   flex-direction: column;
   width: 268px;
   max-height: min(66%, 540px);
-  padding: 12px 12px 10px;
-  @include glass;
   color: #b6d2c7;
   font-size: 11px;
   overflow: hidden;
 }
 
-.head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+// 标题栏兼作拖拽手柄（外观来自 Card，这里只补交互与间距）
+.panel .head {
   margin-bottom: 9px;
-  /* 标题栏兼作拖拽手柄 */
   cursor: grab;
   user-select: none;
   touch-action: none;
 }
 
 // .dragging 加在 .panel 上（useDragPosition 负责挂/摘）
-.dragging .head {
+.panel.dragging .head {
   cursor: grabbing;
-}
-
-.title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-
-  strong {
-    color: #f0d98b;
-    font-size: 11px;
-    font-weight: 600;
-  }
-
-  small {
-    color: #7f9c94;
-    @include mono(10px);
-  }
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #5d7a74;
-}
-
-.dotLive {
-  background: #66e4c7;
-  box-shadow: 0 0 0 3px #66e4c71c;
-}
-
-.dotConnecting,
-.dotReconnecting {
-  background: $warn;
-  box-shadow: 0 0 0 3px #e0ab631c;
-}
-
-.dotError,
-.dotOffline {
-  background: #d97b7b;
-  box-shadow: 0 0 0 3px #d97b7b1c;
-}
-
-.online {
-  color: #9fe1cb;
-  @include mono(10px);
 }
 
 .inputRow {

@@ -1,0 +1,80 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.card {
+  @include glass;
+  min-width: 0;
+}
+
+// 内边距
+.md {
+  padding: 13px 14px;
+}
+
+.sm {
+  padding: 12px;
+}
+
+.none {
+  padding: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.heading {
+  @include ellipsis;
+  color: #f0d98b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status {
+  @include ellipsis;
+  @include mono(10px);
+  color: #7f9c94;
+}
+
+.extra {
+  flex: 0 0 auto;
+  @include mono(10px);
+  color: #9fe1cb;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.idle {
+  background: #5d7a74;
+}
+
+.live {
+  background: #66e4c7;
+  box-shadow: 0 0 0 3px #66e4c71c;
+}
+
+.warn {
+  background: $warn;
+  box-shadow: 0 0 0 3px #e0ab631c;
+}
+
+.error {
+  background: #d97b7b;
+  box-shadow: 0 0 0 3px #d97b7b1c;
+}

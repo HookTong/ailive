@@ -9,10 +9,7 @@ const DEMO_LIVE_OVERVIEW: LiveOverviewType = {
   platform: 'demo',
   isLive: true,
   updatedAt: 0,
-  nowPlaying: { title: '三角洲行动 · 星河追梦', elapsed: '2:57', duration: '3:36' },
   income: { balance: '149.11', income: '11.10', expense: '0.37', todayVotes: '5-5', gifts: '186', tokens: '456,345' },
-  songQueue: [],
-  recentSongs: [{ title: '疾风到达' }, { title: 'Red' }],
   guardians: [
     { name: '极限战士', amount: '6.40 元', rank: 1, highlighted: true },
     { name: '旧林', amount: '2.50 元', rank: 2 },
