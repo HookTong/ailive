@@ -10,6 +10,11 @@ export type CharacterState = {
   activeMotion: string
   /** 动作重放计数：同一个动作被再次触发时自增，Live2D 靠它区分「值没变但要重播」 */
   motionNonce: number
+  /**
+   * 礼物动作的独占截止时间（毫秒时间戳）。
+   * 在此之前说话动作不许抢 —— 礼物优先级高于「开始说话」触发的动作。
+   */
+  motionHoldUntil: number
   selectedExpressions: string[]
   modelSize: number
   positionResetKey: number

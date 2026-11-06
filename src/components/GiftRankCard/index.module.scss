@@ -1,0 +1,57 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.root {
+  // 和收支面板同高，两卡并排时底边对齐
+  min-height: 154px;
+}
+
+.list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #c9ddd5;
+  @include mono($fs-label);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.rank {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d3bc69;
+  color: #173338;
+  font-style: normal;
+  font-size: 10px;
+}
+
+// 只有第一名是金底，其余用浅色
+.item:nth-child(n + 2) .rank {
+  background: #dde5df;
+}
+
+.name {
+  @include ellipsis;
+}
+
+.count {
+  color: #e3e6c7;
+  font-weight: 400;
+}
+
+.empty {
+  display: block;
+  padding: 8px 0;
+  color: #7d968f;
+  font-size: 12px;
+}

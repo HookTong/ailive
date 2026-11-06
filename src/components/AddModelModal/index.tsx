@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { useModel } from '../../hooks'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
 import { Input } from '../Input'
@@ -35,12 +36,19 @@ function isValidModelConfig(config: unknown): boolean {
 }
 
 export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps) {
+  const { modelSources } = useModel()
   const [modelNameDraft, setModelNameDraft] = useState('')
   const [modelUrlDraft, setModelUrlDraft] = useState('')
   const [previewModelUrl, setPreviewModelUrl] = useState<string | null>(null)
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle')
   const [previewError, setPreviewError] = useState('')
   const requestRef = useRef(0)
+
+  // 模型名称要唯一：下拉列表、礼物动作配置都按名称认模型，重名会分不清。
+  // 大小写和首尾空格不算区别（「Icy」和「 icy 」视为同一个）。
+  const trimmedName = modelNameDraft.trim()
+  const nameTaken = trimmedName.length > 0
+    && modelSources.some((source) => source.name.trim().toLocaleLowerCase() === trimmedName.toLocaleLowerCase())
 
   // 预览直接复用 Stage：弹窗里挂一张独立的小舞台（自己的 PIXI 应用 + canvas），
   // 与首页舞台互不影响。
@@ -116,8 +124,9 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
   }
 
   const addPreviewModel = () => {
-    if (previewStatus !== 'ready' || !previewModelUrl) return
-    onAddOnlineModel(previewModelUrl, modelNameDraft.trim())
+    // 按钮已经按 nameTaken 禁用了，这里再兜一层，防止回车之类的路径绕过去
+    if (previewStatus !== 'ready' || !previewModelUrl || nameTaken) return
+    onAddOnlineModel(previewModelUrl, trimmedName)
     onClose()
   }
 
@@ -129,7 +138,7 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
       actions={(
         <>
           <Button variant="secondary" size="lg" onClick={onClose}>取消</Button>
-          <Button size="lg" onClick={addPreviewModel} disabled={previewStatus !== 'ready'}>添加模型</Button>
+          <Button size="lg" onClick={addPreviewModel} disabled={previewStatus !== 'ready' || nameTaken}>添加模型</Button>
         </>
       )}
     >
@@ -153,14 +162,19 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
       <label className={cx(styles.field, styles.nameField)}>
         <span>模型名称</span>
         <Input
+          className={nameTaken ? styles.invalid : undefined}
           size="lg"
           type="text"
           value={modelNameDraft}
           onChange={(event) => setModelNameDraft(event.target.value)}
           placeholder="输入名称，用于下拉列表展示"
           aria-label="模型名称"
+          aria-invalid={nameTaken || undefined}
+          aria-describedby={nameTaken ? 'add-model-name-hint' : undefined}
           maxLength={40}
         />
+        {/* 用 div 而不是 span：.field > span 是给字段标签用的，会连带改掉提示的颜色和间距 */}
+        {nameTaken && <div className={styles.hint} id="add-model-name-hint">该名称已被使用，请换一个</div>}
       </label>
       <div className={styles.previewBox}>
         {previewModelUrl
@@ -183,7 +197,8 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
           )}
       </div>
       {previewError && <div className={styles.error}>{previewError}</div>}
-      {previewStatus === 'ready' && <div className={cx(styles.status, styles.statusReady)}>模型加载成功，可以添加</div>}
+      {/* 重名时不说「可以添加」——按钮是禁用的，两句话会打架 */}
+      {previewStatus === 'ready' && !nameTaken && <div className={cx(styles.status, styles.statusReady)}>模型加载成功，可以添加</div>}
     </Modal>
   )
 }

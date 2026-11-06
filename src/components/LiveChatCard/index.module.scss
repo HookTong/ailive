@@ -1,7 +1,7 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
-.panel {
+.root {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -21,18 +21,18 @@
 }
 
 // 标题栏不再兼作唯一拖拽手柄，这里只保留与内容的间距（外观来自 Card）
-.panel .head {
+.root .head {
   margin-bottom: 9px;
 }
 
 // 除弹幕列表外，面板里其他块都按内容高度固定。
 // 否则内容超高时 flex 会把它们一起压扁，roomTitle 这种又带 overflow: hidden 的
 // 就会被裁掉半行字，看起来像两层文字叠在一起。
-.panel .head,
-.panel .connectRow,
-.panel .error,
-.panel .roomTitle,
-.panel .metrics {
+.root .head,
+.root .connectRow,
+.root .error,
+.root .roomTitle,
+.root .metrics {
   flex: 0 0 auto;
 }
 
@@ -57,8 +57,8 @@
   @include mono(11px);
 }
 
-// .dragging 加在 .panel 上（useDragPosition 负责挂/摘）
-.panel.dragging {
+// .dragging 加在 .root 上（useDragPosition 负责挂/摘）
+.root.dragging {
   cursor: grabbing;
 }
 
@@ -168,7 +168,7 @@
 }
 
 @media (max-width: 900px) {
-  .panel {
+  .root {
     width: 220px;
     max-height: 54%;
   }

@@ -7,6 +7,11 @@
   justify-content: center;
   gap: 6px;
   min-width: 0;
+  // 按钮文字永远单行：放进「输入框 + 按钮」这种 flex 行里时，
+  // 少几个像素就会把「设置」折成上下两行
+  white-space: nowrap;
+  // 让输入框先让位，按钮保持自己的宽度
+  flex-shrink: 0;
   border-radius: $radius;
   cursor: pointer;
   transition: border-color $ease, background $ease, color $ease;
@@ -17,6 +22,8 @@
 }
 
 // 尺寸
+// xs 的内边距保持 4px：预设胶囊用它，舞台背景那行是 5 等分的栅格，
+// 每边多 2px 就会把「Lo-Fi」挤成省略号
 .xs {
   height: 30px;
   padding: 0 4px;
@@ -25,25 +32,25 @@
 
 .sm {
   height: 32px;
-  padding: 0 9px;
+  padding: 0 12px;
   @include mono(11px);
 }
 
 .md {
   height: 34px;
-  padding: 0 10px;
+  padding: 0 13px;
   @include mono(12px);
 }
 
 .lg {
   height: 36px;
-  padding: 0 14px;
+  padding: 0 16px;
   @include mono(12px);
 }
 
 .xl {
   height: 46px;
-  padding: 0 18px;
+  padding: 0 20px;
   @include mono(12px);
 }
 

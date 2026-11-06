@@ -3,7 +3,7 @@
 
 // 独立浮动的礼物动作面板：宽度和弹幕面板对齐（268），默认落在舞台左下角。
 // 整块可拖动（handlers 挂在 Card 根节点上），定位交给这里，外观来自 Card。
-.panel {
+.root {
   position: absolute;
   z-index: 8;
   bottom: 46px;
@@ -25,13 +25,13 @@
   background: #09232bf2;
 }
 
-.panel.dragging {
+.root.dragging {
   cursor: grabbing;
 }
 
 // 标题行只留间距。类名不能叫 .head —— Card 内部已经有一个 .head，
 // 两边都是单类选择器，谁生效取决于 CSS 打包顺序，所以换个名字、用两级选择器压
-.panel .headRow {
+.root .headRow {
   flex: 0 0 auto;
   margin-bottom: 10px;
 }
@@ -140,7 +140,7 @@
 }
 
 @media (max-width: 760px) {
-  .panel {
+  .root {
     bottom: 40px;
     left: 10px;
     width: min(268px, calc(100% - 20px));

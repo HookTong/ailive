@@ -16,12 +16,12 @@ const AUTO_SCROLL_MAX_SPEED = 40
 const AUTO_SCROLL_HOLD = 0.7
 
 /**
- * 舞台上独立浮动的「礼物动作」面板：列出每个配了动作的礼物，各自让哪些角色做什么。
+ * 舞台上独立浮动的「礼物动作」卡片：列出每个配了动作的礼物，各自让哪些角色做什么。
  *
- * 和直播概览卡片组是两回事 —— 它不受卡片组的宽度和高度约束，可以单独拖到舞台任意角落
- * （拖标题栏，列表区域留给滚动），宽度固定 268，和弹幕面板对齐。
+ * 和直播概览卡片组是两回事 —— 它不受卡片组的宽度和高度约束，整块可以拖到舞台任意角落，
+ * 宽度固定 268，和弹幕卡片对齐。
  */
-export function GiftMotionPanel() {
+export function GiftMotionCard() {
   const { giftMotions } = useLiveData()
   const { modelSources, characterStates } = useModel()
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，交互元素由 useDragPosition 内部的
@@ -31,11 +31,15 @@ export function GiftMotionPanel() {
   // 配了动作的礼物 → 每个模型各做什么。没配动作的模型不进这一行，
   // 一个模型都解析不出来的礼物（换过模型、动作没了）整条也不显示
   const rows = useMemo(() => {
-    const models = modelSources.map((source) => ({
-      id: source.id,
-      name: source.name,
-      motions: characterStates[source.id]?.manifest?.motions ?? {},
-    }))
+    // 只看当前还在台面上的模型：隐藏的不列（和 AiChatProvider 挑说话角色同一套判断），
+    // 删除的模型本来就不在 modelSources 里，遗留的动作配置自然也不会漏出来
+    const models = modelSources
+      .filter((source) => characterStates[source.id]?.modelVisible !== false)
+      .map((source) => ({
+        id: source.id,
+        name: source.name,
+        motions: characterStates[source.id]?.manifest?.motions ?? {},
+      }))
     // 按礼物目录的顺序排，和「直播配置」抽屉里看到的一致
     const catalogOrder = new Map(DOUYIN_GIFTS.map((gift, index) => [gift.name, index]))
     return Object.entries(giftMotions)
@@ -111,10 +115,10 @@ export function GiftMotionPanel() {
     <Card
       as="aside"
       ref={ref}
-      className={styles.panel}
+      className={styles.root}
       style={{ transform }}
       {...handlers}
-      aria-label="礼物动作面板"
+      aria-label="礼物动作"
       padding="sm"
       title={<span className={styles.title}>礼物动作</span>}
       extra={<span className={styles.count}>{rows.length} 种</span>}

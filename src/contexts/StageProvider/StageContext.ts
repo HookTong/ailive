@@ -2,9 +2,18 @@ import { createContext, useContext } from 'react'
 import type { ParticlePreset } from '../../components/Atmosphere'
 import type { CustomFilterPreset, FilterPreset } from '../../components/FilterSetting'
 
+/**
+ * 舞台背景的切换方式：
+ * - `fixed` 固定，停在你选的那张
+ * - `cycle` 循环切换，按内置预设顺序自动轮播
+ */
+export type BackgroundMode = 'fixed' | 'cycle'
+
 export type StageContextValue = {
   backgroundUrl: string
   setBackgroundUrl: (url: string) => void
+  backgroundMode: BackgroundMode
+  setBackgroundMode: (mode: BackgroundMode) => void
   handleBackgroundFile: (file: File | null) => void
   particleEnabled: boolean
   setParticleEnabled: (enabled: boolean) => void

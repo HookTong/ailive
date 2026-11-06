@@ -3,6 +3,11 @@
 React 18 + TypeScript + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播工作室。
 组件在 `src/components/<Name>/`（`index.tsx` + `index.module.scss`），状态走 `src/contexts/`，hook 在 `src/hooks/`。
 
+## 命名
+
+- **组件名里不许出现 `Panel`**，只有「角色控制面板」`ModelControlPanel` 和「舞台控制面板」`StageControlPanel` 两个例外。其余组件用语义名（`GiftMotion`、`LiveChat`、`LiveOverview`、`StageToolbar`）。模块内部的 CSS 类同理，根节点写 `.root` 而不是 `.panel`。
+- 例外只有这两个，新建组件时不要因为「看起来像个面板」就起名 `XxxPanel`。
+
 ## 样式
 
 - **字体栈必须显式带中文字体**。`Manrope` / `DM Mono` 都没有中文字形，只写 `monospace` 的话汉字会逐字回退到系统默认字体（Windows 上从 Consolas 再掉一层），笔画粗细和拉丁部分对不上，小字号时特别糊。现在 `$font-ui` / `$font-mono` 都把 `PingFang SC` / `Hiragino Sans GB` / `Microsoft YaHei` 排在通用族前面。顺带的好处：Google Fonts 加载失败时也有正经的中文观感。
@@ -10,6 +15,7 @@ React 18 + TypeScript + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D A
 
 - **要特定高度的按钮不要传 `Button` 的 `size`**。传了会写死 30/32/34/36px；模块类与 `Button` 的 `.sm` 是同级选择器，谁生效取决于打包后的样式表顺序。正确做法：不传 `size`，在模块里自己写 `height` / `padding`。
 - **要压过 `Button` 的 variant 类，用两级选择器**（如 `.giftList .motionButtonOn`），单类对单类不可靠，原因同上。
+- **要给 `Input` 加错误/警告描边，得写 `input.invalid, input.invalid:focus`**：`className` 落在内层 `<input>` 上，`.invalid`（0,1,0）压不过 `Input` 的 `.input`（0,1,0，看顺序）；而用户输入时输入框一直处于聚焦，`.input:focus`（0,2,0）优先级更高，不补 `:focus` 那一条根本看不出状态。
 - **`fr` 分配的是扣掉 `gap` 之后的剩余空间**，所以 `3fr : 2fr` 在任意容器宽度下都严格等于 6:4，不需要 `calc()`。
 - **`display: grid` 的 `align-content` 默认是 `normal`，对 grid 容器表现为 `stretch`** —— 行数少时多余高度被平摊给每一行，卡片会被拉高。列表类容器（尤其带 `flex: 1 1 0` 的）要显式写 `align-content: start`，`li` 自己是 grid 的也要写。
 - 删掉标题上方的 `eyebrow` 小字时，要同步改 `.header` 的 `align-items`（`flex-start` → `center`）和 `.title` 的 `margin-top`（`8px` → `0`），那 8px 是给 eyebrow 让位的。
@@ -24,8 +30,13 @@ React 18 + TypeScript + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D A
 - **`Modal` 要放在 `Drawer` 外层**：抽屉内容区是 `overflow: auto`，嵌在里面的弹窗会被裁掉。层级用 `Modal zIndex={40}` > `Drawer 31` > 常规卡片。
 - **`DropdownSelect` 的菜单是绝对定位、没有 portal**，所以含下拉的区域不能加 `overflow: auto`，否则菜单被祖先裁掉。宁让弹窗自然变高。
 - 气泡的 `z-index: 5` 在 `.live2d`（z-index 3）的层叠上下文里，永远压在 LiveOverview 卡片（z-index 8）下面。
+- **`Button` 永远不换行、不被压缩**：`.button` 上写了 `white-space: nowrap` + `flex-shrink: 0`。放进「输入框 + 按钮」这种 flex 行时，少几个像素就会把「设置」折成上下两行；`flex-shrink: 0` 让输入框先让位。
+- **`Input` 的 `className` 落在内层 `<input>` 上，不是外层 `.wrap` 外壳**。所以 `.urlInput { flex: 1 }` 这种布局类其实一直没生效 —— 真正参与 flex 布局的是外壳。要在行里控制宽度只能按位置选（`.urlRow > :first-child`），别指望传 className。
+- **`Button` 的 `.xs` 内边距保持 4px**：预设胶囊用它，舞台背景那行是 5 等分栅格，每边多 2px 就会把「Lo-fi」挤成省略号。
 - **`Card` 的 `headerProps` 里别用叫 `.head` 的类**：`Card` 内部已经有一个 `.head`（`margin-bottom: 12px`），两边都是单类选择器，谁生效取决于 CSS 打包顺序。换个名字（如 `.dragHead`），要改间距就用 `.panel .dragHead` 两级选择器。
 - **`Card` 的 `headerProps` 可以只把拖拽 `handlers` 挂在标题栏上**（`useDragPosition` 的 `handlers` 直接展开进去），列表区域就能保留滚动和选中文字；整块拖动会和滚动打架。
+- **舞台浮层一律「组件自己取数」**：`NowPlayingCard` / `IncomeCard` / `GiftRankCard` 都从上下文直接拿数据，不收 props。容器（`LiveOverview`）只负责摆放和整块拖动，这样把某张卡单独挪到舞台别处不用改调用方。
+- 卡片高度对齐靠各自 `.root { min-height: 154px }`，不靠容器统一给 —— 拆成独立组件后，容器再统一加类就变成耦合了。
 
 ## 数据与状态
 
@@ -40,9 +51,14 @@ React 18 + TypeScript + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D A
 - 礼物动作是**按模型分别配**的：`giftMotions: Record<礼物, Record<模型 id, 动作名>>`。舞台同时渲染所有模型，所以礼物到达时要遍历 `modelSources` 逐个 `updateCharacter(id, …)`，不能只改 `updateActiveCharacter`。
 - 旧格式（`Record<礼物, 动作名>`）靠通配键 `GIFT_MOTION_ANY_MODEL = '*'` 兜底：解析时 `entry[modelId] ?? entry['*']`，用户在弹窗里确认一次就展开成具体模型。
 - `CharacterState.motionNonce` 是重放计数器。**同一个动作值没变时 Live2D 不会重播**，靠 nonce 自增绕过；`Live2D` 的 `applyModelProps` 里 `motionReplay = (next.motionNonce ?? 0) !== entry.motionNonce`，和 `motionChanged` 取或。
-- 由弹幕驱动的 effect，依赖里必须带 `characterStates`（模型加载约 2.8s，比礼物晚到），同时用 `ref` 记已处理的 `id` 防止配置一改就重放上一条。
+- 礼物动作走**队列**，不是「最新礼物决定当前动作」：`useLiveServer` 每 400ms flush 一次，一个窗口里可能挤进好几条礼物，只认 feed 末尾那条会丢掉其余。入队认 `douyinRoom.feed`（靠 `queuedGiftIdRef` 记最大已入队 id 挑新的，`feed` 变空说明重连过，id 计数要归零），出队认 `giftTick` 计数器，播放窗口用 `setTimeout` 推进。
+- **播放窗口的定时器绝不能放 effect 的 cleanup**：cleanup 每次依赖变化都执行，会把「窗口结束」信号提前吃掉，队列直接卡死。
+- 礼物动作**优先级高于说话动作**：开播时给 `CharacterState.motionHoldUntil` 写 `Date.now() + 1200`，`Live2D` 里 `speakingStarted` 触发 `speakMotion` 前比一下。用时间戳而不是布尔标志 —— 说话可能持续好几秒，布尔标志没人清会永久锁死后续说话动作。
+- **坑**：`applyModelProps` 里 `entry.motionHoldUntil = next.motionHoldUntil` 在判断之前赋值，守卫必须读 `next.motionHoldUntil`（或在赋值前算好），读 `entry` 拿到的是刚被覆盖的新值。
+- 由弹幕驱动的 effect，依赖里必须带 `characterStates`（模型加载约 2.8s，比礼物晚到），同时用 `ref` 防止配置一改就重放上一条。
 - 多模型时还有一层：manifest 并行加载，先就绪的模型不能把礼物「用掉」。用 `pendingModelsRef` 记没就绪的模型，effect 重跑时只补这几个。
-- `LiveFeedItem['id']` 是 `string | number`，`useRef` 的类型要写全。
+- `LiveFeedItem['id']` 是 `number`，`useRef` 的类型要写全。
+- **舞台字幕只反映 `activeMotion` 状态，看不到说话动作**：`speakMotion` 是 `Live2D` 内部直接调 `model.motion()`，不经过 React state。要观测它只能在运行时 hook 模型类或加临时探针。
 
 ## 构建与验证
 

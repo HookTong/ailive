@@ -9,7 +9,7 @@ import { Input } from '../Input'
 import { ScrollArea } from '../ScrollArea'
 import styles from './index.module.scss'
 
-type LiveChatProps = {
+type LiveChatCardProps = {
   live: LiveRoomState
 }
 
@@ -71,7 +71,7 @@ function FeedRow({ item }: { item: LiveFeedItem }) {
  * 这样舞台卡片（礼物榜、收支）和面板共享同一条 SSE 连接。
  * 房间号在这里连接（弹幕的入口就应该在这里），礼物单价在顶栏「直播配置」抽屉里。
  */
-export function LiveChat({ live }: LiveChatProps) {
+export function LiveChatCard({ live }: LiveChatCardProps) {
   const listRef = useRef<HTMLUListElement>(null)
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，
   // 交互元素由 useDragPosition 内部的 INTERACTIVE 守卫自动排除
@@ -110,7 +110,7 @@ export function LiveChat({ live }: LiveChatProps) {
     <Card
       as="aside"
       ref={ref}
-      className={styles.panel}
+      className={styles.root}
       style={{ transform }}
       {...handlers}
       aria-label="抖音直播间监听"

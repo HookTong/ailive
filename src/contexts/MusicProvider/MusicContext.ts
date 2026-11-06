@@ -7,10 +7,19 @@ export type MusicTrack = {
   url: string
 }
 
+/**
+ * 背景音乐的循环方式：
+ * - `single` 单曲循环，当前这首放完从头再来
+ * - `list` 列表循环，接着放预设列表里的下一首
+ */
+export type MusicLoopMode = 'single' | 'list'
+
 export type MusicContextValue = {
   track: MusicTrack
   /** 当前选中的内置预设 id，自定义音源为空串 */
   presetId: string
+  loopMode: MusicLoopMode
+  setLoopMode: (mode: MusicLoopMode) => void
   isPlaying: boolean
   /** 已播放秒数 */
   currentTime: number

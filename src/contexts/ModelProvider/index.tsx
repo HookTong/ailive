@@ -17,6 +17,7 @@ const createCharacterState = (): CharacterState => ({
   configError: false,
   activeMotion: 'idle',
   motionNonce: 0,
+  motionHoldUntil: 0,
   selectedExpressions: [],
   modelSize: 0.6,
   positionResetKey: 0,

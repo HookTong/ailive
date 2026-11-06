@@ -278,7 +278,7 @@
   padding-right: 4px;
 }
 
-// 清空已选表达
+// 清空已选外观
 .clearExpressions {
   margin-top: 8px;
 
@@ -334,28 +334,11 @@
   margin-top: 0;
 }
 
+// 底部只留「重置角色」，上面一条分隔线把它和内容区分开
 .footer {
   margin-top: auto;
   border-top: 1px solid $border-soft;
   padding-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  color: #73858f;
-  @include mono(12px);
-}
-
-.footerMeta {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-
-  strong {
-    display: block;
-    color: #a8b7bd;
-    margin-top: 6px;
-    font-weight: 400;
-  }
 }
 
 .resetButton {

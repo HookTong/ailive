@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MUSIC_PRESETS, type MusicPreset } from './presets'
-import { MusicContext, type MusicContextValue, type MusicTrack } from './MusicContext'
+import { MusicContext, type MusicContextValue, type MusicLoopMode, type MusicTrack } from './MusicContext'
 
 const DEFAULT_TRACK: MusicTrack = { name: MUSIC_PRESETS[0].label, url: MUSIC_PRESETS[0].url }
 const DEFAULT_VOLUME = 0.55
@@ -35,6 +35,7 @@ function displayName(url: string, preset?: MusicPreset) {
 export function MusicProvider({ children }: { children: ReactNode }) {
   const [track, setTrack] = useState<MusicTrack>(DEFAULT_TRACK)
   const [presetId, setPresetId] = useState(MUSIC_PRESETS[0].id)
+  const [loopMode, setLoopMode] = useState<MusicLoopMode>('single')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -47,6 +48,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const objectUrlRef = useRef<string | null>(null)
   const volumeRef = useRef(volume)
   volumeRef.current = volume
+  // 播放事件里要读最新的循环模式，不能靠闭包（audio 元素建好之后不会再重建）
+  const loopModeRef = useRef(loopMode)
+  loopModeRef.current = loopMode
+  // 列表循环要在 ended 里接着起下一首，但 startSource 不能在自己的函数体里引用自己
+  const startSourceRef = useRef<(url: string, name: string, nextPresetId: string, showError: boolean) => void>(() => {})
 
   /**
    * 每次换音源都新建一个 audio 元素。
@@ -56,12 +62,26 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     audioRef.current?.pause()
 
     const audio = new Audio()
-    audio.loop = true
+    // 单曲循环交给 audio.loop；列表循环得让它自然播完，才能接下一首
+    audio.loop = loopModeRef.current === 'single'
     audio.preload = 'auto'
     audio.volume = volumeRef.current
     audio.src = url
     audio.addEventListener('play', () => setIsPlaying(true))
     audio.addEventListener('pause', () => setIsPlaying(false))
+    audio.addEventListener('ended', () => {
+      // 单曲循环由 audio.loop 兜着，走不到这里
+      if (loopModeRef.current !== 'list') return
+      const index = MUSIC_PRESETS.findIndex((preset) => preset.id === nextPresetId)
+      if (index < 0) {
+        // 自定义音源（URL / 本地文件）不在预设列表里，没有「下一首」可接，重头再放一遍
+        audio.currentTime = 0
+        void audio.play().catch(() => undefined)
+        return
+      }
+      const next = MUSIC_PRESETS[(index + 1) % MUSIC_PRESETS.length]
+      startSourceRef.current(next.url, next.label, next.id, false)
+    })
     audio.addEventListener('loadedmetadata', () => {
       setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
     })
@@ -110,6 +130,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       }
     })
   }, [])
+
+  // ended 里要靠它起下一首，而 startSource 是 useCallback 稳定引用，挂一次就够了
+  startSourceRef.current = startSource
+
+  // 播放中切换循环模式：audio 元素已经建好，得手动把 loop 改过来
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.loop = loopMode === 'single'
+  }, [loopMode])
 
   const selectPreset = useCallback((preset: MusicPreset) => {
     setError('')
@@ -169,6 +197,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setAnalyser(null)
     setTrack(DEFAULT_TRACK)
     setPresetId(MUSIC_PRESETS[0].id)
+    setLoopMode('single')
     setIsPlaying(false)
     setCurrentTime(0)
     setDuration(0)
@@ -188,6 +217,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const value = useMemo<MusicContextValue>(() => ({
     track,
     presetId,
+    loopMode,
+    setLoopMode,
     isPlaying,
     currentTime,
     duration,
@@ -201,7 +232,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setVolume,
     clearError,
     reset,
-  }), [track, presetId, isPlaying, currentTime, duration, volume, error, analyser, selectPreset, playUrl, playFile, toggle, setVolume, clearError, reset])
+  }), [track, presetId, loopMode, isPlaying, currentTime, duration, volume, error, analyser, selectPreset, playUrl, playFile, toggle, setVolume, clearError, reset])
 
   return (
     <MusicContext.Provider value={value}>

@@ -3,18 +3,29 @@ import { Button } from '../Button'
 import styles from './index.module.scss'
 
 type StageToolbarProps = {
-  /** 顶部概览卡片当前是否可见 */
-  showInfoCards: boolean
-  /** 弹幕面板当前是否可见 */
+  /** 左上角的直播概览卡片组是否可见 */
+  showOverview: boolean
+  /** 「礼物动作」浮动面板是否可见 */
+  showGiftMotions: boolean
+  /** 弹幕面板是否可见 */
   showLiveChat: boolean
-  onToggleInfoCards: () => void
+  onToggleOverview: () => void
+  onToggleGiftMotions: () => void
   onToggleLiveChat: () => void
 }
 
 /**
- * 舞台顶部工具条：左边 LIVE PREVIEW 标识，右边三个文字按钮（概览卡片 / 弹幕 / 全屏）。
+ * 舞台顶部工具条：左边 LIVE PREVIEW 标识，右边几个文字按钮。
+ * 概览、礼物动作、弹幕三块浮层各有各的开关，互不影响。
  */
-export function StageToolbar({ showInfoCards, showLiveChat, onToggleInfoCards, onToggleLiveChat }: StageToolbarProps) {
+export function StageToolbar({
+  showOverview,
+  showGiftMotions,
+  showLiveChat,
+  onToggleOverview,
+  onToggleGiftMotions,
+  onToggleLiveChat,
+}: StageToolbarProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -38,8 +49,11 @@ export function StageToolbar({ showInfoCards, showLiveChat, onToggleInfoCards, o
     <div className={styles.toolbar} ref={rootRef}>
       <div><span className={styles.liveDot} /> LIVE PREVIEW</div>
       <div className={styles.actions}>
-        <Button variant="ghost" size="xs" className={styles.toolButton} onClick={onToggleInfoCards}>
-          {showInfoCards ? '隐藏卡片' : '显示卡片'}
+        <Button variant="ghost" size="xs" className={styles.toolButton} onClick={onToggleOverview}>
+          {showOverview ? '隐藏概览' : '显示概览'}
+        </Button>
+        <Button variant="ghost" size="xs" className={styles.toolButton} onClick={onToggleGiftMotions}>
+          {showGiftMotions ? '隐藏礼物动作' : '显示礼物动作'}
         </Button>
         <Button variant="ghost" size="xs" className={styles.toolButton} onClick={onToggleLiveChat}>
           {showLiveChat ? '隐藏弹幕' : '显示弹幕'}

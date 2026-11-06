@@ -28,6 +28,8 @@ export type Live2DModelConfig = {
   speakMotion?: string
   /** 动作重放计数：变了就重播 motion，哪怕 motion 值没变（同一礼物连送两次） */
   motionNonce?: number
+  /** 礼物动作的独占截止时间：在此之前说话动作不许抢 */
+  motionHoldUntil?: number
 }
 
 export type Live2DLoadState = 'loading' | 'ready' | 'missing'
@@ -52,6 +54,7 @@ type ModelEntry = {
   speaking: boolean
   speakMotion: string
   motionNonce: number
+  motionHoldUntil: number
 }
 
 type CoreModelLike = {
@@ -102,6 +105,7 @@ const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   speaking: Boolean(model.speaking),
   speakMotion: model.speakMotion ?? '',
   motionNonce: model.motionNonce ?? 0,
+  motionHoldUntil: model.motionHoldUntil ?? 0,
 })
 
 const keepModelInsideStage = (app: PIXI.Application, model: Live2DModel, x: number, y: number) => {
@@ -319,6 +323,9 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     const visibleChanged = entry.visible !== (next.visible ?? true)
     // 只在「没说话 → 说话」的那一刻触发一次，气泡常显时不会反复触发
     const speakingStarted = Boolean(next.speaking) && !entry.speaking
+    // 礼物动作的独占期还没过：这段时间说话动作让位，礼物优先
+    // 用 next 的值判断 —— 下面 entry.motionHoldUntil 马上会被覆盖
+    const giftHolding = (next.motionHoldUntil ?? 0) > Date.now()
     const expressionKey = next.expressions.map((item) => item.file).join('|')
     const expressionsChanged = expressionKey !== entry.expressionKey
 
@@ -329,6 +336,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     entry.speaking = Boolean(next.speaking)
     entry.speakMotion = next.speakMotion ?? ''
     entry.motionNonce = next.motionNonce ?? 0
+    entry.motionHoldUntil = next.motionHoldUntil ?? 0
     entry.initialPosition = next.initialPosition ?? DEFAULT_POSITION
     if (resetChanged) {
       entry.positionResetKey = next.positionResetKey
@@ -347,7 +355,10 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     if (visibleChanged) model.visible = entry.visible
     if (sizeChanged || resetChanged) fitModel(entry)
     if ((motionChanged || motionReplay) && next.motion) void model.motion(next.motion, 0).catch(() => undefined)
-    if (speakingStarted && entry.speakMotion) void model.motion(entry.speakMotion, 0).catch(() => undefined)
+    // 礼物动作正在播，说话动作不抢；等礼物窗口结束后再开口
+    if (speakingStarted && entry.speakMotion && !giftHolding) {
+      void model.motion(entry.speakMotion, 0).catch(() => undefined)
+    }
     if (expressionsChanged) {
       entry.expressionKey = expressionKey
       void loadExpressions(entry, next.expressions)

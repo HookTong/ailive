@@ -202,11 +202,11 @@ export function ModelControlPanel() {
         </ScrollArea>
       </div>
 
-      {/* 表达预设 */}
+      {/* 外观预设 */}
       {(manifest === null || expressionOptions.length > 0) && (
         <div className={styles.block}>
           <div className={styles.labelRow}>
-            <span>表达预设</span>
+            <span>外观预设</span>
             <span className={styles.count}>{expressionOptions.length}</span>
           </div>
           <ScrollArea
@@ -215,7 +215,7 @@ export function ModelControlPanel() {
             gap="4px"
             height="clamp(148px, 24vh, 252px)"
             className={styles.expressionList}
-            ariaLabel="表达预设列表"
+            ariaLabel="外观预设列表"
           >
             {manifest ? (
               expressionOptions.map((expression) => (
@@ -279,18 +279,8 @@ export function ModelControlPanel() {
         onSpeakingMotionChange={(motion) => updateActiveCharacter({ speakingMotion: motion })}
       />
 
-      {/* 底部信息 */}
+      {/* 底部操作 */}
       <div className={styles.footer}>
-        <div className={styles.footerMeta}>
-          <div>
-            <span>渲染引擎</span>
-            <strong>PixiJS + Cubism</strong>
-          </div>
-          <div>
-            <span>配置项</span>
-            <strong>{motionOptions.length + expressionOptions.length}</strong>
-          </div>
-        </div>
         <Button size="md" block className={styles.resetButton} onClick={resetActiveCharacter}>↺ 重置角色</Button>
       </div>
 

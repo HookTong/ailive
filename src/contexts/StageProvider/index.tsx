@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PARTICLE_PRESETS, type ParticlePreset, type ParticlePresetSettings } from '../../components/Atmosphere'
 import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from '../../components/FilterSetting'
-import { StageContext, type StageContextValue } from './StageContext'
+import { BACKGROUND_CYCLE_INTERVAL_MS, BACKGROUND_PRESETS } from './presets'
+import { StageContext, type BackgroundMode, type StageContextValue } from './StageContext'
 
 const DEFAULT_BACKGROUND_URL = '/background.png'
 const CUSTOM_FILTERS_STORAGE_KEY = 'ailive.custom-filters'
@@ -44,6 +45,7 @@ type StageProviderProps = {
 
 export function StageProvider({ children }: StageProviderProps) {
   const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND_URL)
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('fixed')
   const backgroundObjectUrlRef = useRef<string | null>(null)
 
   const [particleEnabled, setParticleEnabled] = useState(true)
@@ -79,6 +81,21 @@ export function StageProvider({ children }: StageProviderProps) {
   useEffect(() => () => {
     if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
   }, [])
+
+  // 循环切换：每停满一个间隔就换下一张预设背景。
+  // 依赖里带 backgroundUrl，换一张就重新计时 —— 手动点预设也会把计时器重置，
+  // 不会出现「刚点完就被轮播换走」。
+  useEffect(() => {
+    if (backgroundMode !== 'cycle') return
+    const timer = window.setTimeout(() => {
+      setBackgroundUrl((current) => {
+        const index = BACKGROUND_PRESETS.findIndex((preset) => preset.url === current)
+        // 当前是自定义图（不在预设里）时，从第一张开始轮
+        return BACKGROUND_PRESETS[(index + 1) % BACKGROUND_PRESETS.length].url
+      })
+    }, BACKGROUND_CYCLE_INTERVAL_MS)
+    return () => window.clearTimeout(timer)
+  }, [backgroundMode, backgroundUrl])
 
   const handleBackgroundFile = (file: File | null) => {
     if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
@@ -165,6 +182,7 @@ export function StageProvider({ children }: StageProviderProps) {
     if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
     backgroundObjectUrlRef.current = null
     setBackgroundUrl(DEFAULT_BACKGROUND_URL)
+    setBackgroundMode('fixed')
     setParticleEnabled(true)
     setParticlePresetConfigs(createParticlePresetConfigs())
     setParticleIntensity(PARTICLE_PRESETS[0].intensity)
@@ -185,6 +203,8 @@ export function StageProvider({ children }: StageProviderProps) {
   const value = useMemo<StageContextValue>(() => ({
     backgroundUrl,
     setBackgroundUrl,
+    backgroundMode,
+    setBackgroundMode,
     handleBackgroundFile,
     particleEnabled,
     setParticleEnabled,
@@ -219,6 +239,7 @@ export function StageProvider({ children }: StageProviderProps) {
     resetStage,
   }), [
     backgroundUrl,
+    backgroundMode,
     particleEnabled,
     particlePreset,
     particleIntensity,

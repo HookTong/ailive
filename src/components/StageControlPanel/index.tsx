@@ -3,25 +3,33 @@ import { FilterSetting } from '../FilterSetting'
 import { ParticleSetting } from '../ParticleSetting'
 import { Button } from '../Button'
 import { Input } from '../Input'
+import { Segmented, type SegmentedOption } from '../Segmented'
 import { Slider } from '../Slider'
 import { Tooltip } from '../Tooltip'
 import { cx } from '../../utils/cx'
 import { useMusic, useStage } from '../../hooks'
 import { MUSIC_PRESETS } from '../../contexts/MusicProvider/presets'
+import { BACKGROUND_PRESETS } from '../../contexts/StageProvider/presets'
+import type { BackgroundMode } from '../../contexts/StageProvider/StageContext'
+import type { MusicLoopMode } from '../../contexts/MusicProvider/MusicContext'
 import styles from './index.module.scss'
 
-const BACKGROUND_PRESETS = [
-  { id: 'default', label: '默认', url: '/background.png' },
-  { id: 'cinematic', label: '电影', url: '/bg_cinematic.png' },
-  { id: 'cyberpunk', label: '赛博', url: '/bg_cyberpunk.png' },
-  { id: 'fantasy', label: '幻想', url: '/bg_fantasy.png' },
-  { id: 'lofi', label: 'Lo-fi', url: '/bg_lofi.png' },
-] as const
+const BACKGROUND_MODE_OPTIONS: readonly SegmentedOption<BackgroundMode>[] = [
+  { value: 'fixed', label: '固定' },
+  { value: 'cycle', label: '循环切换' },
+]
+
+const MUSIC_LOOP_OPTIONS: readonly SegmentedOption<MusicLoopMode>[] = [
+  { value: 'single', label: '单曲循环' },
+  { value: 'list', label: '列表循环' },
+]
 
 export function StageControlPanel() {
   const {
     backgroundUrl,
     setBackgroundUrl,
+    backgroundMode,
+    setBackgroundMode,
     handleBackgroundFile,
     particleEnabled,
     setParticleEnabled,
@@ -64,6 +72,8 @@ export function StageControlPanel() {
   const {
     track,
     presetId: musicPreset,
+    loopMode,
+    setLoopMode,
     isPlaying,
     volume,
     error: musicError,
@@ -154,6 +164,16 @@ export function StageControlPanel() {
             <input type="file" accept="image/*" onChange={(event) => handleBackgroundFile(event.target.files?.[0] ?? null)} />
           </label>
         </div>
+        <div className={styles.modeRow}>
+          <span>切换方式</span>
+          <Segmented
+            ariaLabel="背景切换方式"
+            block
+            value={backgroundMode}
+            options={BACKGROUND_MODE_OPTIONS}
+            onChange={setBackgroundMode}
+          />
+        </div>
       </section>
 
       <ParticleSetting
@@ -242,6 +262,16 @@ export function StageControlPanel() {
             step={0.05}
             value={volume}
             onChange={setVolume}
+          />
+        </div>
+        <div className={styles.modeRow}>
+          <span>播放模式</span>
+          <Segmented
+            ariaLabel="音乐播放模式"
+            block
+            value={loopMode}
+            options={MUSIC_LOOP_OPTIONS}
+            onChange={setLoopMode}
           />
         </div>
       </section>
