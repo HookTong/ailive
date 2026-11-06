@@ -10,7 +10,7 @@
   display: flex;
   justify-content: space-between;
   color: #80919b;
-  @include mono(10px);
+  @include mono(12px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -20,7 +20,7 @@
   border: 1px solid #366158;
   padding: 3px 6px;
   border-radius: $radius-xs;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .presets {
@@ -61,7 +61,7 @@
   background: #29434d;
   color: #9aaeb5;
   font-family: Arial, sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 11px;
   cursor: pointer;
 
@@ -92,7 +92,7 @@
 
   > span {
     color: $text-muted;
-    @include mono(10px);
+    @include mono(12px);
   }
 }
 
@@ -112,7 +112,7 @@
     background: $accent-fill;
     color: $accent-soft;
     font-family: $font-mono;
-    font-size: 9px;
+    font-size: 11px;
     cursor: pointer;
 
     &:hover:not(:disabled) {
@@ -131,7 +131,7 @@
 .error {
   margin-top: 6px;
   color: $warn;
-  @include mono(9px);
+  @include mono(11px);
   line-height: 1.4;
 }
 
@@ -143,7 +143,7 @@
     display: block;
     margin-bottom: 6px;
     color: $text-muted;
-    @include mono(10px);
+    @include mono(12px);
   }
 }
 
@@ -151,7 +151,7 @@
   margin: -2px 0 0;
   color: #718691;
   font-family: $font-ui;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.6;
 
   a {
@@ -166,7 +166,7 @@
 
   code {
     color: $accent-text;
-    @include mono(10px);
+    @include mono(12px);
   }
 }
 

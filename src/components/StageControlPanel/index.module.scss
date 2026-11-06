@@ -11,7 +11,7 @@
 }
 
 .eyebrow {
-  @include mono(10px);
+  @include mono(12px);
   color: #6f8590;
   letter-spacing: 0.16em;
 }
@@ -26,7 +26,7 @@
 .intro {
   margin: 0 0 22px;
   color: $text-muted;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
@@ -40,7 +40,7 @@
 
 .muted {
   color: $text-dim;
-  @include mono(9px);
+  @include mono(11px);
   font-weight: 400;
 }
 
@@ -49,7 +49,7 @@
   border: 1px solid #366158;
   padding: 3px 6px;
   border-radius: $radius-xs;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .urlRow {
@@ -96,7 +96,7 @@
   background: transparent;
   color: $text-muted;
   font-family: $font-mono;
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
   cursor: pointer;
 
@@ -114,7 +114,7 @@
 .error {
   margin-top: 6px;
   color: $warn;
-  @include mono(9px);
+  @include mono(11px);
   line-height: 1.4;
 }
 

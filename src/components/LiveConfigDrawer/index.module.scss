@@ -1,55 +1,15 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
-.field {
-  display: block;
-  margin: 0 0 14px;
-
-  > span {
-    display: block;
-    margin-bottom: 6px;
-    color: $text-muted;
-    @include mono(10px);
-  }
-
-  > span em {
-    margin-left: 4px;
-    color: $text-faint;
-    font-style: normal;
-    letter-spacing: 0;
-  }
-}
-
-// 输入框 + 连接按钮
-.roomRow {
-  display: flex;
-  gap: 8px;
-
-  input {
-    flex: 1;
-    min-width: 0;
-  }
-
-  button {
-    flex: 0 0 auto;
-  }
-}
-
 .hint {
   display: block;
-  margin-top: 6px;
+  margin-top: 7px;
   color: $text-faint;
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 // 礼物单价表：图标 / 名称 / 单价输入
-.section {
-  margin-top: 4px;
-  padding-top: 16px;
-  border-top: 1px solid $border-soft;
-}
-
 .sectionHead {
   display: flex;
   align-items: baseline;
@@ -59,20 +19,27 @@
 
   > span {
     color: $text-muted;
-    @include mono(10px);
+    @include mono(12px);
+  }
+
+  em {
+    margin-left: 4px;
+    color: $text-faint;
+    font-style: normal;
+    letter-spacing: 0;
   }
 }
 
 .giftList {
   display: grid;
   gap: 2px;
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   padding: 0;
   list-style: none;
 
   li {
     display: grid;
-    grid-template-columns: 26px minmax(0, 1fr) 132px;
+    grid-template-columns: 26px minmax(0, 1fr) 148px auto;
     align-items: center;
     gap: 10px;
     padding: 5px 6px;
@@ -105,7 +72,7 @@
   border: 1px dashed $border-strong;
   border-radius: 50%;
   color: $text-faint;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 20px;
   text-align: center;
 }
@@ -113,25 +80,116 @@
 .giftName {
   min-width: 0;
   color: $text-soft;
-  font-size: 12px;
+  font-size: 13px;
   @include ellipsis;
 }
 
+// 单价：数字框 + 右侧「元」附加块（由 Input 的 addon 渲染，同高并排）
 .giftPrice {
+  display: block;
+
+  input {
+    text-align: right;
+  }
+}
+
+// 每行的「触发角色动作」按钮。不传 Button 的 size，
+// 高度自己定成 32px，和左边 size="md" 的单价框严格同高
+.motionButton {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 9px;
+  white-space: nowrap;
+  @include mono(11px);
+}
+
+// 已配置动作的行：只把边框和文字换成强调色，不加额外装饰。
+// 用两级选择器压过 Button 的 .ghost —— 两边都是单类时谁生效取决于打包后的样式表顺序
+.giftList .motionButtonOn {
+  border-color: $accent-line;
+  color: $accent-text;
+}
+
+// 动作配置弹窗
+.motionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.motionGift {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $bg-panel-raised;
+
+  strong {
+    display: block;
+    color: $text;
+    font-size: 13px;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: $text-muted;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+// 每个模型一行：名字 + 它自己的动作下拉。
+// 不做内部滚动 —— 下拉菜单是绝对定位、没有 portal，一旦祖先 overflow: auto 就会被裁掉
+.motionModels {
+  > ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 186px;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.motionLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: $text-muted;
+  @include mono(12px);
+}
+
+.modelName {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  color: $text-soft;
+  font-size: 13px;
 
-  input {
-    flex: 1;
+  // 名字要能被省略号截断，就不能让 flex 容器自己扛 text-overflow
+  b {
     min-width: 0;
-    text-align: right;
+    font-weight: 400;
+    @include ellipsis;
   }
 
   em {
     flex: 0 0 auto;
-    color: $text-faint;
-    font-size: 10px;
+    padding: 1px 5px;
+    border: 1px solid $accent-line;
+    border-radius: 999px;
+    color: $accent-text;
+    font-size: 11px;
     font-style: normal;
+    letter-spacing: 0.02em;
   }
 }

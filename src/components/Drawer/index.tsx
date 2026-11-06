@@ -21,8 +21,6 @@ const EXIT_FALLBACK_MS = 700
 export type DrawerProps = {
   open: boolean
   title: string
-  /** 标题上方的小字，例如 DOUBAO */
-  eyebrow?: string
   onClose: () => void
   children: ReactNode
   /** 底部操作区，通常是若干 Button */
@@ -52,7 +50,6 @@ export type DrawerProps = {
 export function Drawer({
   open,
   title,
-  eyebrow,
   onClose,
   children,
   actions,
@@ -137,10 +134,7 @@ export function Drawer({
         onTransitionEnd={handleTransitionEnd}
       >
         <div className={styles.header}>
-          <div>
-            {eyebrow && <span className={styles.eyebrow}>{eyebrow}</span>}
-            <h2 className={styles.title} id={titleId}>{title}</h2>
-          </div>
+          <h2 className={styles.title} id={titleId}>{title}</h2>
           <button className={styles.close} type="button" aria-label="关闭" onClick={onClose}>×</button>
         </div>
         <div className={cx(styles.body, scrollable && styles.scrollable)}>{children}</div>

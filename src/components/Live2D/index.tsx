@@ -26,6 +26,8 @@ export type Live2DModelConfig = {
   speaking?: boolean
   /** 开始说话时触发的动作分组名 */
   speakMotion?: string
+  /** 动作重放计数：变了就重播 motion，哪怕 motion 值没变（同一礼物连送两次） */
+  motionNonce?: number
 }
 
 export type Live2DLoadState = 'loading' | 'ready' | 'missing'
@@ -49,6 +51,7 @@ type ModelEntry = {
   visible: boolean
   speaking: boolean
   speakMotion: string
+  motionNonce: number
 }
 
 type CoreModelLike = {
@@ -98,6 +101,7 @@ const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   visible: model.visible ?? true,
   speaking: Boolean(model.speaking),
   speakMotion: model.speakMotion ?? '',
+  motionNonce: model.motionNonce ?? 0,
 })
 
 const keepModelInsideStage = (app: PIXI.Application, model: Live2DModel, x: number, y: number) => {
@@ -309,6 +313,8 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     const sizeChanged = entry.size !== next.size
     const resetChanged = entry.positionResetKey !== next.positionResetKey
     const motionChanged = entry.motion !== next.motion
+    // 值没变但 nonce 变了 = 又触发了一次同一个动作（连送两个同款礼物），也要重播
+    const motionReplay = (next.motionNonce ?? 0) !== entry.motionNonce
     const zChanged = entry.zIndex !== next.zIndex
     const visibleChanged = entry.visible !== (next.visible ?? true)
     // 只在「没说话 → 说话」的那一刻触发一次，气泡常显时不会反复触发
@@ -322,6 +328,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     entry.visible = next.visible ?? true
     entry.speaking = Boolean(next.speaking)
     entry.speakMotion = next.speakMotion ?? ''
+    entry.motionNonce = next.motionNonce ?? 0
     entry.initialPosition = next.initialPosition ?? DEFAULT_POSITION
     if (resetChanged) {
       entry.positionResetKey = next.positionResetKey
@@ -339,7 +346,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     if (zChanged) model.zIndex = next.zIndex
     if (visibleChanged) model.visible = entry.visible
     if (sizeChanged || resetChanged) fitModel(entry)
-    if (motionChanged && next.motion) void model.motion(next.motion, 0).catch(() => undefined)
+    if ((motionChanged || motionReplay) && next.motion) void model.motion(next.motion, 0).catch(() => undefined)
     if (speakingStarted && entry.speakMotion) void model.motion(entry.speakMotion, 0).catch(() => undefined)
     if (expressionsChanged) {
       entry.expressionKey = expressionKey

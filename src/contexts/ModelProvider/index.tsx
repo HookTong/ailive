@@ -16,6 +16,7 @@ const createCharacterState = (): CharacterState => ({
   manifest: null,
   configError: false,
   activeMotion: 'idle',
+  motionNonce: 0,
   selectedExpressions: [],
   modelSize: 0.6,
   positionResetKey: 0,
@@ -165,11 +166,13 @@ export function ModelProvider({ children }: ModelProviderProps) {
     return () => controllers.forEach((controller) => controller.abort())
   }, [modelSourceSignature])
 
-  const updateActiveCharacter = (patch: Partial<CharacterState>) => {
-    setCharacterStates((current) => current[activeModelId]
-      ? { ...current, [activeModelId]: { ...current[activeModelId], ...patch } }
+  const updateCharacter = (id: string, patch: Partial<CharacterState>) => {
+    setCharacterStates((current) => current[id]
+      ? { ...current, [id]: { ...current[id], ...patch } }
       : current)
   }
+
+  const updateActiveCharacter = (patch: Partial<CharacterState>) => updateCharacter(activeModelId, patch)
 
   const addOnlineModel = (url: string, name: string) => {
     try {
@@ -251,6 +254,7 @@ export function ModelProvider({ children }: ModelProviderProps) {
     configError,
     setActiveModelId,
     updateActiveCharacter,
+    updateCharacter,
     addOnlineModel,
     deleteModel,
     resetActiveCharacter,

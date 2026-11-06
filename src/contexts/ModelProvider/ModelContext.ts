@@ -8,6 +8,8 @@ export type CharacterState = {
   manifest: ModelManifest | null
   configError: boolean
   activeMotion: string
+  /** 动作重放计数：同一个动作被再次触发时自增，Live2D 靠它区分「值没变但要重播」 */
+  motionNonce: number
   selectedExpressions: string[]
   modelSize: number
   positionResetKey: number
@@ -28,6 +30,8 @@ export type ModelContextValue = {
   configError: boolean
   setActiveModelId: (id: string) => void
   updateActiveCharacter: (patch: Partial<CharacterState>) => void
+  /** 按模型 id 更新，用来同时驱动舞台上多个角色（比如同一个礼物让每个角色各做一个动作） */
+  updateCharacter: (id: string, patch: Partial<CharacterState>) => void
   addOnlineModel: (url: string, name: string) => void
   deleteModel: (id: string) => void
   resetActiveCharacter: () => void

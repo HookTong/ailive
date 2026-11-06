@@ -2,8 +2,19 @@
 // 各组件模块通过 `@use '../../styles/tokens' as *;` 取用，避免样式散落硬编码。
 
 // 字体
-$font-ui: Manrope, system-ui, sans-serif;
-$font-mono: 'DM Mono', monospace;
+// Manrope / DM Mono 都没有中文字形，汉字会逐字回退到系统默认字体（Windows 上常常是
+// 从 Consolas 再掉一层），笔画粗细和拉丁部分对不上，小字号时尤其糊。
+// 这里把中文字体显式排在等宽字体后面：拉丁字母走 Manrope / DM Mono，
+// 汉字走苹方 / 微软雅黑，两边都是无衬线，观感才统一。
+$font-ui: Manrope, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+$font-mono: 'DM Mono', ui-monospace, 'Cascadia Mono', Consolas, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+
+// 字号刻度：舞台上的信息密度高，但低于 10px 在普通屏上就糊成一片了。
+// 需要小字时优先用这几个变量，别再写 7px / 8px。
+$fs-micro: 10px; // 角标、极小的辅助说明
+$fs-label: 11px; // 界面里的常规标签（大量 mono 文本走这个）
+$fs-body: 12px; // 正文
+$fs-title: 13px; // 小节标题
 
 // 背景
 $bg-base: #101722;

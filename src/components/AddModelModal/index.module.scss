@@ -9,7 +9,7 @@
     display: block;
     margin-bottom: 6px;
     color: $text-muted;
-    @include mono(10px);
+    @include mono(12px);
   }
 }
 
@@ -53,20 +53,20 @@
   display: grid;
   place-items: center;
   color: #718691;
-  @include mono(10px);
+  @include mono(12px);
 }
 
 .error {
   margin-top: 10px;
   color: $warn;
-  @include mono(9px);
+  @include mono(11px);
   line-height: 1.4;
 }
 
 .status {
   margin-top: 10px;
   color: #9aaeb5;
-  @include mono(10px);
+  @include mono(12px);
 }
 
 .statusReady {

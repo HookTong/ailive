@@ -20,31 +20,31 @@
 .xs {
   height: 30px;
   padding: 0 4px;
-  @include mono(9px);
+  @include mono(11px);
 }
 
 .sm {
   height: 32px;
   padding: 0 9px;
-  @include mono(9px);
+  @include mono(11px);
 }
 
 .md {
   height: 34px;
   padding: 0 10px;
-  @include mono(10px);
+  @include mono(12px);
 }
 
 .lg {
   height: 36px;
   padding: 0 14px;
-  @include mono(10px);
+  @include mono(12px);
 }
 
 .xl {
   height: 46px;
   padding: 0 18px;
-  @include mono(11px);
+  @include mono(12px);
 }
 
 .block {

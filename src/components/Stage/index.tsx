@@ -1,6 +1,7 @@
 import { Live2D, type Live2DLoadState, type Live2DModelConfig } from '../Live2D'
 import { Atmosphere } from '../Atmosphere'
 import { LiveOverview } from '../LiveOverview'
+import { GiftMotionPanel } from '../GiftMotionPanel'
 import { LiveChat } from '../LiveChat'
 import { cx } from '../../utils/cx'
 import { useStage, useLiveData } from '../../hooks'
@@ -79,6 +80,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
         size={particleSize}
       />
       {showInfoCards && <LiveOverview />}
+      {showInfoCards && <GiftMotionPanel />}
       {showChat && <LiveChat live={douyinRoom} />}
       <Live2D models={models} activeModelId={activeModelId} onActivateModel={onActivateModel} onModelStateChange={onModelStateChange} />
       <div className={cx(styles.vignette, filterEnabled && vignette && styles.vignetteActive)} />

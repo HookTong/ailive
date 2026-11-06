@@ -10,7 +10,7 @@ $sheen-color: unquote('rgb(#{color.red($accent)} #{color.green($accent)} #{color
   display: block;
   margin-top: 12px;
   color: #80919b;
-  @include mono(10px);
+  @include mono(12px);
   letter-spacing: 0.08em;
 }
 
@@ -126,6 +126,6 @@ $thumb-size: 14px;
   justify-content: space-between;
   margin-top: 7px;
   color: $text-dim;
-  @include mono(9px);
+  @include mono(11px);
   letter-spacing: normal;
 }

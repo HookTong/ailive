@@ -13,7 +13,7 @@
   width: 268px;
   max-height: min(66%, 540px);
   color: #b6d2c7;
-  font-size: 11px;
+  font-size: 12px;
   overflow: hidden;
   /* 整张卡片都是拖拽区，输入框和按钮由 useDragPosition 的 INTERACTIVE 守卫排除 */
   cursor: grab;
@@ -29,10 +29,32 @@
 // 否则内容超高时 flex 会把它们一起压扁，roomTitle 这种又带 overflow: hidden 的
 // 就会被裁掉半行字，看起来像两层文字叠在一起。
 .panel .head,
+.panel .connectRow,
 .panel .error,
 .panel .roomTitle,
 .panel .metrics {
   flex: 0 0 auto;
+}
+
+// 房间号输入 + 连接键
+.connectRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 2px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// 不传 Button 的 size：那样会写死 32/34px 的高度，
+// 和 Input 的 28px 对不齐，这里自己定高度和内边距
+.connect {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 10px;
+  @include mono(11px);
 }
 
 // .dragging 加在 .panel 上（useDragPosition 负责挂/摘）
@@ -43,7 +65,7 @@
 .error {
   margin: 7px 0 0;
   color: #e79a9a;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -51,7 +73,7 @@
   margin: 7px 0 0;
   @include ellipsis;
   color: #8fb3aa;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .metrics {
@@ -61,7 +83,7 @@
   padding-bottom: 8px;
   border-bottom: 1px solid #27414a;
   color: #7f9c94;
-  @include mono(9px);
+  @include mono(11px);
 
   b {
     color: #cfe9df;
@@ -83,7 +105,7 @@
 .row {
   padding: 3px 0;
   color: #a9c4bc;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
   word-break: break-word;
 
@@ -127,7 +149,7 @@
 .rowMember,
 .rowFollow {
   color: #7d968f;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .rowStats {
@@ -135,13 +157,13 @@
   padding: 3px 0;
   border-top: 1px dashed #27414a;
   color: #6fd3b8;
-  @include mono(9px);
+  @include mono(11px);
 }
 
 .feedEmpty {
   padding: 14px 0;
   color: #6b8580;
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 

@@ -1,4 +1,4 @@
-import { useRef, useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { useRef, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
@@ -9,6 +9,16 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   size?: InputSize
   /** bare 去掉边框与底色，用于包在自定义外壳里的输入框 */
   variant?: 'default' | 'bare'
+  /**
+   * 右侧附加块：单位、说明文字之类。渲染成和输入框同高的独立方块，
+   * 和输入框拼在一起（共边、中间一条分隔线）。
+   */
+  addon?: ReactNode
+  /**
+   * 普通文本框右侧的清除按钮，默认开：有内容时鼠标移入或聚焦才出现。
+   * 密码框（眼睛）和数字框（步进器）已经占用了右侧，不走这套。
+   */
+  clearable?: boolean
 }
 
 /** 眼睛图标：睁眼表示「点了能看见」，加斜线表示「点了会藏起来」 */
@@ -41,6 +51,24 @@ function CaretIcon({ up }: { up: boolean }) {
   )
 }
 
+/** 清除按钮的小叉 */
+function ClearIcon() {
+  return (
+    <svg
+      viewBox="0 0 10 10"
+      width="9"
+      height="9"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M2.2 2.2 7.8 7.8M7.8 2.2 2.2 7.8" />
+    </svg>
+  )
+}
+
 /**
  * 默认关掉浏览器自动填充：这类表单填的是接口 Key / 地址 / 人设，
  * 没有一项能从浏览器记住的表单历史里受益，被填反而会污染配置。
@@ -52,6 +80,8 @@ export function Input({
   type,
   className,
   autoComplete = 'off',
+  addon,
+  clearable = true,
   ...rest
 }: InputProps) {
   const [revealed, setRevealed] = useState(false)
@@ -59,6 +89,11 @@ export function Input({
   // 只有密码框需要眼睛、数字框需要步进器；bare 是嵌在自定义外壳里的，位置由调用方决定，不掺和
   const isPassword = type === 'password' && variant !== 'bare'
   const isNumber = type === 'number' && variant !== 'bare'
+  // 普通文本框才给清除按钮：右侧被眼睛 / 步进器占了的那两种不掺和
+  const isPlain = !isPassword && !isNumber && variant !== 'bare'
+  // 组件都是受控的，空不空直接看 value
+  const hasValue = rest.value != null && String(rest.value) !== ''
+  const showClear = isPlain && clearable && hasValue
 
   const field = (
     <input
@@ -70,7 +105,9 @@ export function Input({
         styles.input,
         styles[size],
         variant === 'bare' && styles.bare,
-        (isPassword || isNumber) && styles.affixed,
+        isPassword && styles.affixed,
+        isNumber && styles.stepped,
+        showClear && styles.cleared,
         className,
       )}
     />
@@ -89,8 +126,24 @@ export function Input({
     el.dispatchEvent(new Event('input', { bubbles: true }))
   }
 
+  /**
+   * 清空同理，但直接赋 value 会被 React 的 _valueTracker 判成「值没变」、onChange 不触发，
+   * 所以要走原型上的原生 setter 写进去，再补发 input 事件。
+   */
+  const clear = () => {
+    const el = inputRef.current
+    if (!el) return
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+    if (setter) setter.call(el, '')
+    else el.value = ''
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.focus()
+  }
+
+  // 眼睛 / 步进器 / 清除键都挂在 .wrap 里，绝对定位贴到输入框右边缘
+  let control: ReactNode = field
   if (isPassword) {
-    return (
+    control = (
       <span className={styles.wrap}>
         {field}
         <button
@@ -106,12 +159,11 @@ export function Input({
         </button>
       </span>
     )
-  }
-
-  if (isNumber) {
-    return (
+  } else if (isNumber) {
+    control = (
       <span className={styles.wrap}>
         {field}
+        {/* 没悬停也没聚焦时整块淡出（含左侧分隔线），输入框看起来就是干净的纯数字框 */}
         <span className={styles.stepper}>
           <button
             type="button"
@@ -136,9 +188,33 @@ export function Input({
         </span>
       </span>
     )
+  } else if (isPlain) {
+    control = (
+      <span className={styles.wrap}>
+        {field}
+        {showClear && (
+          <button
+            type="button"
+            className={styles.clear}
+            aria-label="清除"
+            tabIndex={-1}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={clear}
+          >
+            <ClearIcon />
+          </button>
+        )}
+      </span>
+    )
   }
 
-  return field
+  if (!addon) return <>{control}</>
+  return (
+    <span className={styles.group}>
+      {control}
+      <span className={styles.addon}>{addon}</span>
+    </span>
+  )
 }
 
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>

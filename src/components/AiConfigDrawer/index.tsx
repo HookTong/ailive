@@ -68,7 +68,6 @@ export function AiConfigDrawer({ open, onClose }: AiConfigDrawerProps) {
     <Drawer
       open={open}
       title="AI 自动回复设置"
-      eyebrow="DOUBAO"
       tone="panel"
       zIndex={31}
       onClose={onClose}

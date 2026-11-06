@@ -9,7 +9,7 @@
   justify-content: space-between;
   gap: 16px;
   color: #82949d;
-  @include mono(10px);
+  @include mono(12px);
   letter-spacing: 0.1em;
   border-bottom: 1px solid $border;
 }
@@ -34,7 +34,7 @@
     border-radius: $radius-pill;
     background: #16232d;
     color: #9db0b9;
-    @include mono(10px);
+    @include mono(12px);
     letter-spacing: 0.06em;
     cursor: pointer;
 

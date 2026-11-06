@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { describeRoomState, useDragPosition, useLiveData, type LiveFeedItem, type LiveRoomState } from '../../hooks'
+import { normalizeWebRid } from '../../hooks/useLiveServer/api'
 import { giftIcon, giftPrice } from '../../data/gifts'
 import { cx } from '../../utils/cx'
+import { Button } from '../Button'
 import { Card, type CardDotTone } from '../Card'
+import { Input } from '../Input'
 import { ScrollArea } from '../ScrollArea'
 import styles from './index.module.scss'
 
@@ -65,8 +68,8 @@ function FeedRow({ item }: { item: LiveFeedItem }) {
 
 /**
  * 弹幕面板。直播状态由 LiveDataProvider 通过 useLiveServer 统一持有，
- * 这样舞台卡片（今日守护等）和面板共享同一条 SSE 连接。
- * 房间号的连接入口在顶栏「直播配置」弹窗里，这里只负责展示。
+ * 这样舞台卡片（礼物榜、收支）和面板共享同一条 SSE 连接。
+ * 房间号在这里连接（弹幕的入口就应该在这里），礼物单价在顶栏「直播配置」抽屉里。
  */
 export function LiveChat({ live }: LiveChatProps) {
   const listRef = useRef<HTMLUListElement>(null)
@@ -75,11 +78,33 @@ export function LiveChat({ live }: LiveChatProps) {
   const { ref, transform, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging })
 
   const { state, room, error, feed, stats } = live
+  const { douyinRoomId, handleDouyinRoomChange } = useLiveData()
+
+  // 只在挂载时取一次初值：断开后不清空输入框，
+  // 按钮会变回「连接」，再点一下就能重连，不用重新输房间号
+  const [draft, setDraft] = useState(douyinRoomId ?? '')
+  const [inputError, setInputError] = useState<string | null>(null)
+  const connected = state === 'live' || state === 'connecting' || state === 'reconnecting'
 
   useEffect(() => {
     const list = listRef.current
     if (list) list.scrollTop = list.scrollHeight
   }, [feed])
+
+  const connect = () => {
+    const rid = normalizeWebRid(draft)
+    if (!rid) {
+      setInputError('请输入房间号或 live.douyin.com 链接')
+      return
+    }
+    setInputError(null)
+    handleDouyinRoomChange(rid)
+  }
+
+  const disconnect = () => {
+    setInputError(null)
+    handleDouyinRoomChange(null)
+  }
 
   return (
     <Card
@@ -96,7 +121,25 @@ export function LiveChat({ live }: LiveChatProps) {
       extra={stats.online ?? '—'}
       headerProps={{ className: styles.head }}
     >
-      {error && <p className={styles.error}>{error}</p>}
+      <div className={styles.connectRow}>
+        <Input
+          size="sm"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => event.key === 'Enter' && connect()}
+          placeholder="房间号或直播间链接"
+          aria-label="抖音直播间房间号"
+        />
+        <Button
+          variant={connected ? 'secondary' : 'primary'}
+          className={styles.connect}
+          onClick={connected ? disconnect : connect}
+        >
+          {connected ? '断开' : '连接'}
+        </Button>
+      </div>
+
+      {(inputError || error) && <p className={styles.error}>{inputError ?? error}</p>}
 
       {room?.room_title && <p className={styles.roomTitle}>{room.room_title}</p>}
 
@@ -109,7 +152,7 @@ export function LiveChat({ live }: LiveChatProps) {
 
       <ScrollArea as="ul" className={styles.feed} ref={listRef}>
         {feed.length === 0 ? (
-          <li className={styles.feedEmpty}>连接直播间后显示弹幕</li>
+          <li className={styles.feedEmpty}>{douyinRoomId ? '等待消息…' : '填入房间号后连接'}</li>
         ) : (
           feed.map((item) => <FeedRow key={item.id} item={item} />)
         )}

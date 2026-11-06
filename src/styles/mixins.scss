@@ -1,7 +1,8 @@
 @use './tokens' as *;
 
-/// 等宽字体（界面里大量标签用它）
-@mixin mono($size: 9px) {
+/// 等宽字体（界面里大量标签用它）。
+/// 默认值跟着字号刻度走 —— 之前默认 9px，在普通屏上基本看不清
+@mixin mono($size: $fs-label) {
   font-family: $font-mono;
   font-size: $size;
 }
@@ -106,6 +107,6 @@
   margin-bottom: 12px;
   color: #a8b7bd;
   font-family: $font-mono;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
 }

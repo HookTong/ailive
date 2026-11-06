@@ -17,6 +17,8 @@ function tokens(value: number) {
 /**
  * 舞台左上角的直播概览卡片组：正在播放 / 收支面板 / 礼物榜。
  * 数据直接从 LiveDataContext 取，不需要外部传参；整块可在舞台内拖动。
+ *
+ * 礼物动作清单不在这里 —— 它是独立浮动的 `GiftMotionPanel`，可以单独拖到别的角落。
  */
 export function LiveOverview() {
   const { douyinRoom, giftPrices } = useLiveData()

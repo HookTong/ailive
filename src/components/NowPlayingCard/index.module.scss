@@ -50,7 +50,7 @@
 
 .status {
   @include ellipsis;
-  @include mono(9px);
+  @include mono(11px);
   color: #8ee2c2;
 }
 
@@ -61,7 +61,7 @@
 }
 
 .time {
-  @include mono(9px);
+  @include mono(11px);
   color: #a8c2be;
 }
 

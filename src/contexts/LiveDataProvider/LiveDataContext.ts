@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { useLiveServer } from '../../hooks/useLiveServer'
+import type { GiftMotionMap } from '../../data/giftMotions'
 
 export type LiveDataContextValue = {
   douyinRoomId: string | null
@@ -9,6 +10,10 @@ export type LiveDataContextValue = {
   giftPrices: Record<string, number>
   /** 整表替换；只存用户改过的项，没出现的礼物回落到默认价 */
   setGiftPrices: (prices: Record<string, number>) => void
+  /** 各礼物触发哪个角色动作：礼物 →（模型 id → motion 分组名）；没配过 = 不触发 */
+  giftMotions: GiftMotionMap
+  /** 整表替换；空串 / 没出现的模型表示该模型不触发 */
+  setGiftMotions: (motions: GiftMotionMap) => void
   /** 直播配置弹窗开关 */
   liveConfigOpen: boolean
   openLiveConfig: () => void

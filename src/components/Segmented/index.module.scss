@@ -47,7 +47,7 @@
   border-left: 1px solid $border-input;
   background: transparent;
   color: $text-muted;
-  @include mono(9px);
+  @include mono(11px);
   white-space: nowrap;
   cursor: pointer;
   transition: background $ease, color $ease;

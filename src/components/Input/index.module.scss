@@ -6,7 +6,7 @@
   width: 100%;
   padding: 0 8px;
   font-family: $font-ui;
-  font-size: 10px;
+  font-size: 12px;
   // 放在所有声明之后：mixin 展开的是嵌套规则，混在声明中间会触发 sass mixed-decls 警告
   @include autofill-reset($bg-inset, $text-soft);
 
@@ -46,7 +46,7 @@
 .lg {
   height: 36px;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .bare {
@@ -58,16 +58,93 @@
   color: inherit;
 }
 
-// 密码框的眼睛按钮需要一个定位锚点
+// 密码框的眼睛、数字框的步进器都要一个定位锚点。
+// 外壳可能被调用方的 `> span { display: block }` 之类规则改回 block（AI 配置里就是），
+// 所以不指望 flex：让 input 自己 block 化，外壳高度就严格等于输入框高度，
+// 步进器才能用 top/bottom 贴齐上下边
 .wrap {
   position: relative;
-  display: block;
+  display: flex;
   width: 100%;
+
+  > input {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }
 
 // 给右侧的眼睛让位（必须排在 .lg 之后，否则会被 padding 简写盖掉）
 .affixed {
   padding-right: 32px;
+}
+
+// 步进器平时不该白占一截右内边距：鼠标移入或聚焦时把右边让出来
+// （配合过渡，数字是滑过去而不是跳）
+.stepped {
+  transition: padding-right 0.12s ease;
+}
+
+.wrap:hover .stepped,
+.wrap:focus-within .stepped {
+  padding-right: 30px;
+}
+
+// 清除键同理：有内容时才存在，鼠标移入或聚焦时把右边让出来
+.cleared {
+  transition: padding-right 0.12s ease;
+}
+
+.wrap:hover .cleared,
+.wrap:focus-within .cleared {
+  padding-right: 26px;
+}
+
+// 带右侧附加块时的整体：输入框 + 附加块拼成一个控件。
+// 中间不留缝：输入框右边两个角削平、附加块左边两个角削平，
+// 两条边框叠在一起会变成 2px，所以附加块去掉左边框，用输入框自己的右边框当分隔线
+.group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+
+  > .wrap {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  > input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  > .wrap > input,
+  > input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+// 附加块：单位 / 说明文字。和输入框同高、同底色，只是被一条分隔线切开
+.addon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0 9px;
+  border: 1px solid $border-input;
+  border-left: 0;
+  border-radius: 0 $radius $radius 0;
+  background: $bg-inset;
+  color: $text-muted;
+  white-space: nowrap;
+  @include mono(12px);
+  transition: border-color 0.12s;
+}
+
+// 输入框聚焦时边框会变强调色，拼在一起的附加块也得跟着变，否则接缝处颜色是断的
+.group:focus-within .addon {
+  border-color: $accent-chip-line;
 }
 
 .reveal {
@@ -98,22 +175,70 @@
   }
 }
 
-// 数字框的上下步进按钮，替掉原生 spinner
-.stepper {
+// 普通文本框的清除键。只在有内容时渲染，靠 hover / focus-within 显隐
+.clear {
   position: absolute;
   top: 50%;
   right: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, color 0.15s, background-color 0.15s;
+
+  &:hover {
+    background: #ffffff0f;
+    color: $text;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $accent-chip-line;
+    outline-offset: -1px;
+  }
+}
+
+.wrap:hover .clear,
+.wrap:focus-within .clear {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+// 数字框的上下步进按钮，替掉原生 spinner。
+// 默认整块淡出（含左侧分隔线），鼠标移入输入框或聚焦时出现
+.stepper {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  transform: translateY(-50%);
+  width: 22px;
+  border-left: 1px solid $border-input;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.wrap:hover .stepper,
+.wrap:focus-within .stepper {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .stepButton {
   display: grid;
+  flex: 1 1 0;
   place-items: center;
-  width: 18px;
-  height: 13px;
+  min-height: 0;
   padding: 0;
   border: 0;
   border-radius: 3px;
@@ -121,6 +246,18 @@
   color: #6b818b;
   cursor: pointer;
   transition: color 0.12s, background-color 0.12s;
+
+  // 两个箭头之间也来一条分隔线（照系统数字框那样）
+  & + & {
+    border-top: 1px solid $border-input;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  &:first-child {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 
   &:hover {
     background: #ffffff0f;
@@ -147,7 +284,7 @@
   padding: 8px;
   color: #d9e4e5;
   font-family: $font-ui;
-  font-size: 10px;
+  font-size: 12px;
   @include autofill-reset($bg-inset, #d9e4e5);
 
   &::placeholder {

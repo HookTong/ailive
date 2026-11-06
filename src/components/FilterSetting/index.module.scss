@@ -26,7 +26,7 @@
     display: block;
     margin-bottom: 6px;
     color: $text-muted;
-    @include mono(10px);
+    @include mono(12px);
   }
 }
 
@@ -39,7 +39,7 @@
 .previewLabel {
   margin-top: 18px;
   color: $text-muted;
-  @include mono(10px);
+  @include mono(12px);
 }
 
 .preview {
@@ -54,5 +54,5 @@
   background-position: center;
   background-size: cover;
   color: $text-muted;
-  font-size: 11px;
+  font-size: 12px;
 }

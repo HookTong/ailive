@@ -1,0 +1,148 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+// 独立浮动的礼物动作面板：宽度和弹幕面板对齐（268），默认落在舞台左下角。
+// 整块可拖动（handlers 挂在 Card 根节点上），定位交给这里，外观来自 Card。
+.panel {
+  position: absolute;
+  z-index: 8;
+  bottom: 46px;
+  left: 24px;
+  width: 268px;
+  color: #d9e8e3;
+  pointer-events: auto;
+  text-shadow: 0 1px 2px #061016;
+  cursor: grab;
+  touch-action: none;
+  // 和弹幕面板同一套尺寸规则：最多占舞台高度的 66%、封顶 540px，
+  // 超出部分交给列表自己滚，面板不会一直往上长到顶
+  display: flex;
+  flex-direction: column;
+  max-height: min(66%, 540px);
+  overflow: hidden;
+  // 面板内容多时会往上长，可能盖住直播概览的卡片。底色比普通卡片再实一点，
+  // 否则两层毛玻璃叠在一起，底下的数字会透上来糊成一片
+  background: #09232bf2;
+}
+
+.panel.dragging {
+  cursor: grabbing;
+}
+
+// 标题行只留间距。类名不能叫 .head —— Card 内部已经有一个 .head，
+// 两边都是单类选择器，谁生效取决于 CSS 打包顺序，所以换个名字、用两级选择器压
+.panel .headRow {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+}
+
+// 标题和数量都比 Card 的默认字号大一档：11px 在舞台背景上确实看不清
+.title {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.count {
+  font-size: 12px;
+}
+
+// 列表是唯一可伸缩的块：内容少时按内容高度，内容多时吃掉剩余空间再自己滚。
+// min-height: 0 必须写，否则 flex 子项的自动最小尺寸会把面板撑破
+.list {
+  display: grid;
+  align-content: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  @include scroll-thin;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  // 图标比礼物名那行字高，往下压一点，视觉上和第一行文字对齐
+  margin-top: 1px;
+
+  img {
+    width: 19px;
+    height: 19px;
+    filter: drop-shadow(0 1px 2px #00000059);
+  }
+}
+
+// 目录里没有的礼物，用问号占位
+.iconFallback {
+  width: 18px;
+  height: 18px;
+  border: 1px dashed #3f565c;
+  border-radius: 50%;
+  color: #7d968f;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.name {
+  @include mono(12px);
+  @include ellipsis;
+  color: #dae7d9;
+}
+
+.targets {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+// 每个角色独占一行：268px 并排塞两个「角色 · 动作」会挤成一团。
+// 整行一起省略，而不是让角色名和动作名各缩一半 —— 缩一半两边都读不清
+.target {
+  @include mono(11px);
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  em {
+    color: #9db8b2;
+    font-style: normal;
+  }
+
+  b {
+    color: #eef0cf;
+    font-weight: 400;
+  }
+}
+
+.sep {
+  margin: 0 5px;
+  color: #5b716c;
+  font-style: normal;
+}
+
+@media (max-width: 760px) {
+  .panel {
+    bottom: 40px;
+    left: 10px;
+    width: min(268px, calc(100% - 20px));
+  }
+}
