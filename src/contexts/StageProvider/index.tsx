@@ -1,11 +1,38 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PARTICLE_PRESETS, type ParticlePreset, type ParticlePresetSettings } from '../../components/Atmosphere'
 import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from '../../components/FilterSetting'
-import { BACKGROUND_CYCLE_INTERVAL_MS, BACKGROUND_PRESETS } from './presets'
+import { BACKGROUND_CYCLE_INTERVAL_MS, BACKGROUND_PRESETS, type BackgroundPreset } from './presets'
 import { StageContext, type BackgroundMode, type StageContextValue } from './StageContext'
 
 const DEFAULT_BACKGROUND_URL = '/background.png'
 const CUSTOM_FILTERS_STORAGE_KEY = 'ailive.custom-filters'
+const CUSTOM_BACKGROUNDS_STORAGE_KEY = 'ailive.custom-backgrounds'
+
+/**
+ * 读取自定义背景。本地图片是 `blob:` URL，刷新后必然失效，
+ * 存了也打不开，所以读的时候直接丢掉（写入时同样跳过）。
+ */
+function loadCustomBackgrounds(): BackgroundPreset[] {
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_BACKGROUNDS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is BackgroundPreset => {
+      if (!item || typeof item !== 'object') return false
+      const preset = item as Partial<BackgroundPreset>
+      return typeof preset.id === 'string'
+        && preset.id.startsWith('custom:')
+        && typeof preset.label === 'string'
+        && preset.label.trim().length > 0
+        && typeof preset.url === 'string'
+        && preset.url.trim().length > 0
+        && !preset.url.startsWith('blob:')
+    })
+  } catch {
+    return []
+  }
+}
 
 function loadCustomFilterPresets(): CustomFilterPreset[] {
   try {
@@ -46,7 +73,13 @@ type StageProviderProps = {
 export function StageProvider({ children }: StageProviderProps) {
   const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND_URL)
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('fixed')
-  const backgroundObjectUrlRef = useRef<string | null>(null)
+  const [customBackgrounds, setCustomBackgrounds] = useState<BackgroundPreset[]>(loadCustomBackgrounds)
+
+  // 内置预设 + 用户自己加的，循环切换按这个顺序走
+  const allBackgrounds = useMemo(
+    () => [...BACKGROUND_PRESETS, ...customBackgrounds],
+    [customBackgrounds],
+  )
 
   const [particleEnabled, setParticleEnabled] = useState(true)
   const [particlePresetConfigs, setParticlePresetConfigs] = useState<Record<ParticlePreset, ParticlePresetSettings>>(
@@ -77,11 +110,6 @@ export function StageProvider({ children }: StageProviderProps) {
     }
   }, [customFilterPresets])
 
-  // Cleanup background object URL
-  useEffect(() => () => {
-    if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
-  }, [])
-
   // 循环切换：每停满一个间隔就换下一张预设背景。
   // 依赖里带 backgroundUrl，换一张就重新计时 —— 手动点预设也会把计时器重置，
   // 不会出现「刚点完就被轮播换走」。
@@ -89,24 +117,48 @@ export function StageProvider({ children }: StageProviderProps) {
     if (backgroundMode !== 'cycle') return
     const timer = window.setTimeout(() => {
       setBackgroundUrl((current) => {
-        const index = BACKGROUND_PRESETS.findIndex((preset) => preset.url === current)
-        // 当前是自定义图（不在预设里）时，从第一张开始轮
-        return BACKGROUND_PRESETS[(index + 1) % BACKGROUND_PRESETS.length].url
+        const index = allBackgrounds.findIndex((preset) => preset.url === current)
+        // 当前是自定义图（不在列表里）时，从第一张开始轮
+        return allBackgrounds[(index + 1) % allBackgrounds.length].url
       })
     }, BACKGROUND_CYCLE_INTERVAL_MS)
     return () => window.clearTimeout(timer)
-  }, [backgroundMode, backgroundUrl])
+  }, [backgroundMode, backgroundUrl, allBackgrounds])
 
-  const handleBackgroundFile = (file: File | null) => {
-    if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
-    backgroundObjectUrlRef.current = null
-    if (!file) {
-      setBackgroundUrl('')
-      return
+  // 自定义背景落盘。blob: 那种刷新就失效，不写进去
+  useEffect(() => {
+    try {
+      const persistable = customBackgrounds.filter((preset) => !preset.url.startsWith('blob:'))
+      window.localStorage.setItem(CUSTOM_BACKGROUNDS_STORAGE_KEY, JSON.stringify(persistable))
+    } catch {
+      // 隐私模式下存不了，只在内存里生效
     }
-    const objectUrl = URL.createObjectURL(file)
-    backgroundObjectUrlRef.current = objectUrl
-    setBackgroundUrl(objectUrl)
+  }, [customBackgrounds])
+
+  const addBackground = (name: string, url: string) => {
+    const preset: BackgroundPreset = {
+      id: `custom:${Date.now()}`,
+      label: name.trim() || '自定义背景',
+      url,
+    }
+    setCustomBackgrounds((current) => [...current, preset])
+    setBackgroundUrl(url)
+    // 刚加的背景得能看见，别停在上一次选的「无背景」上
+    setBackgroundMode('fixed')
+  }
+
+  /**
+   * 删掉一张自定义背景。
+   * 删的正是台面上那张时退回默认底图 —— 否则舞台会继续请求一个已经不在列表里的地址，
+   * 本地图片的话还会是一个即将被回收的 blob。
+   */
+  const removeBackground = (id: string) => {
+    const target = customBackgrounds.find((preset) => preset.id === id)
+    if (!target) return
+    setCustomBackgrounds((current) => current.filter((preset) => preset.id !== id))
+    if (target.url === backgroundUrl) setBackgroundUrl(DEFAULT_BACKGROUND_URL)
+    // 本地图片的对象地址只有这一处在用，删了就回收
+    if (target.url.startsWith('blob:')) URL.revokeObjectURL(target.url)
   }
 
   const updateParticleSetting = <K extends keyof ParticlePresetSettings>(
@@ -178,9 +230,18 @@ export function StageProvider({ children }: StageProviderProps) {
     setVignette(preset.vignette)
   }
 
+  /**
+   * 删掉一个自定义滤镜。
+   * 删的正是当前滤镜时退回「标准」—— 不然画面还停在那套参数上，
+   * 胶囊却没了，用户找不到是谁在起作用。
+   */
+  const removeCustomFilterPreset = (id: FilterPreset) => {
+    if (!customFilterPresets.some((item) => item.id === id)) return
+    setCustomFilterPresets((current) => current.filter((item) => item.id !== id))
+    if (filterPreset === id) handleFilterPresetChange('standard')
+  }
+
   const resetStage = () => {
-    if (backgroundObjectUrlRef.current) URL.revokeObjectURL(backgroundObjectUrlRef.current)
-    backgroundObjectUrlRef.current = null
     setBackgroundUrl(DEFAULT_BACKGROUND_URL)
     setBackgroundMode('fixed')
     setParticleEnabled(true)
@@ -205,7 +266,9 @@ export function StageProvider({ children }: StageProviderProps) {
     setBackgroundUrl,
     backgroundMode,
     setBackgroundMode,
-    handleBackgroundFile,
+    customBackgrounds,
+    addBackground,
+    removeBackground,
     particleEnabled,
     setParticleEnabled,
     particlePreset,
@@ -236,10 +299,12 @@ export function StageProvider({ children }: StageProviderProps) {
     setFilterSaturation,
     setFilterBlur,
     addCustomFilterPreset,
+    removeCustomFilterPreset,
     resetStage,
   }), [
     backgroundUrl,
     backgroundMode,
+    customBackgrounds,
     particleEnabled,
     particlePreset,
     particleIntensity,

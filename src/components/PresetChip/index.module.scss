@@ -1,0 +1,28 @@
+@use '../../styles/tokens' as *;
+
+// 胶囊本身是 grid 子项：不给 min-width: 0 的话长名字会把整列撑开
+.chip {
+  min-width: 0;
+}
+
+// 名称单行省略。Button 是 inline-flex，直接写 text-overflow 对匿名 flex 子项无效，
+// 必须包一层 span 再给它 min-width: 0
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 带删除角标时改成左右排布：名称占满剩余宽度，角标定宽不被挤
+.withRemove {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 5px 0 8px;
+
+  .label {
+    flex: 1;
+    text-align: left;
+  }
+}

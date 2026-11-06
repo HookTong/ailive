@@ -195,12 +195,13 @@
   }
 }
 
-.addButton {
+// 添加模型 / 隐藏模型：两等分一行。
+// 两者高度必须都取 sm（32px）—— 并排时一个 sm 一个 md 会差 2px，上沿对不齐
+.modelActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
   margin-top: 10px;
-}
-
-.visibilityButton {
-  margin-top: 8px;
 }
 
 .error {

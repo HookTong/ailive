@@ -103,6 +103,11 @@
     background: #1b3038;
     color: #b8d9d1;
   }
+
+  // ghost 本身没有底色，不给禁用态降透明度的话跟可点的一模一样
+  &:disabled {
+    opacity: 0.45;
+  }
 }
 
 .dashed {

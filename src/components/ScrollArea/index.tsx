@@ -2,6 +2,13 @@ import { createElement, forwardRef, type ReactNode } from 'react'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
+/**
+ * 舞台控制台里四处预设按钮组（背景 / 粒子 / 滤镜 / 音乐）共用的高度上限。
+ * 胶囊 30px + 间距 5px，4 行正好 135px，剩下 5px 露出第 5 行的上边框 ——
+ * 那条细边就是「下面还有」的提示。四处必须用同一个值，各写各的迟早对不齐。
+ */
+export const PRESET_GRID_MAX_HEIGHT = '140px'
+
 export type ScrollAreaProps = {
   children: ReactNode
   /** 渲染标签，弹幕列表用 ul */

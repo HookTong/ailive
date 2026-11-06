@@ -1,0 +1,10 @@
+@use '../../styles/tokens' as *;
+
+.mark {
+  margin-left: 6px;
+  color: $warn;
+  // em 默认斜体，这里只是借它的语义，样式上要正过来
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}

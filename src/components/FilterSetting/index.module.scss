@@ -30,6 +30,11 @@
   }
 }
 
+// 必填校验提示（描边由 Input 统一按 aria-invalid 处理）
+.fieldHint {
+  @include field-hint;
+}
+
 .modalControls {
   display: grid;
   gap: 12px;

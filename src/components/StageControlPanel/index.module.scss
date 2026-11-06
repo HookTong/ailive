@@ -52,75 +52,25 @@
   font-size: 11px;
 }
 
-.urlRow {
-  display: flex;
-  gap: 5px;
+// 预设容器到下面那行按钮（添加背景 / 播放 + 添加音乐）的间距。
+// 只在这一层给、行自己不再加 margin —— 两行的盒模型不一样：
+// 添加背景是 inline-flex 按钮（外边距不合并，会叠加上去），
+// 音乐那行是 block 级 grid（相邻外边距会合并取 max），只有「只给一处」两边才都等于这个值
+$preset-row-gap: 18px;
 
-  // 第一个子元素是输入框的外壳。注意 Input 的 className 是落在内层 <input> 上的，
-  // 拿不到这个外壳，所以只能按位置选。
-  > :first-child {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  // 按钮（有时还包一层 Tooltip）不许被压缩，让输入框去让位
-  > :not(:first-child) {
-    flex: 0 0 auto;
-  }
+// 背景预设：3 列由 ScrollArea 的 columns 决定，这里只管间距和给滚动条让位
+.backgroundPresets {
+  margin-bottom: $preset-row-gap;
+  // 细滚动条宽 6px，留 3px 内边距免得压住右边那列胶囊（和粒子预设同一套做法）
+  padding-right: 3px;
 }
 
-.urlInput {
-  flex: 1;
-  min-width: 0;
-}
+// 胶囊文字单行省略已收进 PresetChip 组件，这里不再需要 .chipLabel
 
-.backgroundPresets,
+// 音乐按钮组：3 列由 ScrollArea 的 columns 决定，这里只管间距和给滚动条让位
 .musicPresets {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 5px;
-  margin-bottom: 10px;
-}
-
-.actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
-  margin-top: 6px;
-}
-
-.actions .actionButton {
-  display: grid;
-  place-items: center;
-  padding: 0 3px;
-  white-space: nowrap;
-}
-
-.fileLabel {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 32px;
-  min-width: 0;
-  padding: 0 3px;
-  border: 1px solid $border-input;
-  border-radius: $radius;
-  background: transparent;
-  color: $text-muted;
-  font-family: $font-mono;
-  font-size: 11px;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:hover {
-    border-color: $accent;
-    background: $accent-fill-hover;
-    color: $text;
-  }
-
-  input {
-    display: none;
-  }
+  margin-bottom: $preset-row-gap;
+  padding-right: 3px;
 }
 
 .error {
@@ -130,21 +80,11 @@
   line-height: 1.4;
 }
 
-.musicFileRow {
+// 播放 / 添加音乐：两等分，和上面的 3 列胶囊同宽
+.musicActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
-  margin-top: 5px;
-
-  .fileLabel {
-    padding: 0 6px;
-  }
-
-  .playToggle {
-    display: grid;
-    place-items: center;
-    padding: 0 6px;
-  }
 }
 
 .musicControls {
@@ -163,17 +103,10 @@
   display: none;
 }
 
-// 标签在上、控件撑满一行，和语音设置里的行为行保持同一套排版
-.modeRow {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+// 背景切换方式 / 音乐播放模式两处分段控件的上间距。
+// 标签文案已经去掉，这里只剩这一条外边距 —— 别再套一层 flex column 的壳
+.modeSwitch {
   margin-top: 12px;
-
-  > span {
-    color: $text-muted;
-    @include mono(12px);
-  }
 }
 
 .resetButton {

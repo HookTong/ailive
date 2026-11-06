@@ -18,10 +18,10 @@ export type ModelManifest = {
 
 export type ModelSource = {
   id: string
+  /** 展示名，添加线上模型时由用户填写（必填，不再从模型配置里回填） */
   name: string
   modelUrl: string
   manifestUrl?: string
-  useConfigName?: boolean
 }
 
 export type Model3Config = {

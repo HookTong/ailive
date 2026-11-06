@@ -295,3 +295,12 @@
     border-color: #5ba895;
   }
 }
+
+// 必填校验没过：调用方在 input 上挂 aria-invalid，这里统一转警告色。
+// 用属性选择器而不是让调用方传 className —— 后者每个地方都得写
+// `input.xxx, input.xxx:focus` 才压得过 .input / .input:focus（输入时一直是聚焦态），
+// 重复不说，还特别容易漏掉 :focus 那条。
+input[aria-invalid='true'],
+input[aria-invalid='true']:focus {
+  border-color: $warn;
+}

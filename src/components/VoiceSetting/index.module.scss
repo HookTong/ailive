@@ -49,27 +49,8 @@
   @include ellipsis;
 }
 
-.remove {
-  display: grid;
-  place-items: center;
-  flex: 0 0 14px;
-  width: 14px;
-  height: 14px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: #29434d;
-  color: #9aaeb5;
-  font-family: Arial, sans-serif;
-  font-size: 12px;
-  line-height: 11px;
-  cursor: pointer;
-
-  &:hover {
-    background: #6c3938;
-    color: #f4b2a7;
-  }
-}
+// 删除角标收进 ChipRemove 组件了（圆底只在 hover 出现、× 用两条线画），
+// 这里只保留胶囊自己的左右内边距
 
 .addButton {
   margin-top: 6px;
@@ -145,6 +126,12 @@
     color: $text-muted;
     @include mono(12px);
   }
+}
+
+// 必填校验提示（描边由 Input 统一按 aria-invalid 处理）。
+// 别和下面的 .hint 混用：那个是说明文字，颜色和字号都不一样
+.fieldHint {
+  @include field-hint;
 }
 
 .hint {

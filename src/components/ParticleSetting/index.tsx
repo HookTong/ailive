@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { PARTICLE_COLOR_OPTIONS, PARTICLE_PRESETS, type ParticlePreset } from '../Atmosphere'
 import { Button } from '../Button'
 import { ColorSelect } from '../ColorSelect'
-import { ScrollArea } from '../ScrollArea'
+import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
 import { Slider } from '../Slider'
 import { Switch } from '../Switch'
 import { cx } from '../../utils/cx'
@@ -56,7 +56,7 @@ export function ParticleSetting({
       <ScrollArea
         columns={3}
         gap="5px"
-        height="178px"
+        maxHeight={PRESET_GRID_MAX_HEIGHT}
         className={styles.presets}
         role="group"
         ariaLabel="粒子特效快捷预设"

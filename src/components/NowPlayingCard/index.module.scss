@@ -31,6 +31,24 @@
   animation: breathe 2.6s ease-in-out infinite;
 }
 
+// 圆环当按钮用时给点反馈，否则看不出它是可点的
+.orbButton {
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color $ease, background $ease;
+
+  &:hover {
+    border-color: #8adbc4;
+    background: #8adbc41f;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $accent-chip-line;
+    outline-offset: 2px;
+  }
+}
+
 @keyframes breathe {
   0%,
   100% {

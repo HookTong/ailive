@@ -119,13 +119,3 @@ $thumb-size: 14px;
     cursor: not-allowed;
   }
 }
-
-// 轨道两端的说明（较小 / 较大）
-.range {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 7px;
-  color: $text-dim;
-  @include mono(11px);
-  letter-spacing: normal;
-}

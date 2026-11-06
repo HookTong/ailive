@@ -1,0 +1,54 @@
+@use '../../styles/tokens' as *;
+
+// 14px 的小圆点，比整颗胶囊的删除按钮轻得多，不会喧宾夺主
+.remove {
+  display: grid;
+  place-items: center;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 50%;
+  // 平时透明：常显一个实心圆在胶囊里太抢眼，圆底留到鼠标移入再出现
+  background: transparent;
+  color: #8298a2;
+  cursor: pointer;
+  transition: background $ease, color $ease;
+
+  /**
+   * × 用两条 45° 的细线画，而不是打一个「×」字符。
+   * 字符带着字体的基线偏移，在 14px 的圆里偏个 1px 都看得出来，
+   * 调 line-height 怎么调都只是把偏差挪个方向；两条线用 grid 叠在同一格里，
+   * 圆心天然就是几何中心。
+   */
+  &::before,
+  &::after {
+    content: '';
+    grid-area: 1 / 1;
+    width: 7px;
+    height: 1px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  &::before {
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    transform: rotate(-45deg);
+  }
+
+  &:hover {
+    background: #6c3938;
+    color: #f4b2a7;
+  }
+
+  // 键盘 Tab 过来时要看得见焦点：圆底只在 hover 出现，焦点只能靠描边
+  &:focus-visible {
+    background: #6c3938;
+    color: #f4b2a7;
+    outline: 1px solid $warn;
+    outline-offset: 1px;
+  }
+}

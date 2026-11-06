@@ -14,6 +14,15 @@
   white-space: nowrap;
 }
 
+/// 必填校验提示：紧贴输入框下方的小号警告文字。
+/// 描边不在这里 —— 调用方给 Input 挂 aria-invalid，颜色由 Input 组件统一接管
+@mixin field-hint {
+  margin-top: 6px;
+  color: $warn;
+  @include mono(11px);
+  line-height: 1.4;
+}
+
 /// 细滚动条。
 /// 只用 -webkit- 伪元素：一旦写了 scrollbar-color / scrollbar-width（且不为 auto），
 /// Chrome 121+ 就会忽略 ::-webkit-scrollbar 的圆角与 hover 变色，只能得到方块状的 thumb。

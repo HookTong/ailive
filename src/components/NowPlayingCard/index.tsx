@@ -25,6 +25,11 @@ export type NowPlayingCardProps = {
   playing?: boolean
   /** 频谱分析节点；有就用真实频谱驱动律动条，没有就退回 CSS 动画 */
   analyser?: AnalyserNode | null
+  /**
+   * 提供后左侧圆环变成播放/暂停按钮。
+   * 舞台上的卡片不传（那里只管展示），弹窗里的试听卡片传 toggle 才有得停。
+   */
+  onToggle?: () => void
   className?: string
 }
 
@@ -39,6 +44,7 @@ export function NowPlayingCard({
   duration,
   playing = false,
   analyser = null,
+  onToggle,
   className,
 }: NowPlayingCardProps) {
   const barsRef = useRef<HTMLSpanElement>(null)
@@ -99,7 +105,18 @@ export function NowPlayingCard({
 
   return (
     <Card padding="none" className={cx(styles.card, playing && styles.playing, className)}>
-      <span className={styles.orb} aria-hidden="true"><i /></span>
+      {onToggle
+        ? (
+          <button
+            type="button"
+            className={cx(styles.orb, styles.orbButton)}
+            aria-label={playing ? '暂停' : '播放'}
+            onClick={onToggle}
+          >
+            <i />
+          </button>
+        )
+        : <span className={styles.orb} aria-hidden="true"><i /></span>}
       <div className={styles.meta}>
         <strong className={styles.status}>{status}</strong>
         <b className={styles.title}>{title}</b>

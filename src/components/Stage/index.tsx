@@ -32,6 +32,7 @@ type StageProps = {
 export function Stage({ models, activeModelId, onActivateModel, onModelStateChange, showOverview = true, showGiftMotions = true, showChat = true, bare = false, caption }: StageProps) {
   const {
     backgroundUrl,
+    backgroundMode,
     particleEnabled,
     particleIntensity,
     particleSpeed,
@@ -67,7 +68,8 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
       <div
         className={styles.stageBackground}
         style={{
-          ...(backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")` } : {}),
+          // 「无背景」只是不显示，选中的地址还留着，切回固定就能恢复
+          ...(backgroundUrl && backgroundMode !== 'none' ? { backgroundImage: `url("${backgroundUrl}")` } : {}),
           filter: filterEnabled
             ? `brightness(${filterBrightness}) contrast(${filterContrast}) saturate(${filterSaturation}) blur(${filterBlur}px)`
             : 'none',

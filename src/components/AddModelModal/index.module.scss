@@ -17,18 +17,9 @@
   margin-top: 12px;
 }
 
-// 重名时输入框描边转警告色。加 input 前缀是为了压过 Input 组件里的 .input 边框；
-// 再带上 :focus 是因为输入时输入框一直是聚焦的，.input:focus 的优先级比单类更高
-input.invalid,
-input.invalid:focus {
-  border-color: $warn;
-}
-
-.hint {
-  margin-top: 6px;
-  color: $warn;
-  @include mono(11px);
-  line-height: 1.4;
+// 名称校验提示（描边由 Input 统一按 aria-invalid 处理）
+.fieldHint {
+  @include field-hint;
 }
 
 .urlRow {

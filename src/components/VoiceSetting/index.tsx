@@ -2,9 +2,11 @@ import { useState } from 'react'
 import type { VolcengineVoicePreset } from '../../hooks/useTts/api'
 import { useVoice } from '../../hooks'
 import { Button } from '../Button'
+import { ChipRemove } from '../ChipRemove'
 import { DropdownSelect, type DropdownOption } from '../DropdownSelect'
 import { Input, Textarea } from '../Input'
 import { Modal } from '../Modal'
+import { RequiredMark } from '../RequiredMark'
 import { ScrollArea } from '../ScrollArea'
 import { Segmented, type SegmentedOption } from '../Segmented'
 import { Tooltip } from '../Tooltip'
@@ -49,6 +51,11 @@ export function VoiceSetting({
   const [showVoiceModal, setShowVoiceModal] = useState(false)
   const [voiceName, setVoiceName] = useState('')
   const [voiceId, setVoiceId] = useState('')
+  // 两个字段都必填，但不要一打开就飘红：各自等用户离开过才提示
+  const [nameTouched, setNameTouched] = useState(false)
+  const [idTouched, setIdTouched] = useState(false)
+  const showNameHint = !voiceName.trim() && nameTouched
+  const showIdHint = !voiceId.trim() && idTouched
   const [voiceResourceId, setVoiceResourceId] = useState('seed-tts-2.0')
   const [voiceModalError, setVoiceModalError] = useState('')
   const selectedPreset = voices.find((preset) => preset.id === presetId) ?? voices[0]
@@ -66,6 +73,8 @@ export function VoiceSetting({
   const openVoiceModal = () => {
     setVoiceName('')
     setVoiceId('')
+    setNameTouched(false)
+    setIdTouched(false)
     setVoiceResourceId('seed-tts-2.0')
     setVoiceModalError('')
     setShowVoiceModal(true)
@@ -118,30 +127,14 @@ export function VoiceSetting({
               >
                 <span className={styles.presetLabel}>{preset.label}</span>
                 {preset.id.startsWith('custom:') && (
-                  <span
-                    className={styles.remove}
-                    data-tooltip-ignore="true"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`删除${preset.label}`}
-                    onClick={(event) => { event.stopPropagation(); onDeleteVoice(preset.id) }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        onDeleteVoice(preset.id)
-                      }
-                    }}
-                  >
-                    ×
-                  </span>
+                  <ChipRemove label={preset.label} onRemove={() => onDeleteVoice(preset.id)} />
                 )}
               </Button>
             </Tooltip>
           </div>
         ))}
       </ScrollArea>
-      <Button variant="dashed" size="xs" block className={styles.addButton} onClick={openVoiceModal}>＋ 添加音色</Button>
+      <Button variant="ghost" size="sm" block className={styles.addButton} onClick={openVoiceModal}>＋ 添加音色</Button>
 
       <Textarea
         className={styles.textarea}
@@ -204,12 +197,33 @@ export function VoiceSetting({
           )}
         >
           <label className={styles.field}>
-            <span>音色名称 <b>*</b></span>
-            <Input size="lg" value={voiceName} onChange={(event) => setVoiceName(event.target.value)} placeholder="输入预设名称" autoFocus />
+            <span>音色名称<RequiredMark /></span>
+            <Input
+              size="lg"
+              value={voiceName}
+              onChange={(event) => setVoiceName(event.target.value)}
+              onBlur={() => setNameTouched(true)}
+              placeholder="输入预设名称"
+              aria-label="音色名称"
+              aria-invalid={showNameHint || undefined}
+              aria-describedby={showNameHint ? 'voice-name-hint' : undefined}
+              autoFocus
+            />
+            {showNameHint && <div className={styles.fieldHint} id="voice-name-hint">请填写音色名称</div>}
           </label>
           <label className={styles.field}>
-            <span>音色 ID <b>*</b></span>
-            <Input size="lg" value={voiceId} onChange={(event) => setVoiceId(event.target.value)} placeholder="输入火山音色 ID" />
+            <span>音色 ID<RequiredMark /></span>
+            <Input
+              size="lg"
+              value={voiceId}
+              onChange={(event) => setVoiceId(event.target.value)}
+              onBlur={() => setIdTouched(true)}
+              placeholder="输入火山音色 ID"
+              aria-label="音色 ID"
+              aria-invalid={showIdHint || undefined}
+              aria-describedby={showIdHint ? 'voice-id-hint' : undefined}
+            />
+            {showIdHint && <div className={styles.fieldHint} id="voice-id-hint">请填写音色 ID</div>}
           </label>
           <div className={styles.field}>
             <span>音色模型</span>

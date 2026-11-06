@@ -12,18 +12,14 @@ export type SliderProps = {
   label?: string
   /** 右侧数值文案，例如 55% / 1.5x */
   valueText?: string
-  /** 轨道左下方说明，例如「较小」 */
-  minLabel?: string
-  /** 轨道右下方说明，例如「较大」 */
-  maxLabel?: string
   disabled?: boolean
   ariaLabel?: string
   className?: string
 }
 
 /**
- * 带标题、数值与两端说明的滑块。
- * 所有文案都在组件内渲染，调用方只需要传值，不用在外面拼 label 行。
+ * 带标题与数值的滑块。
+ * 文案都在组件内渲染，调用方只需要传值，不用在外面拼 label 行。
  */
 export function Slider({
   value,
@@ -33,8 +29,6 @@ export function Slider({
   step = 1,
   label,
   valueText,
-  minLabel,
-  maxLabel,
   disabled = false,
   ariaLabel,
   className,
@@ -66,12 +60,6 @@ export function Slider({
         </span>
       )}
       {input}
-      {(minLabel || maxLabel) && (
-        <span className={styles.range}>
-          <span>{minLabel}</span>
-          <span>{maxLabel}</span>
-        </span>
-      )}
     </label>
   )
 }

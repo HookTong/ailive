@@ -56,7 +56,6 @@ function loadOnlineModelSources(): ModelSource[] {
       name: source.name,
       modelUrl: source.modelUrl,
       ...(source.manifestUrl ? { manifestUrl: source.manifestUrl } : {}),
-      ...(source.useConfigName ? { useConfigName: true } : {}),
     }))
   } catch {
     return []
@@ -148,12 +147,6 @@ export function ModelProvider({ children }: ModelProviderProps) {
               },
             }
           })
-          if (source.useConfigName && nextManifest.displayName?.trim()) {
-            const configuredName = nextManifest.displayName.trim()
-            setModelSources((current) => current.map((item) => item.id === source.id
-              ? { ...item, name: configuredName, useConfigName: false }
-              : item))
-          }
         })
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === 'AbortError') return
@@ -181,9 +174,9 @@ export function ModelProvider({ children }: ModelProviderProps) {
       if (!/^https?:$/i.test(parsed.protocol)) throw new Error('Unsupported model URL protocol')
       const nextSource: ModelSource = {
         id: `online:${parsed.toString()}`,
+        // 名称由用户填写（弹窗里是必填项），这里的 hostname 只是兜底，正常走不到
         name: name.trim() || parsed.hostname,
         modelUrl: parsed.toString(),
-        useConfigName: !name.trim(),
       }
       setModelSources((current) => {
         const withDefault = current.some((source) => source.id === DEFAULT_MODEL_SOURCE.id)

@@ -4,6 +4,7 @@ import { cx } from '../../utils/cx'
 import { Button } from '../Button'
 import { Input } from '../Input'
 import { Modal } from '../Modal'
+import { RequiredMark } from '../RequiredMark'
 import { Stage, type StageLoadState, type StageModel } from '../Stage'
 import styles from './index.module.scss'
 
@@ -15,14 +16,6 @@ type AddModelModalProps = {
 type PreviewStatus = 'idle' | 'loading' | 'ready' | 'missing'
 
 const PREVIEW_MODEL_ID = 'model-preview'
-
-function readModelName(config: unknown): string {
-  if (!config || typeof config !== 'object') return ''
-  const record = config as Record<string, unknown>
-  if (typeof record.Name === 'string' && record.Name.trim()) return record.Name.trim()
-  if (typeof record.name === 'string' && record.name.trim()) return record.name.trim()
-  return ''
-}
 
 function isValidModelConfig(config: unknown): boolean {
   if (!config || typeof config !== 'object') return false
@@ -38,17 +31,26 @@ function isValidModelConfig(config: unknown): boolean {
 export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps) {
   const { modelSources } = useModel()
   const [modelNameDraft, setModelNameDraft] = useState('')
+  // 名称必填，但不要一打开就飘红：等用户离开过输入框、或者模型都加载好了才提示
+  const [nameTouched, setNameTouched] = useState(false)
   const [modelUrlDraft, setModelUrlDraft] = useState('')
   const [previewModelUrl, setPreviewModelUrl] = useState<string | null>(null)
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle')
   const [previewError, setPreviewError] = useState('')
   const requestRef = useRef(0)
 
+  const trimmedName = modelNameDraft.trim()
+  const nameMissing = trimmedName.length === 0
+  // 模型都加载出来了却卡在名称上，这时候必须点出来，否则用户只看到按钮是灰的
+  const showNameHint = nameMissing && (nameTouched || previewStatus === 'ready')
   // 模型名称要唯一：下拉列表、礼物动作配置都按名称认模型，重名会分不清。
   // 大小写和首尾空格不算区别（「Icy」和「 icy 」视为同一个）。
-  const trimmedName = modelNameDraft.trim()
-  const nameTaken = trimmedName.length > 0
+  const nameTaken = !nameMissing
     && modelSources.some((source) => source.name.trim().toLocaleLowerCase() === trimmedName.toLocaleLowerCase())
+  const nameHint = showNameHint
+    ? '请填写模型名称'
+    : nameTaken ? '该名称已被使用，请换一个' : ''
+  const canAdd = previewStatus === 'ready' && Boolean(previewModelUrl) && !nameMissing && !nameTaken
 
   // 预览直接复用 Stage：弹窗里挂一张独立的小舞台（自己的 PIXI 应用 + canvas），
   // 与首页舞台互不影响。
@@ -99,9 +101,6 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
       const config: unknown = await response.json()
       if (requestId !== requestRef.current) return
       if (!isValidModelConfig(config)) throw new Error('该地址不是有效的 Live2D 模型配置（缺少 Moc / Textures）')
-      const fallbackName = new URL(target).hostname
-      const configuredName = readModelName(config)
-      setModelNameDraft((current) => current.trim() ? current : configuredName || fallbackName)
       // 配置校验通过后才挂载预览，预览组件会自己报告加载结果
       setPreviewModelUrl(target)
       setPreviewStatus('loading')
@@ -124,8 +123,8 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
   }
 
   const addPreviewModel = () => {
-    // 按钮已经按 nameTaken 禁用了，这里再兜一层，防止回车之类的路径绕过去
-    if (previewStatus !== 'ready' || !previewModelUrl || nameTaken) return
+    // 按钮已经按 canAdd 禁用了，这里再兜一层，防止回车之类的路径绕过去
+    if (!canAdd || !previewModelUrl) return
     onAddOnlineModel(previewModelUrl, trimmedName)
     onClose()
   }
@@ -138,7 +137,7 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
       actions={(
         <>
           <Button variant="secondary" size="lg" onClick={onClose}>取消</Button>
-          <Button size="lg" onClick={addPreviewModel} disabled={previewStatus !== 'ready' || nameTaken}>添加模型</Button>
+          <Button size="lg" onClick={addPreviewModel} disabled={!canAdd}>添加模型</Button>
         </>
       )}
     >
@@ -160,21 +159,21 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
         </div>
       </label>
       <label className={cx(styles.field, styles.nameField)}>
-        <span>模型名称</span>
+        <span>模型名称<RequiredMark /></span>
         <Input
-          className={nameTaken ? styles.invalid : undefined}
           size="lg"
           type="text"
           value={modelNameDraft}
           onChange={(event) => setModelNameDraft(event.target.value)}
+          onBlur={() => setNameTouched(true)}
           placeholder="输入名称，用于下拉列表展示"
           aria-label="模型名称"
-          aria-invalid={nameTaken || undefined}
-          aria-describedby={nameTaken ? 'add-model-name-hint' : undefined}
+          aria-invalid={Boolean(nameHint) || undefined}
+          aria-describedby={nameHint ? 'add-model-name-hint' : undefined}
           maxLength={40}
         />
         {/* 用 div 而不是 span：.field > span 是给字段标签用的，会连带改掉提示的颜色和间距 */}
-        {nameTaken && <div className={styles.hint} id="add-model-name-hint">该名称已被使用，请换一个</div>}
+        {nameHint && <div className={styles.fieldHint} id="add-model-name-hint">{nameHint}</div>}
       </label>
       <div className={styles.previewBox}>
         {previewModelUrl
@@ -197,8 +196,8 @@ export function AddModelModal({ onClose, onAddOnlineModel }: AddModelModalProps)
           )}
       </div>
       {previewError && <div className={styles.error}>{previewError}</div>}
-      {/* 重名时不说「可以添加」——按钮是禁用的，两句话会打架 */}
-      {previewStatus === 'ready' && !nameTaken && <div className={cx(styles.status, styles.statusReady)}>模型加载成功，可以添加</div>}
+      {/* 名称没填或重名时不说「可以添加」——按钮是禁用的，两句话会打架 */}
+      {canAdd && <div className={cx(styles.status, styles.statusReady)}>模型加载成功，可以添加</div>}
     </Modal>
   )
 }

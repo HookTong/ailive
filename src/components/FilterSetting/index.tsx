@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Button } from '../Button'
 import { Input } from '../Input'
 import { Modal } from '../Modal'
-import { ScrollArea } from '../ScrollArea'
+import { PresetChip } from '../PresetChip'
+import { RequiredMark } from '../RequiredMark'
+import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
 import { Slider } from '../Slider'
 import { Switch } from '../Switch'
 import styles from './index.module.scss'
@@ -51,13 +53,24 @@ export type FilterSettingProps = FilterValues & {
   backgroundUrl: string
   customPresets: CustomFilterPreset[]
   onAddCustomPreset: (preset: CustomFilterPreset) => void
+  /** 删除一个自定义滤镜；内置预设没有删除入口 */
+  onRemoveCustomPreset: (id: FilterPreset) => void
 }
 
-export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange, brightness, onBrightnessChange, contrast, onContrastChange, saturation, onSaturationChange, blur, onBlurChange, backgroundUrl, customPresets, onAddCustomPreset }: FilterSettingProps) {
+export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange, brightness, onBrightnessChange, contrast, onContrastChange, saturation, onSaturationChange, blur, onBlurChange, backgroundUrl, customPresets, onAddCustomPreset, onRemoveCustomPreset }: FilterSettingProps) {
   const [showModal, setShowModal] = useState(false)
   const [draftName, setDraftName] = useState('')
+  // 名称必填，但不要一打开就飘红：等用户离开过输入框才提示
+  const [nameTouched, setNameTouched] = useState(false)
   const [draftValues, setDraftValues] = useState<FilterValues>(STANDARD_FILTER_VALUES)
-  const openCustomModal = () => { setDraftName(''); setDraftValues({ ...STANDARD_FILTER_VALUES }); setShowModal(true) }
+  const nameMissing = !draftName.trim()
+  const showNameHint = nameMissing && nameTouched
+  const openCustomModal = () => {
+    setDraftName('')
+    setNameTouched(false)
+    setDraftValues({ ...STANDARD_FILTER_VALUES })
+    setShowModal(true)
+  }
   const restoreStandardValues = () => setDraftValues({ ...STANDARD_FILTER_VALUES })
   const addCustomPreset = () => {
     const label = draftName.trim()
@@ -78,20 +91,26 @@ export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange
         <ScrollArea
           columns={3}
           gap="5px"
-          maxHeight="178px"
+          maxHeight={PRESET_GRID_MAX_HEIGHT}
           className={styles.presets}
           role="group"
           ariaLabel="舞台滤镜快捷预设"
         >
           {FILTER_PRESETS.map(({ id, label }) => (
-            <Button key={id} variant="chip" size="xs" active={preset === id} onClick={() => onPresetChange(id)}>{label}</Button>
+            <PresetChip key={id} label={label} active={preset === id} onSelect={() => onPresetChange(id)} />
           ))}
           {customPresets.map(({ id, label }) => (
-            <Button key={id} variant="chip" size="xs" active={preset === id} onClick={() => onPresetChange(id)}>{label}</Button>
+            <PresetChip
+              key={id}
+              label={label}
+              active={preset === id}
+              onSelect={() => onPresetChange(id)}
+              onRemove={() => onRemoveCustomPreset(id)}
+            />
           ))}
         </ScrollArea>
-        <Button variant="primary" size="xs" block className={styles.customButton} disabled={!enabled} onClick={openCustomModal}>
-          添加自定义滤镜
+        <Button variant="ghost" size="sm" block className={styles.customButton} disabled={!enabled} onClick={openCustomModal}>
+          ＋ 添加自定义滤镜
         </Button>
       </section>
       {showModal && (
@@ -110,8 +129,20 @@ export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange
           )}
         >
           <label className={styles.field}>
-            <span>滤镜名称 <b>*</b></span>
-            <Input size="lg" value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="请输入滤镜名称" autoFocus />
+            <span>滤镜名称<RequiredMark /></span>
+            <Input
+              size="lg"
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              onBlur={() => setNameTouched(true)}
+              placeholder="例如：暖阳"
+              aria-label="滤镜名称"
+              aria-invalid={showNameHint || undefined}
+              aria-describedby={showNameHint ? 'filter-name-hint' : undefined}
+              autoFocus
+            />
+            {/* 提示放在 label 里面：点提示文字也能聚焦到输入框 */}
+            {showNameHint && <div className={styles.fieldHint} id="filter-name-hint">请填写滤镜名称</div>}
           </label>
           <div className={styles.modalControls}>
             <Slider label="亮度" valueText={`${Math.round(draftValues.brightness * 100)}%`} min={0.65} max={1.35} step={0.05} value={draftValues.brightness} onChange={(value) => updateDraft('brightness', value)} />

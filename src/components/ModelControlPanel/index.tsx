@@ -152,16 +152,13 @@ export function ModelControlPanel() {
             </div>
           )}
         </div>
-        <Button size="md" block className={styles.addButton} onClick={() => setAddModelOpen(true)}>＋ 添加模型</Button>
-        <Button
-          variant="ghost"
-          size="md"
-          block
-          className={styles.visibilityButton}
-          onClick={() => updateActiveCharacter({ modelVisible: !modelVisible })}
-        >
-          {modelVisible ? '隐藏模型' : '显示模型'}
-        </Button>
+        {/* 添加模型 / 隐藏模型：两等分一行 */}
+        <div className={styles.modelActions}>
+          <Button variant="ghost" size="sm" onClick={() => setAddModelOpen(true)}>＋ 添加模型</Button>
+          <Button variant="ghost" size="sm" onClick={() => updateActiveCharacter({ modelVisible: !modelVisible })}>
+            {modelVisible ? '隐藏模型' : '显示模型'}
+          </Button>
+        </div>
         {configError && <div className={styles.error}>模型配置或线上资源加载失败</div>}
       </div>
 
@@ -253,8 +250,6 @@ export function ModelControlPanel() {
         <Slider
           label="模型大小"
           valueText={`${Math.round(modelSize * 100)}%`}
-          minLabel="较小"
-          maxLabel="较大"
           ariaLabel="模型大小"
           min={0.2}
           max={0.95}
