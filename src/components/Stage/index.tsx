@@ -114,15 +114,11 @@ type StageProps = {
   showChat?: boolean
   /** 「弹幕指令」速查卡 */
   showChatCommands?: boolean
-  /** 只渲染模型本身：弹窗预览用，不带背景、滤镜、粒子、信息卡、聊天和字幕 */
+  /** 只渲染模型本身：弹窗预览用，不带背景、滤镜、粒子、信息卡和聊天 */
   bare?: boolean
-  caption?: {
-    left: string
-    right: string
-  }
 }
 
-export function Stage({ models, activeModelId, onActivateModel, onModelStateChange, showOverview = true, showGiftMotions = true, showChat = true, showChatCommands = true, bare = false, caption }: StageProps) {
+export function Stage({ models, activeModelId, onActivateModel, onModelStateChange, showOverview = true, showGiftMotions = true, showChat = true, showChatCommands = true, bare = false }: StageProps) {
   const {
     backgroundUrl,
     backgroundMode,
@@ -151,6 +147,8 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
           activeModelId={activeModelId}
           onActivateModel={onActivateModel}
           onModelStateChange={onModelStateChange}
+          // 弹窗预览只看模型本身，不带名称名牌
+          showNames={false}
         />
       </div>
     )
@@ -180,12 +178,6 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
       {showChat && <LiveChatCard live={douyinRoom} />}
       <Live2D models={models} activeModelId={activeModelId} onActivateModel={onActivateModel} onModelStateChange={onModelStateChange} />
       <div className={cx(styles.vignette, filterEnabled && vignette && styles.vignetteActive)} />
-      {caption && (
-        <div className={styles.caption}>
-          <span>{caption.left}</span>
-          <span>{caption.right}</span>
-        </div>
-      )}
     </div>
   )
 }

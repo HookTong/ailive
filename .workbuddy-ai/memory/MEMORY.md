@@ -43,6 +43,10 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 - **`Card` 的 `headerProps` 别用 `.head` 类名**（内部已有）；只挂拖拽 `handlers`，列表区保留滚动与选中文字。
 - **「直播配置」抽屉里礼物行的左右要和内容区贴边**（`padding: 5px 0`）：礼物图标对齐上方「礼物单价」文案、行尾按钮对齐底部「完成」按钮。弹幕指令那 12px 内边距是画在 `.list` 的 1px 外框**里面**的，外框本身贴边 —— 别把两者混为一谈，也别用负边距去凑（右边紧挨着 `Tabs` 面板 `scroll-bleed` 出来的滚动条）。
 - **舞台浮层一律「组件自己取数」**，容器只摆放和整块拖动。卡片高度靠各自 `.root { min-height: 154px }` 对齐。
+- **角色名牌在 `Live2D` 里，不属于舞台浮层**：和说话气泡共用同一套定位（`updateOverlays` 每 4 帧跑一次，`getBounds()` 只算一次两块共用）。要点：① 位置要贴「模型真正画到哪里」，**不能按固定比例往上收** —— 画布底部留白每个模型都不一样（鲸鱼娘 13%，有的模型几乎为 0），固定值要么压住角色、要么飘出老远，两头都试过；② 留白靠遍历 Cubism drawable 顶点算（`measureBottomTrim`，只统计 visible 且 opacity > 0 的，否则遮罩层会把范围带偏），**别用 `renderer.extract.pixels()`**：它按 `getLocalBounds()` 建离屏纹理，而 Live2D 这个值返回的是画布原始尺寸（实测 4068×4068 = 66MB），扫一遍要好几秒、直接卡死主线程；③ 顶点还没 update 时全是 0，算出来「留白」是半个画布，名牌会被推到腰上 —— 范围小得离谱就当没量到，退回贴包围盒底边；④ `--plate-scale: clamp(0.9, var(--bubble-scale), 1.2)`，模型拉满时不该变成巨幅招牌；⑤ 初始 `visibility: hidden`，模型没就绪前还没有 left/top，露出来会闪在舞台左上角；⑥ `offsetWidth/Height` 必须缓存、只在缩放变化时失效；⑦ **同一个 `measureSilhouette` 还量 `topTrim`**（`(canvasHeight / 2 - maxY) / canvasHeight`），说话气泡靠它停在真正的头顶上方 —— 气泡原来按包围盒顶边往下 3% 放，头发顶到画布上沿的模型会被盖住头（本地鲸鱼娘 topTrim 0.086、bottomTrim 0.129，两个方向差得完全没关系，不能共用一个数）；⑧ 气泡底边 = 内容顶边 − `BUBBLE_TAIL_DROP × scale` − 4，那个 13.7 是尾巴菱形伸到气泡底边下方的距离（18px 方块转 45° + `bottom: -10px`），**改 SCSS 里尾巴尺寸要同步改它**；⑨ 气泡 top 夹到 ≥ 0，头顶顶到舞台上沿时宁可盖一点头发，也不能被 `overflow: hidden` 裁掉。
+- **`--bubble-scale` 别在 ref 里缓存「上次写进去的值」**：气泡和名牌挂载时机不同（模型一加载就有名牌，气泡要等它开口或切「常显」才出现），共用一份 Map 的话，先挂载的那个会把这轮计算标记成「已写过」，后挂载的就被跳过 —— 元素上还是 CSS 默认的 `1`，模型一大（真实缩放 > 1）气泡就明显偏小，切一次模型才对上。改成和 `element.style.getPropertyValue('--bubble-scale')` 比：行内样式读取不触发重排，也不存在挂载/卸载的缓存一致性问题。
+- **角色显示设置单独成组**：`CharacterDisplaySetting`（`src/components/CharacterDisplaySetting`）里依次是「气泡常显（Switch）→ 名牌显示（Switch）→ 模型大小（Slider）」，`.root` 一条 `border-top` + `gap: 12px` 把它和上面的音色区隔开，三行统一「左标签右控件」的 `.row`。这三项原来散在 `ModelControlPanel`（大小）和 `VoiceSetting`（气泡 / 名牌）里，凑一起才好找；**别再把显示类开关塞回 `VoiceSetting`** —— 那是音色组件。`BubbleMode` 只有 `speaking / always` 两态，直接映射成开关的 `false / true`，**别为了两态再摆一个分段控件**（多占一整行高度）。Slider 自带 `margin-top: 12px`，组内要写 `.root .slider { margin-top: 0 }` 交给 `gap`（必须两级选择器，否则拼不过 Slider 自己的同名类）。
+- **「名牌显示」是按角色的开关**（`CharacterState.nameplateVisible`，**默认 false**，`resetActiveCharacter` 里也归 false —— 名牌压在角色脚边会盖掉画面，要认人时再开）：`App` 通过 `Live2DModelConfig.nameplate` 传下去，`nameplate !== false` 才挂那颗胶囊。**别和 `showNames` 那个 prop 混** —— 它是全局开关，只给弹窗预览用（`bare` 时传 false）。角色状态本身不落盘（只有 `ailive.online-models` 存了），刷新即回默认。
 - **舞台四块浮层**：概览（左上，560 宽）、弹幕（右上，`top:16 right:16`，z-index 9）、礼物动作（左下，`bottom:46 left:24`）、弹幕指令（右下，`bottom:46 right:24`），后三块都是 268 宽 + `max-height: min(66%, 540px)` + 底色 `#09232bf2`（比 Card 更实，免得两层毛玻璃糊在一起）。开关在 `StageToolbar`，状态在 `App`。**右侧一列上下两块会重叠**（弹幕攒满会盖住指令卡顶部），这是自由摆放的已知取舍。
 - **`ChatCommandCard` 的内容从 `CHAT_COMMANDS` 生成**，不手写：按 `[关键字|…]` 归组（标题另走 `FAMILY_LABEL`：外观→角色外观、音色→角色音色、背景→舞台背景、粒子→粒子特效、滤镜→舞台滤镜、音乐→背景音乐 —— 关键字要短是给观众手打的），**模板原样显示、绝不替换**（`$角色名称` 就是留给观众填的位置；替成具体值会让人以为只能发那一个）。**只列开着的指令**，全关时整块 `return null`。
 - **`GiftMotionCard` 行结构跟着台上模型数变**：`modelCount === 1` 时礼物名与动作并成一行、不显示角色名。**不能按 `row.targets.length === 1` 判断**。
@@ -73,26 +77,27 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 ## 触发动作（Live2D）
 
 - 礼物动作**按模型分别配**（`giftMotions: Record<礼物, Record<模型 id, 动作名>>`），到达时遍历 `modelSources` 逐个 `updateCharacter`；旧格式靠 `GIFT_MOTION_ANY_MODEL = '*'` 兜底。
-- **`activeMotion` 只归用户所有**（`ModelControlPanel` 里点的那一下），它同时是列表选中态、说话触发动作和舞台字幕。礼物等外部触发走 `overrideMotion` + `overrideNonce`（一次性、不回写选中）—— 否则送一次礼物就把用户选的预设顶掉。`Live2D` 里三档优先级：换预设 > 一次性动作 > 开口重播预设，必须是同一条 `else` 链。
+- **`activeMotion` 只归用户所有**（`ModelControlPanel` 里点的那一下），它同时是列表选中态和说话触发动作。礼物等外部触发走 `overrideMotion` + `overrideNonce`（一次性、不回写选中）—— 否则送一次礼物就把用户选的预设顶掉。`Live2D` 里三档优先级：换预设 > 一次性动作 > 开口重播预设，必须是同一条 `else` 链。
 - 礼物动作走**队列**：`queuedGiftIdRef` 记最大已入队 id（`feed` 变空 = 重连，归零），`giftTick` 推进，播放窗口用 `setTimeout`。**窗口定时器绝不能放 effect 的 cleanup**，否则队列卡死。
 - 礼物动作**优先级高于说话**：`motionHoldUntil` 用时间戳（布尔没人清会永久锁死）。**坑**：`applyModelProps` 里先赋值后判断，守卫必须读 `next.motionHoldUntil`。
 - 弹幕驱动的 effect 依赖要带 `characterStates`（模型比礼物晚到约 2.8s），并用 `ref` 防重放。多模型 manifest 并行加载：`pendingModelsRef` 记没就绪的，重跑时只补这几个。
 - **说话触发动作 = 动作预设里选中的那一项**，没有独立的 `speakingMotion` / `speakMotion` 字段（都删了）：`applyModelProps` 里「开始说话」直接用 `next.motion` 重播一次，且必须是 `else if` —— 切预设和开口撞在同一帧时 `if` 分支已经播过，再调一次会把动作从头重启。
-- `LiveFeedItem['id']` 是 `number`。舞台字幕反映的就是 `activeMotion`，说话时重播同一个动作，所以字幕不用额外标注「说话中」；**礼物动作不会改它**。
+- `LiveFeedItem['id']` 是 `number`。说话时重播的就是 `activeMotion`，**礼物动作不会改它**。
 
 ## 弹幕指令
 
 - 格式 `[关键字|限定词…]内容`。元数据 + 解析在 `src/data/chatCommands.ts`，执行在 `src/hooks/useChatCommand`，排队发声在 `AiChatProvider`。
 - **动作立刻执行，反馈进 AI 队列**。优先级 `gift 30 > member 20 > command 15 > chat 10`，共用 `MIN_REPLY_INTERVAL_MS`。绕开弹幕冷却与「同内容只答一次」，但有 `COMMAND_USER_COOLDOWN_MS = 3000` 的每人节流，**动作和反馈一起挡**。
 - **不依赖 `autoReply` 开关**：`pickNext(allowAi)` 在 `!autoActive` 时只挑 command，没配 Key 也能用；被关掉的指令当普通弹幕交给 AI。
-- 模型指令由**点名角色**说（`speakerFor`），舞台指令走 `nextSpeaker()` 轮转。反馈文案是执行结果本身，**不经过 LLM**，失败也要说「没有找到…」。
+- 模型指令由**点名角色**说（`speakerFor`），舞台指令走 `nextSpeaker()` 轮转。反馈文案是执行结果本身，**不经过 LLM**，失败也要说「没有找到…」，**并接着报可选值**（`available()`：最多 6 个，多的写「等 N 个」；空名字要过滤掉）—— 观众看不到配置面板，只说「没找到」他没法自己纠正。
 - **切换方式也做成指令**：`[粒子|固定 / 循环切换 / 随机切换]`、`[滤镜|…]`（共 6 条，模板写成无变量的 `[粒子|固定]`）。执行时**顺带打开对应开关**，否则关着的时候设了模式什么也看不见。
-- **已知不一致（未修）**：`parseChatCommand` 注释里「`[背景|电影]` 和 `[背景]电影` 两种写法都收」是假的 —— 名字放在 `|` 后面时 `payload` 为空、直接 `return null`。实测 `[背景|电影]` 不动、`[背景]赛博` 正常。
+- **指令里填的名字全部走模糊匹配**（`src/utils/matchName.ts`，旧的 `normalizeCommandName` 已删）：归一化 = NFKC（全角转半角）+ 去空白/标点/符号 + 小写；打分 = 相等 1 / 子串 `0.6 + 0.4 × 短/长` / 编辑距离 ≤ 1 且不短于 3 字 `1 - 距离/长` / 其余 0；阈值 0.6，`findClosestMatch` 取最高分、不够就返回空让调用方报「没有找到」。**两个字的名字错一个就认不出**（`longer.length < 3` 直接给 0）—— 「电车」和「电影」只差一次编辑，不挡会乱配。实测 `[背景]赛博朋克`→「赛博」、`[滤镜]电影感`→「电影」、`[粒子]神经`→「神经网络」、`[音色|鲸鱼]温柔`→「DS 鲸鱼娘」、`[背景]完全不相干` 正确报没找到。
+- **名字写在 `|` 后面也收**（`parseChatCommand` 里的 `named()`）：`[背景|幻想]` 和 `[背景]幻想` 一样。固定动作（无背景 / 固定 / 循环切换…）在各自的 `case` 里先一步认领，走到 `named()` 的 qualifier 才当名字；**外观 / 音色不能用这条** —— 那里的 `head[1]` 是角色名，`payload` 为空时整条指令不完整。
 - 配置面板每条模板下面列「现在能填哪些名字」。**模板里的变量一律以「名称」结尾**（`$角色名称` / `$外观名称` / `$音色名称` / `$背景名称` / `$特效名称` / `$滤镜名称` / `$音乐名称`），和示例行的真实值 `[外观|DS 鲸鱼娘]love` 一眼分开；**模板不做任何替换**，示例行才用真实值。
 - **提示只列「台上看得见的模型」**（`modelVisible !== false`）；**外观 / 外观清除两条再筛掉没有外观的模型**（`manifest.expressions` 为空），清空后返回空数组，渲染端用 `hint.length > 0` 兜住。**音色不筛外观**。
 - **提示行是结构化的**：`HintLine = { label, value }[]`，一段一个「标签 + 内容」，标签 `$text-faint` / 内容 `$text-soft` —— 一行能填好几个名字，同色看不出哪段是键。**段间只留间距不加分隔符**（`.optionPart + .optionPart { margin-left: 10px }`）。
 - **`Tooltip` 的 `title` 是 `ReactNode` 不是 `string`**（分色、分段只能靠节点）；传字符串的老调用方不受影响。**多行用 `.tipLine + .tipLine { border-top }` 隔开**（多个角色 = 多行），两处复用同一组 `.optionPart / .optionLabel / .optionValue`（CSS Module 类名是全局的，portal 出去也不掉样式）。
-- **标题行里的说明图标**（「动作预设 ⓘ」）：内联 SVG（`currentColor` + `aria-hidden`，别用字符 `ⓘ`，基线会飘）+ `.labelWithHint { inline-flex; align-items: center; gap: 4px }` 兜住垂直居中；图标加 `role="img"` + `aria-label` + **`tabIndex={0}`**，否则 `<span>` 收不到 `onFocus`、键盘用户看不到提示。平时 `$text-faint`、hover / `:focus-visible` 提到 `$text-muted`，`cursor: help`。
+- **说明图标统一用 `HintIcon`**（`src/components/HintIcon`，传 `hint` 一句话，内部包好 `Tooltip`）：内联 SVG（`currentColor` + `aria-hidden`，别用字符 `ⓘ`，基线会飘）；`role="img"` + `aria-label` + **`tabIndex={0}`**，否则 `<span>` 收不到 `onFocus`、键盘用户看不到提示；`$text-faint` → hover / `:focus-visible` 提到 `$text-muted`，`cursor: help`。标签侧靠 `display: inline-flex; align-items: center; gap: 4px` 兜住垂直居中。**面板里一律传 `placement="right"`** —— `top` / `bottom` 是以图标为中心水平居中的，图标贴着视口左边时（左侧面板 x≈76），251px 的提示左边缘会跑到 `x = -43`，左半句直接看不见。
 
 ## 构建与验证
 

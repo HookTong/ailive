@@ -25,6 +25,8 @@ const createCharacterState = (): CharacterState => ({
   voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
   modelVisible: true,
   bubbleMode: 'speaking',
+  // 名牌默认不显示：舞台上多一颗胶囊会压住角色脚下的画面，需要认人时再开
+  nameplateVisible: false,
 })
 
 function loadOnlineModelSources(): ModelSource[] {
@@ -224,6 +226,7 @@ export function ModelProvider({ children }: ModelProviderProps) {
       voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
       modelVisible: true,
       bubbleMode: 'speaking',
+      nameplateVisible: false,
     })
   }
 

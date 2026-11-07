@@ -29,6 +29,12 @@ export type CharacterState = {
   /** 模型在舞台上是否可见 */
   modelVisible: boolean
   bubbleMode: BubbleMode
+  /**
+   * 舞台上该角色脚下的名称名牌要不要显示，**默认关**。
+   * 名牌是给观众认人的，单人直播或者名字跟角色明显对不上时可以不开；
+   * 开着的时候它压在角色脚边，会盖掉一点画面。
+   */
+  nameplateVisible: boolean
 }
 
 export type ModelContextValue = {

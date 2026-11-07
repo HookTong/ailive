@@ -1,5 +1,4 @@
 @use '../../styles/tokens' as *;
-@use '../../styles/mixins' as *;
 
 .preview {
   position: relative;
@@ -81,26 +80,6 @@ $background-fade: 560ms;
 
 .vignetteActive {
   opacity: 1;
-}
-
-.caption {
-  position: absolute;
-  z-index: 4;
-  bottom: 24px;
-  left: 30px;
-  right: 30px;
-  display: flex;
-  justify-content: space-between;
-  color: #8da1aa;
-  @include mono(12px);
-  letter-spacing: 0.08em;
-  pointer-events: none;
-
-  span:last-child {
-    max-width: 60%;
-    @include ellipsis;
-    text-align: right;
-  }
 }
 
 @media (max-width: 800px) {

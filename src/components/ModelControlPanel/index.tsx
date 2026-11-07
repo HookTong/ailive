@@ -1,37 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AddModelModal } from '../AddModelModal'
+import { CharacterDisplaySetting } from '../CharacterDisplaySetting'
+import { HintIcon } from '../HintIcon'
 import { VoiceSetting } from '../VoiceSetting'
 import { Button } from '../Button'
 import { Modal } from '../Modal'
 import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
 import { PresetChip } from '../PresetChip'
-import { Slider } from '../Slider'
-import { Tooltip } from '../Tooltip'
 import { cx } from '../../utils/cx'
 import { useModel, useVoice } from '../../hooks'
 import type { VolcengineVoicePreset } from '../../hooks/useTts/api'
 import styles from './index.module.scss'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
-
-/** 说明图标：细圈里一个 i，和 Input 里的那几个图标同一套写法（currentColor + aria-hidden） */
-function InfoIcon() {
-  return (
-    <svg
-      viewBox="0 0 12 12"
-      width="12"
-      height="12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      aria-hidden="true"
-    >
-      <circle cx="6" cy="6" r="5" />
-      <path d="M6 5.5v3" strokeLinecap="round" />
-      <circle cx="6" cy="3.6" r="0.72" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
 
 export function ModelControlPanel() {
   const {
@@ -70,6 +51,7 @@ export function ModelControlPanel() {
   const voicePresetId = activeCharacter.voicePresetId
   const modelVisible = activeCharacter.modelVisible
   const bubbleMode = activeCharacter.bubbleMode
+  const nameplateVisible = activeCharacter.nameplateVisible
   const voiceSpeaking = speakingModel?.modelId === activeModelId
 
   useEffect(() => {
@@ -179,11 +161,7 @@ export function ModelControlPanel() {
           <span className={styles.labelWithHint}>
             动作预设
             {/* 说明挂在标题上：这一组里选中的那一项就是「说话触发动作」 */}
-            <Tooltip title="当角色说话时会触发该动作">
-              <span className={styles.hintIcon} role="img" aria-label="当角色说话时会触发该动作" tabIndex={0}>
-                <InfoIcon />
-              </span>
-            </Tooltip>
+            <HintIcon placement="right" hint="当角色说话时会触发该动作" />
           </span>
           <span className={styles.count}>{motionOptions.length}</span>
         </div>
@@ -261,31 +239,24 @@ export function ModelControlPanel() {
         </div>
       )}
 
-      {/* 模型大小 */}
-      <div className={cx(styles.block, styles.sizeBlock)}>
-        <Slider
-          className={styles.sizeSlider}
-          label="模型大小"
-          valueText={`${Math.round(modelSize * 100)}%`}
-          ariaLabel="模型大小"
-          min={0.2}
-          max={0.95}
-          step={0.05}
-          value={modelSize}
-          onChange={handleModelSizeChange}
-        />
-      </div>
-
       <VoiceSetting
         presetId={voicePresetId}
         speaking={voiceSpeaking}
         error={voiceError}
-        bubbleMode={bubbleMode}
         onPresetChange={handleVoicePresetChange}
         onSpeak={handleVoiceSpeak}
         onAddVoice={addVoice}
         onDeleteVoice={deleteVoice}
+      />
+
+      {/* 气泡 / 名牌 / 大小：只决定角色看起来怎样，单独成组放在音色后面 */}
+      <CharacterDisplaySetting
+        bubbleMode={bubbleMode}
         onBubbleModeChange={(mode) => updateActiveCharacter({ bubbleMode: mode })}
+        nameplateVisible={nameplateVisible}
+        onNameplateVisibleChange={(visible) => updateActiveCharacter({ nameplateVisible: visible })}
+        modelSize={modelSize}
+        onModelSizeChange={handleModelSizeChange}
       />
 
       {/* 底部操作 */}

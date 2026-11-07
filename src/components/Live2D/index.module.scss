@@ -29,32 +29,78 @@
 
   position: absolute;
   z-index: 5;
-  max-width: calc(220px * var(--bubble-scale));
+  // 这里的基准值是「舞台上的展示尺寸」，和界面里的字号刻度（$fs-*）不是一套 ——
+  // 直播画面离观众远，字要比面板里大得多，所以整体按面板尺寸的 1.45 倍给。
+  // 后面那道 86% 是相对舞台宽度的兜底：窄窗口下 320px 会顶到舞台两边被裁掉
+  max-width: min(calc(320px * var(--bubble-scale)), 86%);
   transform: translate(-50%, -100%);
-  padding: calc(9px * var(--bubble-scale)) calc(12px * var(--bubble-scale));
+  padding: calc(13px * var(--bubble-scale)) calc(18px * var(--bubble-scale));
   border: 1px solid #8adbc47a;
-  border-radius: calc(12px * var(--bubble-scale));
-  background: #f4fff9f2;
+  border-radius: calc(18px * var(--bubble-scale));
+  // 底色必须和尾巴的 `::after` 完全一致且**不透明**：尾巴上半部分要盖住气泡的
+  // 下边框才能融成一体，只要留一点透明度，那 1px 的描边就会从菱形里透出来，
+  // 看着就是「菱形和气泡之间有条缝」
+  background: #f4fff9;
   color: #173338;
-  box-shadow: 0 8px 20px #06101666;
+  box-shadow: 0 10px 24px #06101666;
   font-family: $font-ui;
-  font-size: calc(11px * var(--bubble-scale));
+  font-size: calc(16px * var(--bubble-scale));
   line-height: 1.5;
   overflow-wrap: anywhere;
   pointer-events: none;
 
+  // 尾巴：一个旋转 45° 的方块，上半部分盖住气泡下边框，下半部分尖下去指着角色。
+  // **改这里的 `width` / `height` / `bottom` 要同步改 index.tsx 的 BUBBLE_TAIL_DROP**
+  // —— 气泡是按「尾巴尖离底边多远」往上抬的，对不上就会插进头发里或者飘开
   &::after {
     content: '';
     position: absolute;
     left: 50%;
-    bottom: calc(-7px * var(--bubble-scale));
-    width: calc(12px * var(--bubble-scale));
-    height: calc(12px * var(--bubble-scale));
+    bottom: calc(-10px * var(--bubble-scale));
+    width: calc(18px * var(--bubble-scale));
+    height: calc(18px * var(--bubble-scale));
     border-right: 1px solid #8adbc47a;
     border-bottom: 1px solid #8adbc47a;
-    background: #f4fff9f2;
+    background: #f4fff9;
     transform: translateX(-50%) rotate(45deg);
   }
+}
+
+// 角色脚下的名称名牌：半透明胶囊，位置由 updateOverlays 每 4 帧写一次。
+// 和说话气泡共用 --bubble-scale，字号/内边距/最大宽度都跟着模型视觉高度等比缩放。
+// pointer-events: none 是必须的 —— 整块舞台靠 .live2d 的 pointerdown 拖动角色，
+// 名牌盖在脚上会抢走那块拖动区
+.nameplate {
+  /* 由 Live2D 按模型大小写入，1 = 默认大小（0.6）时的尺寸 */
+  --bubble-scale: 1;
+  /* 名牌不跟着模型一路缩放：模型拉大时名牌不该变成巨幅招牌，缩小时也不该糊成
+     一行小字。在气泡缩放的基础上再夹一道窄区间，多角色之间大小也更统一 */
+  --plate-scale: clamp(0.9, var(--bubble-scale), 1.2);
+
+  position: absolute;
+  z-index: 4;
+  max-width: calc(200px * var(--plate-scale));
+  transform: translate(-50%, 0);
+  padding: calc(4px * var(--plate-scale)) calc(11px * var(--plate-scale));
+  border: 1px solid #ffffff2e;
+  border-radius: 999px;
+  // 半透明靠「底色压低不透明度 + 背后模糊」一起成立：只把底色做淡的话，
+  // 遇到高对比的背景（霓虹、亮地板）字会被背景吃掉；只模糊不压透明度又太实
+  background: #0a1a21a6;
+  backdrop-filter: blur(8px);
+  color: #eaf6f7;
+  box-shadow: 0 4px 14px #050b1066, inset 0 1px #ffffff1a;
+  font-family: $font-ui;
+  font-size: calc(#{$fs-body} * var(--plate-scale));
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  // 初始藏起来：位置是 updateOverlays 按模型包围盒算的，模型没就绪之前
+  // 还没有 left/top，露出来会先闪在舞台左上角
+  visibility: hidden;
 }
 
 .status {

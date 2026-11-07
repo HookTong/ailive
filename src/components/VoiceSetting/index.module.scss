@@ -45,27 +45,6 @@
   margin-top: 6px;
 }
 
-// 气泡显示：标签在上，控件独占一行
-.behavior {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid $border-inset;
-}
-
-.behaviorRow {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  > span {
-    color: $text-muted;
-    @include mono(12px);
-  }
-}
-
 .textarea {
   margin-top: 9px;
 }

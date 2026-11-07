@@ -1,0 +1,20 @@
+@use '../../styles/tokens' as *;
+
+// 标题后面那颗 i：比标题文字再暗一档，悬停 / 键盘聚焦时提亮到标题色
+.root {
+  display: inline-flex;
+  color: $text-faint;
+  cursor: help;
+  transition: color $ease;
+
+  &:hover {
+    color: $text-muted;
+  }
+
+  &:focus-visible {
+    color: $text-muted;
+    border-radius: 50%;
+    outline: 1px solid $accent-line;
+    outline-offset: 2px;
+  }
+}

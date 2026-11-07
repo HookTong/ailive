@@ -12,6 +12,17 @@ type ExpressionDefinition = {
 
 export type Live2DModelConfig = {
   id: string
+  /**
+   * 角色名，舞台上挂在角色脚下的那颗半透明名牌显示的就是它。
+   * 不传（空串）就不显示名牌 —— 弹窗预览里只留模型本身。
+   */
+  name?: string
+  /**
+   * 名牌是否显示。`App` 会按角色的「名牌显示」开关传明确的 true / false，
+   * 不传时按「显示」处理（`undefined !== false`）—— 弹窗预览那边是另一套，
+   * 走的是 `showNames={false}` 的全局开关。
+   */
+  nameplate?: boolean
   modelUrl: string
   motion: string
   expressions: ExpressionSelection[]
@@ -58,6 +69,13 @@ type ModelEntry = {
   overrideMotion: string
   overrideNonce: number
   motionHoldUntil: number
+  /**
+   * 模型画布底部 / 顶部的透明留白占包围盒高度的比例（0 = 内容正好贴边）。
+   * 加载时用顶点轮廓量一次：名牌靠 `bottomTrim` 贴到真正的脚下，
+   * 说话气泡靠 `topTrim` 停在真正的头顶上方 —— 两个方向都不能按固定比例猜。
+   */
+  topTrim: number
+  bottomTrim: number
 }
 
 type CoreModelLike = {
@@ -74,6 +92,8 @@ type Live2DProps = {
   activeModelId?: string
   onActivateModel?: (id: string) => void
   onModelStateChange?: (id: string, state: Live2DLoadState, message?: string) => void
+  /** 是否在角色下方显示名称名牌（弹窗预览里不要，那里只看模型本身） */
+  showNames?: boolean
 }
 
 const DEFAULT_POSITION = { x: 0.5, y: 0.54 }
@@ -81,12 +101,29 @@ const DEFAULT_POSITION = { x: 0.5, y: 0.54 }
 // 气泡跟着模型大小走：以默认大小（0.6）时模型占舞台高度的比例作为 1 倍基准，
 // 这样换分辨率时气泡与模型的比例也保持一致（实测默认大小下模型约占 43%）。
 const BUBBLE_REFERENCE_HEIGHT_RATIO = 0.43
-// 气泡底边相对模型包围盒顶边的偏移（按模型高度取比例）。
-// Live2D 的包围盒顶部通常留着一圈透明边距，取小一点才不会飘得太高。
-const BUBBLE_TOP_OFFSET = 0.03
+/**
+ * 气泡尾巴伸出气泡底边的距离（`--bubble-scale` 为 1 时）。
+ *
+ * 尾巴是 `::after` 里一个 18px 的方块旋转 45°、`bottom: -10px`：
+ * 中心落在气泡底边下方 1px 处，菱形下尖再往下 18 × √2 / 2 ≈ 12.73px，合计约 13.7px。
+ * **改 SCSS 里尾巴的尺寸或 `bottom` 时，这个数要跟着改** —— 否则气泡会贴着头发或者飘开。
+ */
+const BUBBLE_TAIL_DROP = 13.7
+// 尾巴尖和角色头顶之间留的这点缝，固定值，不随气泡缩放
+const BUBBLE_HEAD_GAP = 4
 // 夹紧范围：太小的模型也要保证气泡可读，太大的模型别让气泡盖住半个舞台
 const BUBBLE_SCALE_MIN = 0.7
 const BUBBLE_SCALE_MAX = 1.45
+
+// 名称名牌挂在模型「真正画到哪里」的下方。不能直接用包围盒底边：
+// `getBounds()` 是几何包围盒，画布底下那圈透明边距也算在内，而且**每个模型空得不一样**
+// （有的几乎贴底，有的能空出 18%）—— 按固定比例往上收，留白少的模型就会被名牌压住。
+// 所以加载时读一次顶点轮廓，量出真实的底边（见 measureSilhouette）。
+// 名牌顶边和内容底边之间留的这点缝，固定值，不随模型缩放
+const NAMEPLATE_GAP = 4
+// 名牌离舞台边缘至少留这么多。模型贴边时名牌会伸到舞台外，而 .preview 是
+// overflow: hidden —— 掉出去就只剩半个字，所以定位时要夹回来
+const NAMEPLATE_EDGE_GAP = 6
 
 const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   id: model.id,
@@ -109,7 +146,77 @@ const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   overrideMotion: model.overrideMotion ?? '',
   overrideNonce: model.overrideNonce ?? 0,
   motionHoldUntil: model.motionHoldUntil ?? 0,
+  topTrim: 0,
+  bottomTrim: 0,
 })
+
+/**
+ * Cubism 的 coreModel 里能拿到每个 drawable 的顶点（已经过当前姿态的变形）。
+ * 只声明用到的那几个方法 —— Cubism 2.1 的 coreModel 没有它们，特性检测会兜住。
+ */
+type CoreModelWithDrawables = {
+  getDrawableCount?: () => number
+  getDrawableVertexPositions?: (index: number) => Float32Array | undefined
+  getDrawableDynamicFlagIsVisible?: (index: number) => boolean
+  getDrawableOpacity?: (index: number) => number
+  getCanvasHeight?: () => number
+}
+
+/**
+ * 量出模型「真正画到哪里」：遍历所有 drawable 的顶点，取最高点和最低点，
+ * 算出画布上下各空了多少（占画布高度的比例）。
+ *
+ * 为什么要这么量：`getBounds()` 是几何包围盒，画布上下那两圈透明边距也算在内，
+ * **而且每个模型空得不一样** —— 有的几乎贴边，有的能空出十几个百分点。
+ * 按固定比例去收，留白少的模型就会被名牌压住（脚下）、被气泡盖住头（头顶）；
+ * 反过来一点不收，留白多的模型浮层又飘得老远。两个方向都得实测。
+ *
+ * 试过用 `renderer.extract.pixels()` 读像素轮廓，这条路走不通：extract 按
+ * `getLocalBounds()` 建离屏纹理，而 Live2D 的这个值返回的是**画布原始尺寸**
+ * （实测 4068×4068），创建出来的纹理有 66MB，扫一遍要好几秒，还会把主线程卡住。
+ * 顶点数量级只有几千，而且是现成的数据，代价可以忽略。
+ *
+ * 只在模型加载完成时跑一次 —— 留白是模型文件自带的属性，换尺寸、换动作都不影响。
+ * 拿不到数据（Cubism 2.1、字段缺失、顶点还没 update）就全返回 0，
+ * 两块浮层退回「贴包围盒」：宁可飘一点，也不能压到角色身上。
+ */
+const measureSilhouette = (model: Live2DModel): { topTrim: number; bottomTrim: number } => {
+  const fallback = { topTrim: 0, bottomTrim: 0 }
+  try {
+    const core = (model.internalModel as unknown as { coreModel?: CoreModelWithDrawables }).coreModel
+    const count = core?.getDrawableCount?.() ?? 0
+    const canvasHeight = core?.getCanvasHeight?.() ?? 0
+    if (!count || !canvasHeight || !core?.getDrawableVertexPositions) return fallback
+    // Cubism 的模型坐标以画布中心为原点、y 轴向上，所以最高点 / 最低点就是 maxY / minY。
+    // 只统计真正显示出来的 drawable —— 模型里还有一批拿来做遮罩 / 已经移出画面的，
+    // 它们的顶点会落在画布外，把范围整个带偏
+    let lowest = Number.POSITIVE_INFINITY
+    let highest = Number.NEGATIVE_INFINITY
+    for (let index = 0; index < count; index += 1) {
+      if (core.getDrawableDynamicFlagIsVisible && !core.getDrawableDynamicFlagIsVisible(index)) continue
+      if (core.getDrawableOpacity && core.getDrawableOpacity(index) <= 0.01) continue
+      const positions = core.getDrawableVertexPositions(index)
+      if (!positions) continue
+      for (let offset = 1; offset < positions.length; offset += 2) {
+        if (positions[offset] < lowest) lowest = positions[offset]
+        if (positions[offset] > highest) highest = positions[offset]
+      }
+    }
+    // 顶点还没被 update 过时全是 0，这时候算出来的「留白」是半个画布，
+    // 名牌会被推到模型腰上、气泡会盖住整张脸。范围小得离谱就当没量到
+    if (!Number.isFinite(lowest) || highest - lowest < 0.01) return fallback
+    // 画布上下边分别是 ±canvasHeight / 2，两者之差就是那侧的留白
+    const half = canvasHeight / 2
+    const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
+    return {
+      topTrim: clamp01((half - highest) / canvasHeight),
+      bottomTrim: clamp01((half + lowest) / canvasHeight),
+    }
+  } catch (error) {
+    console.warn('Live2D overlay: failed to measure the model silhouette', error)
+    return fallback
+  }
+}
 
 const keepModelInsideStage = (app: PIXI.Application, model: Live2DModel, x: number, y: number) => {
   model.x = x
@@ -142,13 +249,15 @@ const keepModelInsideStage = (app: PIXI.Application, model: Live2DModel, x: numb
   return { x: correctedX, y: correctedY }
 }
 
-export function Live2D({ models, activeModelId, onActivateModel, onModelStateChange }: Live2DProps) {
+export function Live2D({ models, activeModelId, onActivateModel, onModelStateChange, showNames = true }: Live2DProps) {
   const canvasHostRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<PIXI.Application | null>(null)
   const entriesRef = useRef(new Map<string, ModelEntry>())
   const bubbleRefs = useRef(new Map<string, HTMLDivElement>())
-  // 上一次写进 CSS 变量的气泡缩放，值没变就不重复写，避免每帧触发文字重排
-  const bubbleScalesRef = useRef(new Map<string, number>())
+  const nameplateRefs = useRef(new Map<string, HTMLDivElement>())
+  // 名牌尺寸缓存。字号只跟缩放变，缩放没变就不必再读 offsetWidth/Height
+  // （读它们会强制同步重排，而这个函数每 4 帧跑一次）
+  const nameplateSizesRef = useRef(new Map<string, { width: number; height: number }>())
   const draggingIdRef = useRef<string | null>(null)
   const hoveredIdRef = useRef<string | null>(null)
   const mountedRef = useRef(false)
@@ -288,6 +397,11 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       app.stage.addChild(loaded)
       attachExpressionHooks(entry, loaded)
       fitModel(entry)
+      // 量出画布上下各空了多少：名牌靠它贴到真正的脚下，气泡靠它停在真正的头顶。
+      // 放在播动作之前 —— 默认姿态下的轮廓才是稳的
+      const silhouette = measureSilhouette(loaded)
+      entry.topTrim = silhouette.topTrim
+      entry.bottomTrim = silhouette.bottomTrim
       if (entry.motion) void loaded.motion(entry.motion, 0).catch(() => undefined)
       updateStatus(entry.id, { status: 'ready', error: '' })
     } catch (error) {
@@ -422,36 +536,77 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     return candidates.find((entry) => entry.model?.getBounds().contains(point.x, point.y)) ?? null
   }
 
-  const updateBubbles = () => {
+  /**
+   * 把两块 HTML 浮层贴到各自的模型上：头顶的说话气泡、脚下的名称名牌。
+   * 每 4 帧跑一次，别在里面做重活 —— getBounds 只算一次，两个浮层共用。
+   */
+  const updateOverlays = () => {
     const app = appRef.current
     const host = canvasHostRef.current
-    if (!app || !host || bubbleRefs.current.size === 0) return
+    if (!app || !host) return
     const scaleX = (host.clientWidth || 1) / Math.max(app.screen.width, 1)
     const scaleY = (host.clientHeight || 1) / Math.max(app.screen.height, 1)
     const referenceHeight = Math.max(host.clientHeight, 1) * BUBBLE_REFERENCE_HEIGHT_RATIO
-    for (const [id, element] of bubbleRefs.current) {
-      const model = entriesRef.current.get(id)?.model
+
+    for (const [id, entry] of entriesRef.current) {
+      const bubble = bubbleRefs.current.get(id)
+      const nameplate = nameplateRefs.current.get(id)
+      if (!bubble && !nameplate) continue
+      const model = entry.model
+      // 模型没就绪或已被隐藏（「隐藏模型」）时，两块浮层一起收起来
       if (!model || !model.visible) {
-        element.style.visibility = 'hidden'
+        if (bubble) bubble.style.visibility = 'hidden'
+        if (nameplate) nameplate.style.visibility = 'hidden'
         continue
       }
       const bounds = model.getBounds()
-      element.style.visibility = 'visible'
 
-      // 气泡字号/内边距/最大宽度都由 --bubble-scale 换算，跟着模型视觉高度等比变化
-      const bubbleScale = Math.min(
+      // 气泡和名牌共用一套缩放：字号/内边距/最大宽度都由 --bubble-scale 换算，
+      // 跟着模型视觉高度等比变化，换分辨率时比例也不会走样
+      const overlayScale = Math.min(
         BUBBLE_SCALE_MAX,
         Math.max(BUBBLE_SCALE_MIN, (bounds.height * scaleY) / referenceHeight),
       )
-      const previousScale = bubbleScalesRef.current.get(id)
-      if (previousScale === undefined || Math.abs(previousScale - bubbleScale) > 0.005) {
-        bubbleScalesRef.current.set(id, bubbleScale)
-        element.style.setProperty('--bubble-scale', bubbleScale.toFixed(3))
+      const scaleValue = overlayScale.toFixed(3)
+      const centerX = (bounds.x + bounds.width / 2) * scaleX
+
+      if (bubble) {
+        // 和元素上**当前**的值比，而不是在 ref 里记一份：两块浮层挂载时机不同
+        // （模型一加载就有名牌，气泡要等它开口或切「常显」才出现），共用一份缓存
+        // 会让后挂载的那个被误判成「已经写过」而跳过，停在 CSS 默认的 1 上
+        if (bubble.style.getPropertyValue('--bubble-scale') !== scaleValue) {
+          bubble.style.setProperty('--bubble-scale', scaleValue)
+        }
+        bubble.style.visibility = 'visible'
+        bubble.style.left = `${centerX}px`
+        // 气泡底边（= 尾巴根部）落在角色真正画到的头顶上方：尾巴尖再往下伸
+        // BUBBLE_TAIL_DROP 那么长，所以整体还要多抬这么一截，否则菱形会插进头发里。
+        // 头顶已经顶到舞台上沿时只能贴着顶放 —— 被 overflow: hidden 裁掉更糟
+        const contentTop = (bounds.y + bounds.height * entry.topTrim) * scaleY
+        bubble.style.top = `${Math.max(0, contentTop - BUBBLE_TAIL_DROP * overlayScale - BUBBLE_HEAD_GAP)}px`
       }
 
-      // 气泡底边落在模型包围盒顶边稍下方，尾巴尖正好悬在头顶
-      element.style.left = `${(bounds.x + bounds.width / 2) * scaleX}px`
-      element.style.top = `${(bounds.y + bounds.height * BUBBLE_TOP_OFFSET) * scaleY}px`
+      if (nameplate) {
+        if (nameplate.style.getPropertyValue('--bubble-scale') !== scaleValue) {
+          nameplate.style.setProperty('--bubble-scale', scaleValue)
+          // 字号变了名牌尺寸也跟着变，之前量的作废
+          nameplateSizesRef.current.delete(id)
+        }
+        nameplate.style.visibility = 'visible'
+        let size = nameplateSizesRef.current.get(id)
+        if (!size) {
+          size = { width: nameplate.offsetWidth, height: nameplate.offsetHeight }
+          nameplateSizesRef.current.set(id, size)
+        }
+        // 贴到模型真正画到的位置再往下留一点缝，画布底下那圈透明边距不算数
+        const rawTop = (bounds.y + bounds.height * (1 - entry.bottomTrim)) * scaleY + NAMEPLATE_GAP
+        // 四个边都夹一遍：模型贴边、名字又长的时候，名牌不能伸到舞台外面去
+        const halfWidth = size.width / 2
+        const maxTop = Math.max(0, host.clientHeight - size.height - NAMEPLATE_EDGE_GAP)
+        const maxLeft = Math.max(halfWidth, host.clientWidth - halfWidth - NAMEPLATE_EDGE_GAP)
+        nameplate.style.top = `${Math.min(maxTop, Math.max(0, rawTop))}px`
+        nameplate.style.left = `${Math.min(maxLeft, Math.max(halfWidth, centerX))}px`
+      }
     }
   }
 
@@ -476,7 +631,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     let frame = 0
     const tick = () => {
       frame += 1
-      if (frame % 4 === 0) updateBubbles()
+      if (frame % 4 === 0) updateOverlays()
     }
     const handleResize = () => {
       for (const entry of entriesRef.current.values()) fitModel(entry)
@@ -492,7 +647,8 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       for (const entry of entriesRef.current.values()) disposeEntry(entry)
       entriesRef.current.clear()
       bubbleRefs.current.clear()
-      bubbleScalesRef.current.clear()
+      nameplateRefs.current.clear()
+      nameplateSizesRef.current.clear()
       appRef.current = null
       app.destroy(true, { children: true })
     }
@@ -505,7 +661,7 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
   }, [models])
 
   useLayoutEffect(() => {
-    updateBubbles()
+    updateOverlays()
   })
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -587,6 +743,24 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
       onPointerLeave={handlePointerLeave}
     >
       <div className={styles.canvas} ref={canvasHostRef} aria-hidden="true" />
+      {showNames && models.map((model) => (model.name && model.nameplate !== false ? (
+        <div
+          key={`name-${model.id}`}
+          className={styles.nameplate}
+          data-nameplate={model.id}
+          ref={(element) => {
+            if (element) {
+              nameplateRefs.current.set(model.id, element)
+            } else {
+              nameplateRefs.current.delete(model.id)
+              // 卸载后缓存的量高也要清掉，否则重新挂载会拿旧值去算夹紧位置
+              nameplateSizesRef.current.delete(model.id)
+            }
+          }}
+        >
+          {model.name}
+        </div>
+      ) : null))}
       {models.filter((model) => model.speechText).map((model) => (
         <div
           key={model.id}
@@ -596,8 +770,6 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
               bubbleRefs.current.set(model.id, element)
             } else {
               bubbleRefs.current.delete(model.id)
-              // 元素卸载后缓存的缩放值也要清掉，否则下次挂载会误判「没变化」而不写入
-              bubbleScalesRef.current.delete(model.id)
             }
           }}
         >

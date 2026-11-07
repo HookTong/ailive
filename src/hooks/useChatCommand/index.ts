@@ -6,7 +6,8 @@ import { useMusic } from '../../contexts/MusicProvider/MusicContext'
 import { useStage } from '../../contexts/StageProvider/StageContext'
 import { BACKGROUND_PRESETS } from '../../contexts/StageProvider/presets'
 import { useVoice } from '../../contexts/VoiceProvider/VoiceContext'
-import { normalizeCommandName, type ChatCommandId, type ParsedChatCommand } from '../../data/chatCommands'
+import type { ChatCommandId, ParsedChatCommand } from '../../data/chatCommands'
+import { findClosestMatch } from '../../utils/matchName'
 
 export type ChatCommandResult = {
   id: ChatCommandId
@@ -23,6 +24,10 @@ export type ChatCommandResult = {
 
 /**
  * 弹幕指令的执行器：把解析好的指令翻译成各个上下文上的实际动作。
+ *
+ * 里面填的名字（角色 / 外观 / 音色 / 背景 / 粒子 / 滤镜 / 音乐）全部走**模糊匹配**：
+ * 观众看不到配置面板，记不全名字是常态（「赛博朋克」对「赛博」、「鲸鱼」对「DS 鲸鱼娘」），
+ * 精确相等会把绝大部分指令变成「没有找到」。匹配规则见 utils/matchName。
  *
  * 这里只改状态、不负责说话 —— 说什么、谁来说、什么时候说，
  * 都在 AiChatProvider 的回复队列里统一排队（和 AI 回复共用一套节流）。
@@ -47,23 +52,38 @@ export function useChatCommand() {
     const fail = (speech: string, modelId: string | null = null): ChatCommandResult =>
       ({ id, ok: false, speech, modelId })
 
-    /** 按展示名找角色，忽略空白与大小写 */
-    const findModel = (name: string | undefined) => {
-      if (!name) return undefined
-      const key = normalizeCommandName(name)
-      return ctx.modelSources.find((source) => normalizeCommandName(source.name) === key)
+    /**
+     * 没匹配上时把「现在有哪些名字」一起报出来。
+     * 观众看不到配置面板，光说一句「没有找到」他也没法自己纠正 —— 这条播报是唯一能递过去的线索。
+     * 名字多的（粒子 20 来个、外观几十个）只报前几个，报全了既听不清也占满整句；
+     * 6 是「背景 / 滤镜 / 音色」这类短名单的长度，正好能一次报完、不出现「等 N 个」。
+     */
+    const available = (labels: readonly string[], limit = 6): string => {
+      // 角色名允许为空（没配名字时名牌退回 manifest.displayName），别报出一串「 / 」
+      const names = labels.filter((label) => label.trim().length > 0)
+      if (names.length === 0) return ''
+      const shown = names.slice(0, limit).join(' / ')
+      return names.length > limit ? `，可选：${shown} 等 ${names.length} 个` : `，可选：${shown}`
     }
+
+    /** 按展示名找角色，名字记不全也认（「鲸鱼」→「鲸鱼娘」） */
+    const findModel = (name: string | undefined) =>
+      findClosestMatch(name, ctx.modelSources, (source) => source.name)
 
     switch (id) {
       case 'expression': {
         const model = findModel(head[1])
-        if (!model) return fail(`没有找到「${head[1] ?? ''}」这个角色`)
+        if (!model) {
+          return fail(`没有找到「${head[1] ?? ''}」这个角色${available(ctx.modelSources.map((source) => source.name))}`)
+        }
         const state = ctx.characterStates[model.id]
         if (!state?.manifest) return fail(`「${model.name}」的模型配置还没加载好`, model.id)
-        const key = normalizeCommandName(payload)
-        const expression = Object.keys(state.manifest.expressions)
-          .find((name) => normalizeCommandName(name) === key)
-        if (!expression) return fail(`「${model.name}」没有「${payload}」这个外观`, model.id)
+        // 外观名由模型 manifest 提供，观众只可能照面板念个大概
+        const expressions = Object.keys(state.manifest.expressions)
+        const expression = findClosestMatch(payload, expressions, (name) => name)
+        if (!expression) {
+          return fail(`「${model.name}」没有「${payload}」这个外观${available(expressions)}`, model.id)
+        }
         const selected = state.selectedExpressions.includes(expression)
         ctx.updateCharacter(model.id, {
           selectedExpressions: selected
@@ -80,26 +100,30 @@ export function useChatCommand() {
 
       case 'expressionClear': {
         const model = findModel(head[1])
-        if (!model) return fail(`没有找到「${head[1] ?? ''}」这个角色`)
+        if (!model) {
+          return fail(`没有找到「${head[1] ?? ''}」这个角色${available(ctx.modelSources.map((source) => source.name))}`)
+        }
         ctx.updateCharacter(model.id, { selectedExpressions: [] })
         return { id, ok: true, speech: '外观已清除', modelId: model.id }
       }
 
       case 'voice': {
         const model = findModel(head[1])
-        if (!model) return fail(`没有找到「${head[1] ?? ''}」这个角色`)
-        const key = normalizeCommandName(payload)
-        const voice = ctx.voices.find((item) => normalizeCommandName(item.label) === key)
-        if (!voice) return fail(`没有找到「${payload}」这个音色`, model.id)
+        if (!model) {
+          return fail(`没有找到「${head[1] ?? ''}」这个角色${available(ctx.modelSources.map((source) => source.name))}`)
+        }
+        const voice = findClosestMatch(payload, ctx.voices, (item) => item.label)
+        if (!voice) {
+          return fail(`没有找到「${payload}」这个音色${available(ctx.voices.map((item) => item.label))}`, model.id)
+        }
         ctx.updateCharacter(model.id, { voicePresetId: voice.id })
         return { id, ok: true, speech: `音色已换成「${voice.label}」`, modelId: model.id }
       }
 
       case 'background': {
-        const key = normalizeCommandName(payload)
-        const preset = [...BACKGROUND_PRESETS, ...ctx.stage.customBackgrounds]
-          .find((item) => normalizeCommandName(item.label) === key)
-        if (!preset) return fail(`没有找到「${payload}」这个背景`)
+        const presets = [...BACKGROUND_PRESETS, ...ctx.stage.customBackgrounds]
+        const preset = findClosestMatch(payload, presets, (item) => item.label)
+        if (!preset) return fail(`没有找到「${payload}」这个背景${available(presets.map((item) => item.label))}`)
         // 换图必须切回固定，否则停在「无背景」上换了也看不见
         ctx.stage.setBackgroundUrl(preset.url)
         ctx.stage.setBackgroundMode('fixed')
@@ -119,9 +143,10 @@ export function useChatCommand() {
         return { id, ok: true, speech: '背景开始循环切换', modelId: null }
 
       case 'particle': {
-        const key = normalizeCommandName(payload)
-        const preset = PARTICLE_PRESETS.find((item) => normalizeCommandName(item.label) === key)
-        if (!preset) return fail(`没有找到「${payload}」这个粒子特效`)
+        const preset = findClosestMatch(payload, PARTICLE_PRESETS, (item) => item.label)
+        if (!preset) {
+          return fail(`没有找到「${payload}」这个粒子特效${available(PARTICLE_PRESETS.map((item) => item.label))}`)
+        }
         ctx.stage.handleParticlePresetChange(preset.id)
         // 粒子开关关着的时候换了也看不见，顺手打开
         ctx.stage.setParticleEnabled(true)
@@ -144,10 +169,9 @@ export function useChatCommand() {
         return { id, ok: true, speech: '粒子特效开始随机切换', modelId: null }
 
       case 'filter': {
-        const key = normalizeCommandName(payload)
-        const preset = [...FILTER_PRESETS, ...ctx.stage.customFilterPresets]
-          .find((item) => normalizeCommandName(item.label) === key)
-        if (!preset) return fail(`没有找到「${payload}」这个滤镜`)
+        const presets = [...FILTER_PRESETS, ...ctx.stage.customFilterPresets]
+        const preset = findClosestMatch(payload, presets, (item) => item.label)
+        if (!preset) return fail(`没有找到「${payload}」这个滤镜${available(presets.map((item) => item.label))}`)
         ctx.stage.handleFilterPresetChange(preset.id)
         return { id, ok: true, speech: `舞台滤镜已切换为「${preset.label}」`, modelId: null }
       }
@@ -168,9 +192,8 @@ export function useChatCommand() {
         return { id, ok: true, speech: '舞台滤镜开始随机切换', modelId: null }
 
       case 'music': {
-        const key = normalizeCommandName(payload)
-        const preset = ctx.tracks.find((item) => normalizeCommandName(item.label) === key)
-        if (!preset) return fail(`没有找到「${payload}」这首音乐`)
+        const preset = findClosestMatch(payload, ctx.tracks, (item) => item.label)
+        if (!preset) return fail(`没有找到「${payload}」这首音乐${available(ctx.tracks.map((item) => item.label))}`)
         ctx.selectPreset(preset)
         return { id, ok: true, speech: `背景音乐已切换为「${preset.label}」`, modelId: null }
       }

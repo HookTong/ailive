@@ -22,7 +22,7 @@ const GIFT_QUEUE_LIMIT = 8
 const GIFT_MOTION_INTERVAL_MS = 1200
 
 function AppContent() {
-  const { modelSources, activeModelId, setActiveModelId, characterStates, activeCharacter, manifest, updateCharacter } = useModel()
+  const { modelSources, activeModelId, setActiveModelId, characterStates, updateCharacter } = useModel()
   const { speakingModel, lastSpoken } = useVoice()
   const { douyinRoom, giftMotions } = useLiveData()
 
@@ -35,12 +35,7 @@ function AppContent() {
   const [showChatCommands, setShowChatCommands] = useState(true)
   const [showLiveChat, setShowLiveChat] = useState(true)
 
-  const activeMotion = activeCharacter.activeMotion
   const modelSource = modelSources.find((source) => source.id === activeModelId)
-  const activeMotionConfig = manifest?.motions[activeMotion]
-  const currentExpressionLabel = activeCharacter.selectedExpressions.length > 0
-    ? activeCharacter.selectedExpressions.join(' + ')
-    : '默认'
 
   // ---- 礼物动作队列 ----
   // 一次 flush（400ms）里可能同时来好几条礼物，不能只认最后一条：全部入队，逐条播。
@@ -165,6 +160,10 @@ function AppContent() {
         : ''
     return [{
       id: source.id,
+      // 舞台名牌显示的名字。以添加时定下的展示名为准，模型配置里的 displayName 只当兜底
+      name: source.name || state.manifest?.displayName,
+      // 控制台里「名牌显示」关掉时单独传个开关，名字留着（气泡、弹幕指令还要用）
+      nameplate: state.nameplateVisible !== false,
       modelUrl: source.modelUrl,
       motion: state.activeMotion,
       expressions: state.selectedExpressions.flatMap((name) => {
@@ -208,10 +207,6 @@ function AppContent() {
             showGiftMotions={showGiftMotions}
             showChat={showLiveChat}
             showChatCommands={showChatCommands}
-            caption={{
-              left: manifest?.displayName ?? modelSource?.name ?? '',
-              right: `${activeMotionConfig?.label ?? '读取配置中'} · ${currentExpressionLabel}`,
-            }}
           />
         </section>
         <StageControlPanel />

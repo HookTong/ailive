@@ -74,7 +74,9 @@ export function ChatCommandCard() {
       extra={<span className={styles.count}>{groups.length} 类</span>}
       headerProps={{ className: styles.headRow }}
     >
-      <p className={styles.hint}>观众在弹幕里发这些就能远程操作，「$」符号开头表示需要观众填写对应的值</p>
+      <p className={styles.hint}>
+        观众在弹幕里发这些就能远程操作，「$」开头的值写个大概也能认出来
+      </p>
       <ul className={styles.list}>
         {groups.map((group) => (
           <li key={group.family}>

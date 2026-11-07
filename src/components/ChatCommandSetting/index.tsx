@@ -98,9 +98,9 @@ export function ChatCommandSetting({ commands, onToggle }: ChatCommandSettingPro
 
   return (
     <div className={styles.root}>
+      {/* 整段用模板字符串写：JSX 的换行会折叠成一个空格，中文里的「。（」之间不该有缝 */}
       <p className={styles.intro}>
-        观众发送下面格式的弹幕就能远程操作控制台，每条指令都会让模型说一句话播报结果
-        （没找到配置也会说）。指令不依赖 AI 自动回复开关，优先级排在礼物答谢、进场欢迎之后，普通弹幕之前。
+        {'观众发送下面格式的弹幕就能远程操作控制台，每条指令都会让模型说一句话播报结果（没找到配置也会说）。名字不用写全：记得个大概、多打几个字、错一个字都能对上，完全不像才会回「没有找到」。指令不依赖 AI 自动回复开关，优先级排在礼物答谢、进场欢迎之后，普通弹幕之前。'}
       </p>
       <div className={styles.example}>
         <span>示例</span>

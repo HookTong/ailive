@@ -1,0 +1,38 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+// 角色显示设置：气泡常显 / 名牌 / 大小。上边框把它和上面的音色区隔开，
+// 组内间距统一 12px —— 三个控件高度不同，靠 gap 而不是各自 margin 才不会忽宽忽窄
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-top: 12px;
+  border-top: 1px solid $border-inset;
+}
+
+// 一行设置：文字在左、控件在右。开关和滑块都是「右侧一个东西」，
+// 统一成一种版式，三行的标签才对得齐
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  // 标签 + 说明图标：图标靠 flex 才和 12px 的字垂直居中（用字符 ⓘ 会基线漂移）
+  > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: $text-muted;
+    @include mono(12px);
+  }
+}
+
+// Slider 自带 margin-top: 12px（给单独摆放时用的），组内的间距已经由 .root 的 gap 给了。
+// 必须用两级选择器：Slider 自己的 `.slider` 和这里的单类是同名不同哈希、特异性相同，
+// 谁生效取决于 CSS 打包顺序
+.root .slider {
+  margin-top: 0;
+}

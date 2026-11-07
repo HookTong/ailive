@@ -8,8 +8,6 @@ import { Modal } from '../Modal'
 import { PresetChip } from '../PresetChip'
 import { RequiredMark } from '../RequiredMark'
 import { ScrollArea } from '../ScrollArea'
-import { Segmented, type SegmentedOption } from '../Segmented'
-import type { BubbleMode } from '../../contexts/ModelProvider/ModelContext'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
@@ -21,9 +19,6 @@ type VoiceSettingProps = {
   onSpeak: (text: string, preset: VolcengineVoicePreset) => void
   onAddVoice: (voice: VolcengineVoicePreset) => void
   onDeleteVoice: (id: string) => void
-  /** 气泡显示策略 */
-  bubbleMode: BubbleMode
-  onBubbleModeChange: (mode: BubbleMode) => void
 }
 
 const voiceResourceOptions = [
@@ -31,14 +26,8 @@ const voiceResourceOptions = [
   { label: 'seed-icl-2.0', value: 'seed-icl-2.0' },
 ]
 
-const BUBBLE_MODE_OPTIONS: readonly SegmentedOption<BubbleMode>[] = [
-  { value: 'speaking', label: '说话显示' },
-  { value: 'always', label: '常显' },
-]
-
 export function VoiceSetting({
   presetId, speaking, error, onPresetChange, onSpeak, onAddVoice, onDeleteVoice,
-  bubbleMode, onBubbleModeChange,
 }: VoiceSettingProps) {
   // 音色列表（内置 + 自定义）由 VoiceProvider 合并好后直接给出
   const { voiceConfig, voices, openTtsConfig } = useVoice()
@@ -147,20 +136,6 @@ export function VoiceSetting({
         </Button>
       </span>
       {error && <div className={styles.error}>{error}</div>}
-
-      {/* 气泡显示：标签在上，控件独占一行 */}
-      <div className={styles.behavior}>
-        <div className={styles.behaviorRow}>
-          <span>气泡显示</span>
-          <Segmented
-            ariaLabel="气泡显示"
-            block
-            value={bubbleMode}
-            options={BUBBLE_MODE_OPTIONS}
-            onChange={onBubbleModeChange}
-          />
-        </div>
-      </div>
 
       {showVoiceModal && (
         <Modal

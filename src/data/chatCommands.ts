@@ -177,11 +177,6 @@ export type ParsedChatCommand = {
   payload: string
 }
 
-/** 比较名字时忽略空白与大小写：「Lo-fi」和「lo fi」算同一个 */
-export function normalizeCommandName(value: string): string {
-  return value.replace(/\s+/g, '').toLocaleLowerCase()
-}
-
 /** 默认全部启用 —— 指令是可选功能，但默认打开才「开箱能用」 */
 export function createDefaultChatCommands(): Record<ChatCommandId, boolean> {
   return Object.fromEntries(CHAT_COMMANDS.map((command) => [command.id, true])) as Record<ChatCommandId, boolean>
@@ -202,6 +197,17 @@ export function parseChatCommand(text: string): ParsedChatCommand | null {
   const [keyword, qualifier] = head
   if (!keyword) return null
 
+  /**
+   * 背景 / 粒子 / 滤镜 / 音乐共用的「名字指令」。
+   * 名字写在 `|` 后面也收 —— `[背景|电影]` 和 `[背景]电影` 一样；
+   * 固定动作（无背景 / 固定 / 循环切换……）在各自的 case 里先一步认领过了，
+   * 走到这里的 qualifier 只可能是一个名字。
+   */
+  const named = (id: ChatCommandId): ParsedChatCommand | null => {
+    const name = payload || qualifier || ''
+    return name ? { id, head, payload: name } : null
+  }
+
   switch (keyword) {
     case '外观':
       // `[外观|$角色名称]` 后面没跟名字、又不是「清除」，这条指令不完整
@@ -215,23 +221,22 @@ export function parseChatCommand(text: string): ParsedChatCommand | null {
       if (qualifier === '无背景') return { id: 'backgroundNone', head, payload: '' }
       if (qualifier === '固定') return { id: 'backgroundFixed', head, payload: '' }
       if (qualifier === '循环切换') return { id: 'backgroundCycle', head, payload: '' }
-      // `[背景|电影]` 和 `[背景]电影` 两种写法都收
-      return payload ? { id: 'background', head, payload } : null
+      return named('background')
     case '粒子':
       if (qualifier === '固定') return { id: 'particleFixed', head, payload: '' }
       if (qualifier === '循环切换') return { id: 'particleCycle', head, payload: '' }
       if (qualifier === '随机切换') return { id: 'particleRandom', head, payload: '' }
-      return payload ? { id: 'particle', head, payload } : null
+      return named('particle')
     case '滤镜':
       if (qualifier === '固定') return { id: 'filterFixed', head, payload: '' }
       if (qualifier === '循环切换') return { id: 'filterCycle', head, payload: '' }
       if (qualifier === '随机切换') return { id: 'filterRandom', head, payload: '' }
-      return payload ? { id: 'filter', head, payload } : null
+      return named('filter')
     case '音乐':
       if (qualifier === '单曲循环') return { id: 'musicSingle', head, payload: '' }
       if (qualifier === '列表循环') return { id: 'musicList', head, payload: '' }
       if (qualifier === '随机播放') return { id: 'musicShuffle', head, payload: '' }
-      return payload ? { id: 'music', head, payload } : null
+      return named('music')
     default:
       return null
   }
