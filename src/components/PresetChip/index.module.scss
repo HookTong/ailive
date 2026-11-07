@@ -1,8 +1,10 @@
 @use '../../styles/tokens' as *;
 
-// 胶囊本身是 grid 子项：不给 min-width: 0 的话长名字会把整列撑开
+// 胶囊本身是栅格子项：不给 min-width: 0 的话长名字会把整列撑开。
+// 外面套着 Tooltip 的 block 触发器（display: block），所以还得自己撑满宽度
 .chip {
   min-width: 0;
+  width: 100%;
 }
 
 // 名称单行省略。Button 是 inline-flex，直接写 text-overflow 对匿名 flex 子项无效，
@@ -14,15 +16,28 @@
   white-space: nowrap;
 }
 
-// 带删除角标时改成左右排布：名称占满剩余宽度，角标定宽不被挤
-.withRemove {
+// 带删除角标时改成左右排布：名称占满剩余宽度，角标定宽不被挤。
+// 用两级选择器压过 Button 的 `.button`（`gap: 6px`）—— 单类对单类谁生效
+// 取决于打包后的样式表顺序，靠不住。
+.chip.withRemove {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 5px 0 8px;
+  gap: 4px;
+  padding: 0 4px;
+
+  /**
+   * 左侧补一个和右侧角标等宽的空位，名称才是真的居中。
+   * 只写 `text-align: center` 不够 —— label 的可用区被右侧角标吃掉一块，
+   * 居中的只是那块残区，视觉上仍然偏左。补上这块空位后左右各占
+   * 「14px 角标 + 4px 间距」，label 的盒中心才落回胶囊中心。
+   */
+  &::before {
+    content: '';
+    flex: 0 0 14px;
+  }
 
   .label {
     flex: 1;
-    text-align: left;
+    text-align: center;
   }
 }

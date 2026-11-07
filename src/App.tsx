@@ -5,7 +5,7 @@ import { StageControlPanel } from './components/StageControlPanel'
 import { StageToolbar } from './components/StageToolbar'
 import { TopBar } from './components/TopBar'
 import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider, AiChatProvider } from './contexts'
-import { useLiveData, useModel, useVoice, GIFT_MOTION_ANY_MODEL, resolveGiftMotion } from './hooks'
+import { useLiveData, useModel, useVoice, useHoverScrollbar, GIFT_MOTION_ANY_MODEL, resolveGiftMotion } from './hooks'
 import { normalizeGiftName } from './data/gifts'
 
 const MODEL_LAYOUT_POSITIONS = [
@@ -26,9 +26,13 @@ function AppContent() {
   const { speakingModel, lastSpoken } = useVoice()
   const { douyinRoom, giftMotions } = useLiveData()
 
-  // 舞台上的三块浮层各自独立开关：概览卡片组、礼物动作面板、弹幕面板
+  // 全局只挂一次：指针进哪个滚动容器，哪个容器才露出滚动条
+  useHoverScrollbar()
+
+  // 舞台上的四块浮层各自独立开关：概览卡片组、礼物动作面板、弹幕指令速查卡、弹幕面板
   const [showOverview, setShowOverview] = useState(true)
   const [showGiftMotions, setShowGiftMotions] = useState(true)
+  const [showChatCommands, setShowChatCommands] = useState(true)
   const [showLiveChat, setShowLiveChat] = useState(true)
 
   const activeMotion = activeCharacter.activeMotion
@@ -99,8 +103,8 @@ function AppContent() {
       const motion = resolveGiftMotion(config, source.id, state.manifest.motions)
       if (!motion) continue
       updateCharacter(source.id, {
-        activeMotion: motion,
-        motionNonce: state.motionNonce + 1,
+        overrideMotion: motion,
+        overrideNonce: state.overrideNonce + 1,
         // 这段时间里说话动作不许抢（礼物优先级更高）
         motionHoldUntil: holdUntil,
       })
@@ -135,8 +139,8 @@ function AppContent() {
       const motion = resolveGiftMotion(config, modelId, state.manifest.motions)
       if (!motion) continue
       updateCharacter(modelId, {
-        activeMotion: motion,
-        motionNonce: state.motionNonce + 1,
+        overrideMotion: motion,
+        overrideNonce: state.overrideNonce + 1,
         motionHoldUntil: holdUntil,
       })
     }
@@ -173,8 +177,8 @@ function AppContent() {
       zIndex: source.id === modelSource?.id ? (source.id.startsWith('online:') ? 20 : 30) : 5 + index,
       speechText,
       speaking,
-      speakMotion: state.speakingMotion,
-      motionNonce: state.motionNonce,
+      overrideMotion: state.overrideMotion,
+      overrideNonce: state.overrideNonce,
       motionHoldUntil: state.motionHoldUntil,
       visible: state.modelVisible,
     }]
@@ -190,9 +194,11 @@ function AppContent() {
             showOverview={showOverview}
             showGiftMotions={showGiftMotions}
             showLiveChat={showLiveChat}
+            showChatCommands={showChatCommands}
             onToggleOverview={() => setShowOverview((visible) => !visible)}
             onToggleGiftMotions={() => setShowGiftMotions((visible) => !visible)}
             onToggleLiveChat={() => setShowLiveChat((visible) => !visible)}
+            onToggleChatCommands={() => setShowChatCommands((visible) => !visible)}
           />
           <Stage
             models={stageModels}
@@ -201,6 +207,7 @@ function AppContent() {
             showOverview={showOverview}
             showGiftMotions={showGiftMotions}
             showChat={showLiveChat}
+            showChatCommands={showChatCommands}
             caption={{
               left: manifest?.displayName ?? modelSource?.name ?? '',
               right: `${activeMotionConfig?.label ?? '读取配置中'} · ${currentExpressionLabel}`,
@@ -230,11 +237,13 @@ function VoiceAndModelBridge() {
 
   return (
     <VoiceProvider onCharacterVoicePresetReset={resetVoicePresetForAll}>
-      <AiChatProvider>
-        <MusicProvider>
+      {/* MusicProvider 必须包在 AiChatProvider 外面：弹幕指令要能切歌，
+          AiChatProvider 里的 useChatCommand 依赖 useMusic */}
+      <MusicProvider>
+        <AiChatProvider>
           <AppContent />
-        </MusicProvider>
-      </AiChatProvider>
+        </AiChatProvider>
+      </MusicProvider>
     </VoiceProvider>
   )
 }

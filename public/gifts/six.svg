@@ -1,0 +1,11 @@
+<svg id="emoji" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+  <g id="color">
+    <rect x="8" y="15" width="56" height="42" rx="9" fill="#fcea2b"/>
+  </g>
+  <g id="line">
+    <rect x="8" y="15" width="56" height="42" rx="9" fill="none" stroke="#000" stroke-linejoin="round" stroke-width="2"/>
+  </g>
+  <g id="color-foreground">
+    <text x="36" y="44.5" fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="middle">666</text>
+  </g>
+</svg>

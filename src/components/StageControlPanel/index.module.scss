@@ -1,10 +1,13 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
+// 左右留白都取 24px（和左侧角色控制台同一套）—— 右侧减掉滚动条那 12px
+$pad-x: 24px;
+
 .panel {
   min-height: 0;
   overflow-y: auto;
-  padding: 28px 20px 18px;
+  padding: 28px ($pad-x - $scrollbar-size) 18px $pad-x;
   border-left: 1px solid $border;
   background: $bg-panel;
   @include scroll-thin;
@@ -58,19 +61,19 @@
 // 音乐那行是 block 级 grid（相邻外边距会合并取 max），只有「只给一处」两边才都等于这个值
 $preset-row-gap: 18px;
 
-// 背景预设：3 列由 ScrollArea 的 columns 决定，这里只管间距和给滚动条让位
+// 背景预设：3 列由 ScrollArea 的 columns 决定，这里只管间距。
+// 滚动条推进面板的右留白里，胶囊右边缘才能和下面的整宽按钮对齐
 .backgroundPresets {
   margin-bottom: $preset-row-gap;
-  // 细滚动条宽 6px，留 3px 内边距免得压住右边那列胶囊（和粒子预设同一套做法）
-  padding-right: 3px;
+  @include scroll-bleed;
 }
 
 // 胶囊文字单行省略已收进 PresetChip 组件，这里不再需要 .chipLabel
 
-// 音乐按钮组：3 列由 ScrollArea 的 columns 决定，这里只管间距和给滚动条让位
+// 音乐按钮组：3 列由 ScrollArea 的 columns 决定，这里只管间距和让位
 .musicPresets {
   margin-bottom: $preset-row-gap;
-  padding-right: 3px;
+  @include scroll-bleed;
 }
 
 .error {

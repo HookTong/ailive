@@ -111,15 +111,17 @@ $drawer-width: min(600px, 100vw);
   }
 }
 
-// 内容区吃掉剩余高度，标题与底部按钮永远留在原位
+// 内容区吃掉剩余高度，标题与底部按钮永远留在原位。
+// 右内边距留 0：滚动条那 12px 由 .scrollable 推进面板的 22px 留白里，左右才一样宽
 .body {
   flex: 1;
   min-height: 0;
-  padding: 16px 4px 16px 0;
+  padding: 16px 0;
 }
 
 .scrollable {
   overflow-y: auto;
+  @include scroll-bleed;
   @include scroll-thin;
 }
 

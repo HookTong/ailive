@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { resolveGiftMotion, useLiveData, useModel, type GiftMotionMap } from '../../hooks'
 import { DOUYIN_GIFTS, giftIcon, giftPrice } from '../../data/gifts'
+import type { ChatCommandId } from '../../data/chatCommands'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
+import { ChatCommandSetting } from '../ChatCommandSetting'
 import { Drawer } from '../Drawer'
 import { DropdownSelect, type DropdownOption } from '../DropdownSelect'
 import { Input } from '../Input'
 import { Modal } from '../Modal'
+import { Tabs } from '../Tabs'
 import styles from './index.module.scss'
+
+/** 抽屉里的两个标签页 */
+type ConfigTab = 'gift' | 'command'
+
+const CONFIG_TABS = [
+  { value: 'gift' as const, label: '礼物配置' },
+  { value: 'command' as const, label: '弹幕指令' },
+]
 
 /** 单价只接受非负有限数 */
 function normalizePrice(value: number): number {
@@ -39,11 +50,15 @@ export function LiveConfigDrawer() {
     setGiftPrices,
     giftMotions,
     setGiftMotions,
+    chatCommands,
+    setChatCommands,
   } = useLiveData()
   const { modelSources, activeModelId, characterStates } = useModel()
 
+  const [tab, setTab] = useState<ConfigTab>('gift')
   const [draftPrices, setDraftPrices] = useState<Record<string, number>>(giftPrices)
   const [draftMotions, setDraftMotions] = useState<GiftMotionMap>(giftMotions)
+  const [draftCommands, setDraftCommands] = useState<Record<ChatCommandId, boolean>>(chatCommands)
   /** 正在配置动作的礼物名，null 表示弹窗关着 */
   const [motionTarget, setMotionTarget] = useState<string | null>(null)
   /** 弹窗里每个模型的临时选择，点「确定」才写回草稿 */
@@ -119,10 +134,11 @@ export function LiveConfigDrawer() {
       for (const row of giftRows) next[row.name] = giftPrice(giftPrices, row.name)
       setDraftPrices(next)
       setDraftMotions({ ...giftMotions })
+      setDraftCommands({ ...chatCommands })
       setMotionTarget(null)
     }
     wasOpenRef.current = liveConfigOpen
-  }, [liveConfigOpen, giftRows, giftPrices, giftMotions])
+  }, [liveConfigOpen, giftRows, giftPrices, giftMotions, chatCommands])
 
   const openMotionModal = (name: string) => {
     const entry = draftMotions[name]
@@ -169,6 +185,8 @@ export function LiveConfigDrawer() {
     }
     setGiftMotions(nextMotions)
 
+    setChatCommands(draftCommands)
+
     closeLiveConfig()
   }
 
@@ -179,6 +197,8 @@ export function LiveConfigDrawer() {
         title="直播配置"
         tone="panel"
         zIndex={31}
+        // 标签页自己管滚动（标签栏固定、内容区滚），抽屉别再套一层
+        scrollable={false}
         onClose={closeLiveConfig}
         actions={(
           <>
@@ -187,52 +207,68 @@ export function LiveConfigDrawer() {
           </>
         )}
       >
-        <div className={styles.sectionHead}>
-          <span>礼物单价 <em>元/个</em></span>
-          <span>共 {giftRows.length} 种</span>
-        </div>
-        <small className={styles.hint}>
-          按礼物名匹配弹幕里的送礼事件，收入 = Σ 各礼物件数 × 单价；模型花费在 AI 配置里按 token 单价计算
-        </small>
-        <ul className={styles.giftList}>
-          {giftRows.map((row) => {
-            const summary = describeMotions(draftMotions[row.name])
-            return (
-              <li key={row.name}>
-                <span className={styles.giftIcon}>
-                  {row.icon
-                    ? <img src={row.icon} alt="" aria-hidden />
-                    : <span className={styles.giftIconFallback} aria-hidden>?</span>}
-                </span>
-                <span className={styles.giftName} title={row.name}>{row.name}</span>
-                <span className={styles.giftPrice}>
-                  <Input
-                    size="md"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    aria-label={`${row.name} 单价`}
-                    value={draftPrices[row.name] ?? 0}
-                    onChange={(event) => setDraftPrices({
-                      ...draftPrices,
-                      [row.name]: Number(event.target.value),
-                    })}
-                    addon="元"
-                  />
-                </span>
-                <Button
-                  variant="ghost"
-                  className={cx(styles.motionButton, summary && styles.motionButtonOn)}
-                  aria-label={`配置「${row.name}」触发的角色动作`}
-                  title={summary ? `已配置：${summary}` : '未配置'}
-                  onClick={() => openMotionModal(row.name)}
-                >
-                  触发角色动作
-                </Button>
-              </li>
-            )
-          })}
-        </ul>
+        <Tabs
+          value={tab}
+          items={CONFIG_TABS}
+          onChange={setTab}
+          ariaLabel="直播配置分区"
+        >
+          {tab === 'gift' ? (
+            <>
+              <div className={styles.sectionHead}>
+                <span>礼物单价 <em>元/个</em></span>
+                <span>共 {giftRows.length} 种</span>
+              </div>
+              <small className={styles.hint}>
+                按礼物名匹配弹幕里的送礼事件，收入 = Σ 各礼物件数 × 单价；模型花费在 AI 配置里按 token 单价计算
+              </small>
+              <ul className={styles.giftList}>
+                {giftRows.map((row) => {
+                  const summary = describeMotions(draftMotions[row.name])
+                  return (
+                    <li key={row.name}>
+                      <span className={styles.giftIcon}>
+                        {row.icon
+                          ? <img src={row.icon} alt="" aria-hidden />
+                          : <span className={styles.giftIconFallback} aria-hidden>?</span>}
+                      </span>
+                      <span className={styles.giftName} title={row.name}>{row.name}</span>
+                      <span className={styles.giftPrice}>
+                        <Input
+                          size="md"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          aria-label={`${row.name} 单价`}
+                          value={draftPrices[row.name] ?? 0}
+                          onChange={(event) => setDraftPrices({
+                            ...draftPrices,
+                            [row.name]: Number(event.target.value),
+                          })}
+                          addon="元"
+                        />
+                      </span>
+                      <Button
+                        variant="ghost"
+                        className={cx(styles.motionButton, summary && styles.motionButtonOn)}
+                        aria-label={`配置「${row.name}」触发的角色动作`}
+                        title={summary ? `已配置：${summary}` : '未配置'}
+                        onClick={() => openMotionModal(row.name)}
+                      >
+                        触发角色动作
+                      </Button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
+          ) : (
+            <ChatCommandSetting
+              commands={draftCommands}
+              onToggle={(id, enabled) => setDraftCommands((current) => ({ ...current, [id]: enabled }))}
+            />
+          )}
+        </Tabs>
       </Drawer>
 
       {/* 弹窗要放在 Drawer 外面：抽屉内容区是 overflow: auto，放在里面会被裁掉 */}

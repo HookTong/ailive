@@ -1,0 +1,82 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+/**
+ * 布局契约：根节点撑满父容器，标签栏定高、内容区自己滚。
+ * 父级必须有确定高度（抽屉的 body 就是），否则内容区撑不开。
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.bar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  border-bottom: 1px solid $border-soft;
+}
+
+.tab {
+  position: relative;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: $text-muted;
+  font-size: $fs-title;
+  cursor: pointer;
+  transition: color $ease;
+
+  // 下划线用伪元素画，别用 border —— 会把 32px 的定高再撑出 2px。
+  // 左右都贴到标签块的边缘：标签栏从内容区最左侧开始，下划线才能和
+  // 下面的内容（比如「礼物单价」文案）左对齐
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: transparent;
+    transition: background $ease;
+  }
+
+  &:hover:not(.tabActive) {
+    color: $text;
+  }
+
+  &:focus-visible {
+    border-radius: $radius-sm;
+    outline: 1px solid $accent-line;
+    outline-offset: -3px;
+  }
+}
+
+.tabActive {
+  color: $accent-text;
+  cursor: default;
+
+  &::after {
+    background: $accent;
+  }
+}
+
+.panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 14px;
+  // 滚动条推进父级的右留白里：内容右边缘才和上面标签栏的下沿对齐
+  @include scroll-bleed;
+  @include scroll-thin;
+
+  // 面板本身可聚焦（Tab 键要能从标签栏走进内容区），焦点得看得见
+  &:focus-visible {
+    outline: 1px solid $accent-line;
+    outline-offset: -1px;
+  }
+}

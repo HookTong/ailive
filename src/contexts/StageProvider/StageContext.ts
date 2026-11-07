@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { ParticlePreset } from '../../components/Atmosphere'
 import type { CustomFilterPreset, FilterPreset } from '../../components/FilterSetting'
-import type { BackgroundPreset } from './presets'
+import type { BackgroundPreset, PresetRotateMode } from './presets'
 
 /**
  * 舞台背景的切换方式：
@@ -28,6 +28,9 @@ export type StageContextValue = {
   particleEnabled: boolean
   setParticleEnabled: (enabled: boolean) => void
   particlePreset: ParticlePreset
+  /** 粒子预设的切换方式：固定 / 循环 / 随机。关掉粒子时自动切换暂停 */
+  particleMode: PresetRotateMode
+  setParticleMode: (mode: PresetRotateMode) => void
   particleIntensity: number
   particleSpeed: number
   particleOpacity: number
@@ -42,6 +45,9 @@ export type StageContextValue = {
   filterEnabled: boolean
   setFilterEnabled: (enabled: boolean) => void
   filterPreset: FilterPreset
+  /** 滤镜预设的切换方式：固定 / 循环 / 随机。关掉滤镜时自动切换暂停 */
+  filterMode: PresetRotateMode
+  setFilterMode: (mode: PresetRotateMode) => void
   filterBrightness: number
   filterContrast: number
   filterSaturation: number

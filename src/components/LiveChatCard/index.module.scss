@@ -97,6 +97,8 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  /* 滚动条推进 Card 的 14px 留白里，弹幕右边缘和标题行对齐 */
+  @include scroll-bleed;
   /* 列表保留手势滚动，否则面板上的 touch-action: none 会让弹幕滚不动；
      触摸拖动卡片从列表以外的区域开始即可（鼠标不受影响，列表上也能拖） */
   touch-action: pan-y;

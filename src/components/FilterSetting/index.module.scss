@@ -9,13 +9,20 @@
   @include section-title;
 }
 
+// 滚动条推进区块外的右留白里，胶囊右边缘和下面的整宽按钮对齐
 .presets {
-  margin: 0 0 14px;
-  padding-right: 3px;
+  margin-bottom: 14px;
+  @include scroll-bleed;
 }
 
 .customButton {
   margin-top: 6px;
+}
+
+// 切换方式：只写外边距，display 交给 Segmented 的 .block。
+// 四个切换方式统一和上方组件隔 12px
+.modeSwitch {
+  margin-top: 12px;
 }
 
 .field {

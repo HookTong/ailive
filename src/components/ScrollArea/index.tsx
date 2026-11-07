@@ -3,11 +3,13 @@ import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
 /**
- * 舞台控制台里四处预设按钮组（背景 / 粒子 / 滤镜 / 音乐）共用的高度上限。
- * 胶囊 30px + 间距 5px，4 行正好 135px，剩下 5px 露出第 5 行的上边框 ——
- * 那条细边就是「下面还有」的提示。四处必须用同一个值，各写各的迟早对不齐。
+ * 舞台控制台里五处预设按钮组（背景 / 粒子 / 滤镜 / 音乐 / 外观）共用的高度上限。
+ * 胶囊 30px + 间距 5px，**4 行正好 135px** —— 取这个值，正好 4 行时 `scrollHeight`
+ * 与 `clientHeight` 相等、不会冒出滚动条；第 5 行起才滚，且滚到的位置刚好是整 4 行。
+ * 别再往大里调：多 1px 就会在「刚好 4 行」时出现滚动条（曾经是 140px，多出的 5px
+ * 只露出第 5 行的上边框，看着像被切了一截）。五处必须用同一个值，各写各的迟早对不齐。
  */
-export const PRESET_GRID_MAX_HEIGHT = '140px'
+export const PRESET_GRID_MAX_HEIGHT = '135px'
 
 export type ScrollAreaProps = {
   children: ReactNode
@@ -21,8 +23,6 @@ export type ScrollAreaProps = {
   columns?: number
   /** 网格间距 */
   gap?: string
-  /** 是否带边框与底色 */
-  framed?: boolean
   role?: string
   ariaLabel?: string
   className?: string
@@ -40,7 +40,6 @@ export const ScrollArea = forwardRef<HTMLElement, ScrollAreaProps>(function Scro
     maxHeight,
     columns = 1,
     gap,
-    framed = false,
     role,
     ariaLabel,
     className,
@@ -53,7 +52,7 @@ export const ScrollArea = forwardRef<HTMLElement, ScrollAreaProps>(function Scro
       ref,
       role,
       'aria-label': ariaLabel,
-      className: cx(styles.root, styles.grid, framed && styles.framed, className),
+      className: cx(styles.root, styles.grid, className),
       style: {
         height,
         maxHeight,

@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { useLiveServer } from '../../hooks/useLiveServer'
 import type { GiftMotionMap } from '../../data/giftMotions'
+import type { ChatCommandId } from '../../data/chatCommands'
 
 export type LiveDataContextValue = {
   douyinRoomId: string | null
@@ -14,6 +15,10 @@ export type LiveDataContextValue = {
   giftMotions: GiftMotionMap
   /** 整表替换；空串 / 没出现的模型表示该模型不触发 */
   setGiftMotions: (motions: GiftMotionMap) => void
+  /** 弹幕指令的启用开关：键是指令 id，缺省（没出现）视为启用 */
+  chatCommands: Record<ChatCommandId, boolean>
+  /** 整表替换；落盘时只写被关掉的那几条 */
+  setChatCommands: (commands: Record<ChatCommandId, boolean>) => void
   /** 直播配置弹窗开关 */
   liveConfigOpen: boolean
   openLiveConfig: () => void

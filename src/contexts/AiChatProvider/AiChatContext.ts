@@ -1,10 +1,11 @@
 import { createContext, useContext } from 'react'
 import type { AiChatSettings } from './storage'
 
-/** 一条已完成的 AI 回复记录（按时间倒序，最多保留若干条） */
+/** 一条已完成的回复记录（按时间倒序，最多保留若干条） */
 export type AiReplyRecord = {
   at: number
-  kind: 'chat' | 'gift' | 'member'
+  /** command = 弹幕指令的执行结果反馈，文案是确定的，没经过模型 */
+  kind: 'chat' | 'gift' | 'member' | 'command'
   /** 触发这条回复的观众与内容摘要 */
   question: string
   reply: string

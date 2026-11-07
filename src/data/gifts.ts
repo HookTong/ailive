@@ -5,7 +5,9 @@
  * 只作为初始值 —— 实际单价可以在「直播配置」抽屉里逐个改，改完存 localStorage。
  *
  * 图标放在 public/gifts/ 下（OpenMoji 彩色 emoji，CC BY-SA 4.0，已下载到本地，
- * 不依赖外网 CDN，离线也能显示）。
+ * 不依赖外网 CDN，离线也能显示）。「666」没有对应的 emoji，是照同一套风格手画的
+ * （72×72 画布 + 黑色 2px 描边）。目录外的礼物（直播间里出现、但这里没收录的）
+ * 在「直播配置」里会显示一个「?」占位，遇到就把名字加进来并补一张图标。
  */
 export type DouyinGift = {
   /** 礼物名，和弹幕事件里的 `event.gift` 对齐 */
@@ -16,6 +18,11 @@ export type DouyinGift = {
   icon: string
 }
 
+/**
+ * 目录顺序 = 单价从低到高，同价按「互动类 → 礼物类」排。
+ * 「直播配置」里的礼物清单直接照这个顺序渲染，加新礼物请插到对应价位上，
+ * 别一律追加到末尾 —— 那样清单看着像没排过序。
+ */
 export const DOUYIN_GIFTS: DouyinGift[] = [
   { name: '小心心', price: 0.1, icon: 'heart.svg' },
   { name: '玫瑰', price: 0.1, icon: 'rose.svg' },
@@ -25,12 +32,22 @@ export const DOUYIN_GIFTS: DouyinGift[] = [
   { name: '点亮粉丝团', price: 0.1, icon: 'bulb.svg' },
   { name: '入团卡', price: 0.1, icon: 'idcard.svg' },
   { name: '人气票', price: 0.1, icon: 'ticket.svg' },
+  { name: '666', price: 0.1, icon: 'six.svg' },
+  { name: '美味烧鸡', price: 0.1, icon: 'chicken.svg' },
+  { name: '人气TOP3', price: 0.1, icon: 'trophy.svg' },
+  // 抖音官方没查到这一款（只有「为你打call」999 抖币），先按最低档的助威礼物填 0.1，
+  // 实际单价可以在「直播配置」里改
+  { name: '一起打call', price: 0.1, icon: 'megaphone.svg' },
   { name: '大啤酒', price: 0.2, icon: 'beer.svg' },
+  { name: '你最好看', price: 0.2, icon: 'look.svg' },
   { name: '加油鸭', price: 0.5, icon: 'duck.svg' },
+  { name: '点点星光', price: 0.8, icon: 'star.svg' },
   { name: '棒棒糖', price: 0.9, icon: 'lollipop.svg' },
   { name: '鲜花', price: 1, icon: 'bouquet.svg' },
   { name: '小皇冠', price: 1, icon: 'crown.svg' },
+  { name: '爱你哟', price: 5.2, icon: 'fingerheart.svg' },
   { name: '墨镜', price: 9.9, icon: 'sunglasses.svg' },
+  { name: '捏捏小脸', price: 9.9, icon: 'pinch.svg' },
   { name: '礼花筒', price: 19.9, icon: 'popper.svg' },
   { name: '为你闪耀', price: 19.9, icon: 'sparkles.svg' },
   { name: '大金链', price: 29.9, icon: 'gem.svg' },

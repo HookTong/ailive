@@ -9,22 +9,27 @@ type StageToolbarProps = {
   showGiftMotions: boolean
   /** 弹幕面板是否可见 */
   showLiveChat: boolean
+  /** 「弹幕指令」速查卡是否可见 */
+  showChatCommands: boolean
   onToggleOverview: () => void
   onToggleGiftMotions: () => void
   onToggleLiveChat: () => void
+  onToggleChatCommands: () => void
 }
 
 /**
  * 舞台顶部工具条：左边 LIVE PREVIEW 标识，右边几个文字按钮。
- * 概览、礼物动作、弹幕三块浮层各有各的开关，互不影响。
+ * 概览、礼物动作、弹幕、指令四块浮层各有各的开关，互不影响。
  */
 export function StageToolbar({
   showOverview,
   showGiftMotions,
   showLiveChat,
+  showChatCommands,
   onToggleOverview,
   onToggleGiftMotions,
   onToggleLiveChat,
+  onToggleChatCommands,
 }: StageToolbarProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -57,6 +62,9 @@ export function StageToolbar({
         </Button>
         <Button variant="ghost" size="xs" className={styles.toolButton} onClick={onToggleLiveChat}>
           {showLiveChat ? '隐藏弹幕' : '显示弹幕'}
+        </Button>
+        <Button variant="ghost" size="xs" className={styles.toolButton} onClick={onToggleChatCommands}>
+          {showChatCommands ? '隐藏指令' : '显示指令'}
         </Button>
         <Button variant="ghost" size="xs" className={styles.toolButton} onClick={toggleFullscreen}>
           {isFullscreen ? '退出全屏' : '全屏'}

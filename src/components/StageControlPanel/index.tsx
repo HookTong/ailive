@@ -42,6 +42,8 @@ export function StageControlPanel() {
     particleSpeed,
     particleOpacity,
     particlePreset,
+    particleMode,
+    setParticleMode,
     particleColor,
     particleSize,
     handleParticlePresetChange,
@@ -53,6 +55,8 @@ export function StageControlPanel() {
     filterEnabled,
     setFilterEnabled,
     filterPreset,
+    filterMode,
+    setFilterMode,
     filterBrightness,
     filterContrast,
     filterSaturation,
@@ -161,6 +165,8 @@ export function StageControlPanel() {
         onOpacityChange={handleParticleOpacityChange}
         preset={particlePreset}
         onPresetChange={handleParticlePresetChange}
+        mode={particleMode}
+        onModeChange={setParticleMode}
         color={particleColor}
         onColorChange={handleParticleColorChange}
         size={particleSize}
@@ -170,15 +176,12 @@ export function StageControlPanel() {
       {/* 滤镜缩略图跟着舞台走：选了「无背景」就退回默认底图，别显示一张台上没有的图 */}
       <FilterSetting
         enabled={filterEnabled}
-        onEnabledChange={(enabled) => {
-          if (enabled) {
-            handleFilterPresetChange('standard')
-          } else {
-            setFilterEnabled(false)
-          }
-        }}
+        // 开关语义在 StageProvider 里：关掉只是不渲染，重新打开会回到关掉前选的那一项
+        onEnabledChange={setFilterEnabled}
         preset={filterPreset}
         onPresetChange={handleFilterPresetChange}
+        mode={filterMode}
+        onModeChange={setFilterMode}
         brightness={filterBrightness}
         onBrightnessChange={(value) => { setFilterBrightness(value) }}
         contrast={filterContrast}

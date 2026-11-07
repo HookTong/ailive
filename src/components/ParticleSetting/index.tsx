@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { PARTICLE_COLOR_OPTIONS, PARTICLE_PRESETS, type ParticlePreset } from '../Atmosphere'
 import { Button } from '../Button'
 import { ColorSelect } from '../ColorSelect'
+import { PresetChip } from '../PresetChip'
 import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
+import { Segmented } from '../Segmented'
 import { Slider } from '../Slider'
 import { Switch } from '../Switch'
 import { cx } from '../../utils/cx'
+import { PRESET_ROTATE_OPTIONS, type PresetRotateMode } from '../../contexts/StageProvider/presets'
 import styles from './index.module.scss'
 
 export type ParticleSettingProps = {
@@ -19,6 +22,9 @@ export type ParticleSettingProps = {
   onOpacityChange: (value: number) => void
   preset: ParticlePreset
   onPresetChange: (preset: ParticlePreset) => void
+  /** 固定 / 循环切换 / 随机切换 */
+  mode: PresetRotateMode
+  onModeChange: (mode: PresetRotateMode) => void
   color: string
   onColorChange: (color: string) => void
   size: number
@@ -36,6 +42,8 @@ export function ParticleSetting({
   onOpacityChange,
   preset,
   onPresetChange,
+  mode,
+  onModeChange,
   color,
   onColorChange,
   size,
@@ -62,15 +70,12 @@ export function ParticleSetting({
         ariaLabel="粒子特效快捷预设"
       >
         {PARTICLE_PRESETS.map(({ id, label }) => (
-          <Button
+          <PresetChip
             key={id}
-            variant="chip"
-            size="xs"
+            label={label}
             active={enabled && preset === id}
-            onClick={() => { onPresetChange(id); onEnabledChange(true) }}
-          >
-            {label}
-          </Button>
+            onSelect={() => { onPresetChange(id); onEnabledChange(true) }}
+          />
         ))}
       </ScrollArea>
       <Button
@@ -102,6 +107,16 @@ export function ParticleSetting({
           <Slider className={cx(!enabled && styles.disabled)} label="大小" valueText={`${Math.round(size * 100)}%`} disabled={!enabled} min={0.5} max={2.5} step={0.1} value={size} onChange={onSizeChange} />
         </div>
       )}
+      {/* 和背景、音乐那两处一样，切换方式放在这一块的最下面 */}
+      <Segmented
+        className={styles.modeSwitch}
+        ariaLabel="粒子特效切换方式"
+        block
+        value={mode}
+        options={PRESET_ROTATE_OPTIONS}
+        onChange={onModeChange}
+        disabled={!enabled}
+      />
     </section>
   )
 }

@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
       ref={rootRef}
       role="radiogroup"
       aria-label={ariaLabel}
-      className={cx(styles.root, styles[size], block && styles.block, className)}
+      className={cx(styles.root, styles[size], block && styles.block, disabled && styles.disabled, className)}
     >
       {options.map((option) => {
         const selected = option.value === value

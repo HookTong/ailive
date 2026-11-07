@@ -1,0 +1,161 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.root {
+  display: grid;
+  gap: 18px;
+  // 面板是滚动容器，最后一行别贴着底边
+  padding-bottom: 4px;
+}
+
+.intro {
+  margin: 0;
+  color: $text-muted;
+  font-size: $fs-body;
+  line-height: 1.7;
+}
+
+// 三条能直接照抄的例子，比模板里的「角色名」好懂
+.example {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  background: $bg-inset;
+
+  > span {
+    color: $text-faint;
+    @include mono($fs-label);
+    letter-spacing: 0.06em;
+  }
+
+  code {
+    padding: 2px 6px;
+    border-radius: $radius-sm;
+    background: $bg-panel-raised;
+    color: $accent-text;
+    @include mono($fs-label);
+  }
+}
+
+.group {
+  display: grid;
+  gap: 8px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: $text-muted;
+  @include mono($fs-body);
+
+  > span:first-child {
+    letter-spacing: 0.04em;
+  }
+}
+
+.groupCount {
+  color: $text-faint;
+  @include mono($fs-label);
+  letter-spacing: 0;
+}
+
+// 一组指令收进一张表：行间用分隔线，别给每一行都铺底色
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  background: $bg-inset;
+  list-style: none;
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  transition: background $ease;
+
+  & + .row {
+    border-top: 1px solid $border;
+  }
+
+  &:hover {
+    background: #ffffff08;
+  }
+}
+
+// 关掉的指令整段压暗：一眼能看出哪些不响应
+.rowOff .copy {
+  opacity: 0.45;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.template {
+  display: block;
+  color: $accent-text;
+  @include mono($fs-body);
+  @include ellipsis;
+}
+
+.description {
+  display: block;
+  margin-top: 3px;
+  color: $text-soft;
+  font-size: $fs-label;
+  line-height: 1.5;
+}
+
+// 可用名字：一行一条（外观按角色分行）。单行长了就省略，完整内容在 Tooltip 里 ——
+// 外观名动辄几十个，行内全铺开会把这一行撑成一段墙。
+.options {
+  display: block;
+  margin-top: 2px;
+}
+
+.optionLine {
+  display: block;
+  color: $text-faint;
+  font-size: $fs-micro;
+  line-height: 1.5;
+  @include ellipsis;
+}
+
+// 一段「标签 + 内容」。段与段之间只留间距，不加分隔符 ——
+// 标签和内容已经分了色，再插个圆点反而碎。
+.optionPart + .optionPart {
+  margin-left: 10px;
+}
+
+// 标签压暗、内容提亮：一行里能填好几个名字，不分色就看不出哪段是键、哪段是值。
+.optionLabel {
+  color: $text-faint;
+}
+
+.optionValue {
+  color: $text-soft;
+}
+
+// Tooltip 里的每一行。多行就是多个角色，用一条细线隔开 ——
+// 外观名一长就换行，两段清单挨着会糊成一片，看不出第二个角色从哪儿开始。
+.tipLine {
+  display: block;
+}
+
+.tipLine + .tipLine {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid $border-soft;
+}

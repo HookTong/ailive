@@ -62,6 +62,10 @@ $danger-fill: #4b2c30;
 $danger-fill-hover: #63363a;
 $danger-line-hover: #d78276;
 
+// 细滚动条占掉的横向空间。`::-webkit-scrollbar` 是从容器的 padding box 里切走这 12px 的，
+// 内容区右侧会凭空比左侧少一截，滚动容器必须把它让出来（见 mixins 的 scroll-thin / scroll-bleed）
+$scrollbar-size: 12px;
+
 // 圆角
 $radius-xs: 3px;
 $radius-sm: 4px;

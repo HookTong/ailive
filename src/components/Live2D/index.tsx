@@ -22,12 +22,15 @@ export type Live2DModelConfig = {
   speechText?: string
   /** 模型是否可见，默认 true */
   visible?: boolean
-  /** 当前是否正在说话（用于触发说话动作） */
+  /** 当前是否正在说话（开始说话时会重播 motion，也就是「动作预设」里选中的那一项） */
   speaking?: boolean
-  /** 开始说话时触发的动作分组名 */
-  speakMotion?: string
-  /** 动作重放计数：变了就重播 motion，哪怕 motion 值没变（同一礼物连送两次） */
-  motionNonce?: number
+  /**
+   * 一次性动作（礼物触发）。**不参与「当前动作」的比较** —— 只靠 overrideNonce 推进触发，
+   * 播完不会改变 motion，所以控制台里选中的预设不会被礼物顶掉。
+   */
+  overrideMotion?: string
+  /** 一次性动作的重放计数：变了就播 overrideMotion，哪怕值没变（同一礼物连送两次） */
+  overrideNonce?: number
   /** 礼物动作的独占截止时间：在此之前说话动作不许抢 */
   motionHoldUntil?: number
 }
@@ -52,8 +55,8 @@ type ModelEntry = {
   cleanup: (() => void) | null
   visible: boolean
   speaking: boolean
-  speakMotion: string
-  motionNonce: number
+  overrideMotion: string
+  overrideNonce: number
   motionHoldUntil: number
 }
 
@@ -103,8 +106,8 @@ const createEntry = (model: Live2DModelConfig): ModelEntry => ({
   cleanup: null,
   visible: model.visible ?? true,
   speaking: Boolean(model.speaking),
-  speakMotion: model.speakMotion ?? '',
-  motionNonce: model.motionNonce ?? 0,
+  overrideMotion: model.overrideMotion ?? '',
+  overrideNonce: model.overrideNonce ?? 0,
   motionHoldUntil: model.motionHoldUntil ?? 0,
 })
 
@@ -317,8 +320,9 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     const sizeChanged = entry.size !== next.size
     const resetChanged = entry.positionResetKey !== next.positionResetKey
     const motionChanged = entry.motion !== next.motion
-    // 值没变但 nonce 变了 = 又触发了一次同一个动作（连送两个同款礼物），也要重播
-    const motionReplay = (next.motionNonce ?? 0) !== entry.motionNonce
+    // 一次性动作（礼物）：只看计数，不看值。值没变但计数变了 = 又触发了一次（连送两个同款礼物）
+    const overrideMotion = next.overrideMotion ?? ''
+    const overrideTriggered = (next.overrideNonce ?? 0) !== entry.overrideNonce && Boolean(overrideMotion)
     const zChanged = entry.zIndex !== next.zIndex
     const visibleChanged = entry.visible !== (next.visible ?? true)
     // 只在「没说话 → 说话」的那一刻触发一次，气泡常显时不会反复触发
@@ -334,8 +338,8 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     entry.zIndex = next.zIndex
     entry.visible = next.visible ?? true
     entry.speaking = Boolean(next.speaking)
-    entry.speakMotion = next.speakMotion ?? ''
-    entry.motionNonce = next.motionNonce ?? 0
+    entry.overrideMotion = overrideMotion
+    entry.overrideNonce = next.overrideNonce ?? 0
     entry.motionHoldUntil = next.motionHoldUntil ?? 0
     entry.initialPosition = next.initialPosition ?? DEFAULT_POSITION
     if (resetChanged) {
@@ -354,10 +358,16 @@ export function Live2D({ models, activeModelId, onActivateModel, onModelStateCha
     if (zChanged) model.zIndex = next.zIndex
     if (visibleChanged) model.visible = entry.visible
     if (sizeChanged || resetChanged) fitModel(entry)
-    if ((motionChanged || motionReplay) && next.motion) void model.motion(next.motion, 0).catch(() => undefined)
-    // 礼物动作正在播，说话动作不抢；等礼物窗口结束后再开口
-    if (speakingStarted && entry.speakMotion && !giftHolding) {
-      void model.motion(entry.speakMotion, 0).catch(() => undefined)
+    // 三档优先级：换预设 > 礼物等一次性动作 > 开口时重播预设。
+    // 必须是一条 else 链 —— 同一帧连调两次 model.motion() 会把动作从头重启
+    if (motionChanged && next.motion) {
+      void model.motion(next.motion, 0).catch(() => undefined)
+    } else if (overrideTriggered) {
+      void model.motion(overrideMotion, 0).catch(() => undefined)
+    } else if (speakingStarted && next.motion && !giftHolding) {
+      // 「动作预设」里选中的那一项兼任说话触发动作：开口时把当前动作重播一遍；
+      // giftHolding 期间让位，礼物动作优先
+      void model.motion(next.motion, 0).catch(() => undefined)
     }
     if (expressionsChanged) {
       entry.expressionKey = expressionKey

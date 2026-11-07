@@ -3,14 +3,35 @@ import { AddModelModal } from '../AddModelModal'
 import { VoiceSetting } from '../VoiceSetting'
 import { Button } from '../Button'
 import { Modal } from '../Modal'
-import { ScrollArea } from '../ScrollArea'
+import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
+import { PresetChip } from '../PresetChip'
 import { Slider } from '../Slider'
+import { Tooltip } from '../Tooltip'
 import { cx } from '../../utils/cx'
 import { useModel, useVoice } from '../../hooks'
 import type { VolcengineVoicePreset } from '../../hooks/useTts/api'
 import styles from './index.module.scss'
 
 const motionIcons = ['◌', '⌁', '◇', '◍', '◠']
+
+/** 说明图标：细圈里一个 i，和 Input 里的那几个图标同一套写法（currentColor + aria-hidden） */
+function InfoIcon() {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      width="12"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="6" r="5" />
+      <path d="M6 5.5v3" strokeLinecap="round" />
+      <circle cx="6" cy="3.6" r="0.72" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 
 export function ModelControlPanel() {
   const {
@@ -49,17 +70,7 @@ export function ModelControlPanel() {
   const voicePresetId = activeCharacter.voicePresetId
   const modelVisible = activeCharacter.modelVisible
   const bubbleMode = activeCharacter.bubbleMode
-  const speakingMotion = activeCharacter.speakingMotion
   const voiceSpeaking = speakingModel?.modelId === activeModelId
-
-  // 「说话触发动作」下拉：空值表示不触发
-  const speakingMotionOptions = useMemo(() => [
-    { value: '', label: '不触发' },
-    ...Object.entries(manifest?.motions ?? {}).map(([group, config]) => ({
-      value: group,
-      label: config.label ?? group,
-    })),
-  ], [manifest])
 
   useEffect(() => {
     if (!modelMenuOpen) return
@@ -165,12 +176,19 @@ export function ModelControlPanel() {
       {/* 动作预设 */}
       <div className={styles.block}>
         <div className={styles.labelRow}>
-          <span>动作预设</span>
+          <span className={styles.labelWithHint}>
+            动作预设
+            {/* 说明挂在标题上：这一组里选中的那一项就是「说话触发动作」 */}
+            <Tooltip title="当角色说话时会触发该动作">
+              <span className={styles.hintIcon} role="img" aria-label="当角色说话时会触发该动作" tabIndex={0}>
+                <InfoIcon />
+              </span>
+            </Tooltip>
+          </span>
           <span className={styles.count}>{motionOptions.length}</span>
         </div>
         <ScrollArea
-          framed
-          gap="4px"
+          gap="5px"
           height="clamp(104px, 16vh, 178px)"
           className={styles.motionList}
           ariaLabel="动作预设列表"
@@ -207,24 +225,22 @@ export function ModelControlPanel() {
             <span className={styles.count}>{expressionOptions.length}</span>
           </div>
           <ScrollArea
-            framed
-            columns={2}
-            gap="4px"
-            height="clamp(148px, 24vh, 252px)"
+            columns={3}
+            gap="5px"
+            maxHeight={PRESET_GRID_MAX_HEIGHT}
             className={styles.expressionList}
+            role="group"
             ariaLabel="外观预设列表"
           >
             {manifest ? (
               expressionOptions.map((expression) => (
-                <button
-                  className={cx(styles.expression, selectedExpressions.includes(expression) && styles.expressionActive)}
+                <PresetChip
                   key={expression}
-                  type="button"
-                  onClick={() => handleExpressionToggle(expression)}
-                >
-                  {expression}
-                  <span className={styles.expressionMark}>{selectedExpressions.includes(expression) ? '●' : '›'}</span>
-                </button>
+                  label={expression}
+                  // 外观是多选，选中态同步到 aria-pressed（PresetChip 里做）
+                  active={selectedExpressions.includes(expression)}
+                  onSelect={() => handleExpressionToggle(expression)}
+                />
               ))
             ) : (
               <div className={styles.loading}>
@@ -248,6 +264,7 @@ export function ModelControlPanel() {
       {/* 模型大小 */}
       <div className={cx(styles.block, styles.sizeBlock)}>
         <Slider
+          className={styles.sizeSlider}
           label="模型大小"
           valueText={`${Math.round(modelSize * 100)}%`}
           ariaLabel="模型大小"
@@ -264,14 +281,11 @@ export function ModelControlPanel() {
         speaking={voiceSpeaking}
         error={voiceError}
         bubbleMode={bubbleMode}
-        speakingMotion={speakingMotion}
-        speakingMotionOptions={speakingMotionOptions}
         onPresetChange={handleVoicePresetChange}
         onSpeak={handleVoiceSpeak}
         onAddVoice={addVoice}
         onDeleteVoice={deleteVoice}
         onBubbleModeChange={(mode) => updateActiveCharacter({ bubbleMode: mode })}
-        onSpeakingMotionChange={(motion) => updateActiveCharacter({ speakingMotion: motion })}
       />
 
       {/* 底部操作 */}

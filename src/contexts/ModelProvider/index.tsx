@@ -16,7 +16,8 @@ const createCharacterState = (): CharacterState => ({
   manifest: null,
   configError: false,
   activeMotion: 'idle',
-  motionNonce: 0,
+  overrideMotion: '',
+  overrideNonce: 0,
   motionHoldUntil: 0,
   selectedExpressions: [],
   modelSize: 0.6,
@@ -24,7 +25,6 @@ const createCharacterState = (): CharacterState => ({
   voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
   modelVisible: true,
   bubbleMode: 'speaking',
-  speakingMotion: '',
 })
 
 function loadOnlineModelSources(): ModelSource[] {
@@ -224,7 +224,6 @@ export function ModelProvider({ children }: ModelProviderProps) {
       voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
       modelVisible: true,
       bubbleMode: 'speaking',
-      speakingMotion: '',
     })
   }
 

@@ -27,6 +27,8 @@
   font-size: 11px;
   line-height: 1.35;
   pointer-events: none;
-  white-space: normal;
+  // 允许调用方用 \n 换行（指令面板的外观清单按角色分行）：
+  // pre-line 保留换行、其余和 normal 一样折叠空格，单行提示的表现不变
+  white-space: pre-line;
   overflow-wrap: anywhere;
 }

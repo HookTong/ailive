@@ -133,17 +133,19 @@
   }
 }
 
-// 预设胶囊：背景 / 音乐 / 粒子 / 滤镜 / 音色都在用
+// 预设胶囊：背景 / 音乐 / 粒子 / 滤镜 / 音色 / 外观都在用
 .chip {
   border: 1px solid $border-input;
   background: $bg-inset;
   color: $text-muted;
   @include ellipsis;
 
+  // 悬停只给一档中性提亮，**不能和选中态同一个绿**：
+  // 外观预设这种「再点一次取消」的多选组，鼠标停着就分不清哪个是真选中的
   &:hover:not(:disabled) {
-    border-color: $accent-chip-line;
-    background: $accent-chip-fill;
-    color: $accent-text;
+    border-color: $border-strong;
+    background: $bg-hover;
+    color: $text;
   }
 
   &:disabled {
@@ -154,6 +156,15 @@
 .chip.active {
   border-color: $accent-chip-line;
   background: $accent-chip-fill;
+  color: $accent-text;
+}
+
+// 选中项再被悬停：保持绿色，只把底色提亮一档。
+// 选择器比 `.chip:hover:not(:disabled)` 多一个类，否则会被上面的中性悬停盖掉，
+// 看着像刚被取消选中
+.chip.active:hover:not(:disabled) {
+  border-color: $accent-chip-line;
+  background: $accent-fill-hover;
   color: $accent-text;
 }
 

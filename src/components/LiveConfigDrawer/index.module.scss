@@ -42,7 +42,10 @@
     grid-template-columns: 26px minmax(0, 1fr) 148px auto;
     align-items: center;
     gap: 10px;
-    padding: 5px 6px;
+    // 横向不留内边距：礼物图标要对齐上面的「礼物单价」文案，右边的
+    // 「触发角色动作」要对齐抽屉底部的「完成」按钮 —— 也就是贴着内容区的左右边。
+    // 纵向仍比「弹幕指令」的行紧一点，礼物有二十多种
+    padding: 5px 0;
     border-radius: $radius;
 
     &:hover {

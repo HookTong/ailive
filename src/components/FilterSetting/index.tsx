@@ -5,8 +5,10 @@ import { Modal } from '../Modal'
 import { PresetChip } from '../PresetChip'
 import { RequiredMark } from '../RequiredMark'
 import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
+import { Segmented } from '../Segmented'
 import { Slider } from '../Slider'
 import { Switch } from '../Switch'
+import { PRESET_ROTATE_OPTIONS, type PresetRotateMode } from '../../contexts/StageProvider/presets'
 import styles from './index.module.scss'
 
 export type FilterPreset = 'standard' | 'cinematic' | 'dream' | 'neon' | 'mist' | 'monochrome' | 'custom' | `custom:${number}`
@@ -46,6 +48,9 @@ export type FilterSettingProps = FilterValues & {
   onEnabledChange: (enabled: boolean) => void
   preset: FilterPreset
   onPresetChange: (preset: FilterPreset) => void
+  /** 固定 / 循环切换 / 随机切换 */
+  mode: PresetRotateMode
+  onModeChange: (mode: PresetRotateMode) => void
   onBrightnessChange: (value: number) => void
   onContrastChange: (value: number) => void
   onSaturationChange: (value: number) => void
@@ -57,7 +62,7 @@ export type FilterSettingProps = FilterValues & {
   onRemoveCustomPreset: (id: FilterPreset) => void
 }
 
-export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange, brightness, onBrightnessChange, contrast, onContrastChange, saturation, onSaturationChange, blur, onBlurChange, backgroundUrl, customPresets, onAddCustomPreset, onRemoveCustomPreset }: FilterSettingProps) {
+export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange, mode, onModeChange, brightness, onBrightnessChange, contrast, onContrastChange, saturation, onSaturationChange, blur, onBlurChange, backgroundUrl, customPresets, onAddCustomPreset, onRemoveCustomPreset }: FilterSettingProps) {
   const [showModal, setShowModal] = useState(false)
   const [draftName, setDraftName] = useState('')
   // 名称必填，但不要一打开就飘红：等用户离开过输入框才提示
@@ -97,13 +102,13 @@ export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange
           ariaLabel="舞台滤镜快捷预设"
         >
           {FILTER_PRESETS.map(({ id, label }) => (
-            <PresetChip key={id} label={label} active={preset === id} onSelect={() => onPresetChange(id)} />
+            <PresetChip key={id} label={label} active={enabled && preset === id} onSelect={() => onPresetChange(id)} />
           ))}
           {customPresets.map(({ id, label }) => (
             <PresetChip
               key={id}
               label={label}
-              active={preset === id}
+              active={enabled && preset === id}
               onSelect={() => onPresetChange(id)}
               onRemove={() => onRemoveCustomPreset(id)}
             />
@@ -112,6 +117,16 @@ export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange
         <Button variant="ghost" size="sm" block className={styles.customButton} disabled={!enabled} onClick={openCustomModal}>
           ＋ 添加自定义滤镜
         </Button>
+        {/* 和背景、音乐那两处一样，切换方式放在这一块的最下面 */}
+        <Segmented
+          className={styles.modeSwitch}
+          ariaLabel="舞台滤镜切换方式"
+          block
+          value={mode}
+          options={PRESET_ROTATE_OPTIONS}
+          onChange={onModeChange}
+          disabled={!enabled}
+        />
       </section>
       {showModal && (
         <Modal

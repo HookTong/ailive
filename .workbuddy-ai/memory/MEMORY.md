@@ -1,89 +1,107 @@
 # ailive 项目长期约定
 
-React 18 + TypeScript + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播工作室。
+React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播工作室。
 组件在 `src/components/<Name>/`（`index.tsx` + `index.module.scss`），状态走 `src/contexts/`，hook 在 `src/hooks/`。
 
 ## 命名
 
-- **组件名里不许出现 `Panel`**，只有「角色控制面板」`ModelControlPanel` 和「舞台控制面板」`StageControlPanel` 两个例外。其余组件用语义名（`GiftMotion`、`LiveChat`、`LiveOverview`、`StageToolbar`）。模块内部的 CSS 类同理，根节点写 `.root` 而不是 `.panel`。
-- 例外只有这两个，新建组件时不要因为「看起来像个面板」就起名 `XxxPanel`。
+- 组件名里不许出现 `Panel`，例外只有 `ModelControlPanel` / `StageControlPanel`。CSS 根节点写 `.root`。
 
 ## 样式
 
-- **字体栈必须显式带中文字体**。`Manrope` / `DM Mono` 都没有中文字形，只写 `monospace` 的话汉字会逐字回退到系统默认字体（Windows 上从 Consolas 再掉一层），笔画粗细和拉丁部分对不上，小字号时特别糊。现在 `$font-ui` / `$font-mono` 都把 `PingFang SC` / `Hiragino Sans GB` / `Microsoft YaHei` 排在通用族前面。顺带的好处：Google Fonts 加载失败时也有正经的中文观感。
-- **字号刻度在 `tokens.scss`**：`$fs-micro` 10 / `$fs-label` 11 / `$fs-body` 12 / `$fs-title` 13，`@include mono()` 的默认值取 `$fs-label`。界面里大量标签是 mono 小字，**别写 7px / 8px**，普通屏上根本看不清。
-
-- **要特定高度的按钮不要传 `Button` 的 `size`**。传了会写死 30/32/34/36px；模块类与 `Button` 的 `.sm` 是同级选择器，谁生效取决于打包后的样式表顺序。正确做法：不传 `size`，在模块里自己写 `height` / `padding`。
-- **要压过 `Button` 的 variant 类，用两级选择器**（如 `.giftList .motionButtonOn`），单类对单类不可靠，原因同上。
-- **要给 `Input` 加错误/警告描边，挂 `aria-invalid` 就行，别再传 className**。`Input` 自己的 scss 里有 `input[aria-invalid='true'], input[aria-invalid='true']:focus { border-color: $warn }`，属性选择器（0,1,1 / 0,2,1）天然压过 `.input`（0,1,0）和 `.input:focus`（0,2,0）。早先靠 `className={styles.invalid}` 的写法每个调用方都得写 `input.xxx, input.xxx:focus` 两条，还特别容易漏掉 `:focus`（输入时输入框一直是聚焦的）。
-- **必填字段的三件套**：标签写 `名称<RequiredMark />`、`Input` 挂 `aria-invalid` + `aria-describedby`、提示用 `.fieldHint { @include field-hint }`。不要一打开就飘红，用 `touched`（blur 时置 true）或「其他条件都满足了」来触发。四条添加类弹窗（背景 / 音乐 / 滤镜 / 模型）已全部统一，新加字段照抄。
-- **校验提示互斥时共用一个 `id` 和一个 `.fieldHint`**：模型弹窗的「请填写模型名称」和「该名称已被使用」不会同时出现，算一个 `nameHint` 字符串、渲染一个 div 就行，别开两个 id 让 `aria-describedby` 二选一。
-- **展示名只在「添加那一刻」由用户定下，之后谁都不许改**。原来线上模型有两条回填路径（加载预览时读 `model3.json` 的 `Name`、manifest 加载完用 `useConfigName` 覆盖 `name`），名字会被悄悄顶掉；现在名称必填，两条都删了。`ModelManifest.displayName` 只当展示兜底（`manifest?.displayName ?? modelSource?.name`），不写回 `name`。
-- **`Segmented` 收 `className`，但别用外层 class 覆盖它的 `display`**：`.root` 是 `inline-flex`、`.block` 是 `display: flex; width: 100%`。想把「标签 + 控件」的壳拆掉、只留间距时，外层类里**只能写 `margin`**，跟着搬 `display: flex; flex-direction: column` 过去会把三段挤成竖排。可见标签一旦去掉，`ariaLabel` 就是唯一的无障碍名称，不能跟着删。
-- **`fr` 分配的是扣掉 `gap` 之后的剩余空间**，所以 `3fr : 2fr` 在任意容器宽度下都严格等于 6:4，不需要 `calc()`。
-- **`display: grid` 的 `align-content` 默认是 `normal`，对 grid 容器表现为 `stretch`** —— 行数少时多余高度被平摊给每一行，卡片会被拉高。列表类容器（尤其带 `flex: 1 1 0` 的）要显式写 `align-content: start`，`li` 自己是 grid 的也要写。
-- 删掉标题上方的 `eyebrow` 小字时，要同步改 `.header` 的 `align-items`（`flex-start` → `center`）和 `.title` 的 `margin-top`（`8px` → `0`），那 8px 是给 eyebrow 让位的。
-- 图标路径用 `import.meta.env.BASE_URL` 拼，兼容非根路径部署。
-- **别用 `box-shadow` 画小图标/点阵**：阴影不占布局盒子，父级有 `overflow: hidden`（例如带 `@include ellipsis` 的标题）时会被裁掉一半。改用 `background-image: radial-gradient(...)` + `background-size` 铺在有实际宽高的元素上。
-- `Input` 的步进器（数字框上下箭头）只在聚焦时出现，靠 `.wrap:focus-within` 切 `opacity` / `pointer-events`；右内边距也跟着在聚焦时让出来（带 0.12s 过渡），平时不白占位。
-- **外壳高度不能指望 `display: flex`**：调用方一条 `.field > span { display: block }` 就能压回去。要让外壳高度严格等于输入框，给 `input` 自己写 `display: block`，别加 `!important`。
-- `Input` 的 `addon` 是输入框右侧的独立方块（单位文字之类），和输入框同高、留 6px 缝。
+- **字体栈必须带中文字体**（`PingFang SC` / `Hiragino Sans GB` / `Microsoft YaHei` 排在通用族前），否则汉字逐字回退、笔画对不上。
+- **字号只用刻度**：`$fs-micro` 10 / `$fs-label` 11 / `$fs-body` 12 / `$fs-title` 13（`@include mono()` 默认 `$fs-label`），别写 7px / 8px。
+- **要特定高度的按钮别传 `Button` 的 `size`**（写死 30–36px），在模块里自己写 `height` / `padding`；要压过 variant 类用**两级选择器**，单类对单类看打包顺序。
+- **块间距只有一个来源**：控制台各块靠 `.block { margin-bottom: 20px }`，组件自带的 `margin-top`（`Slider` 12px）叠上去会变成 32px、比别处空一截。单独成块时用两级选择器（`.sizeBlock .sizeSlider`）把它压回 0 —— flex 列里 margin 不合并，别指望自动抵消。
+- **`Input` 的错误描边挂 `aria-invalid`**，别传 className —— 属性选择器天然压过 `.input` / `.input:focus`。必填三件套：`名称<RequiredMark />` + `aria-invalid` / `aria-describedby` + `.fieldHint`；用 `touched` 触发，互斥提示共用一个 `id`。
+- **展示名只在「添加那一刻」定下**，之后不许回填；`ModelManifest.displayName` 只当展示兜底。
+- **滚动条只在指针进容器时显形，靠 `data-scroll-hover` 而不是 `:hover`**：Chromium 不会因容器 `:hover` 重解析 `::-webkit-scrollbar-thumb`（实测 `matches(':hover')` 为 true、thumb 仍 `transparent`，换个属性下一帧就画出来）。全局唯一的 `useHoverScrollbar`（`AppContent` 调用）从 `pointerover` target 往上找最近的真滚动祖先挂属性，**遇到 `position: fixed` 就停**（弹层遮罩是 fixed，不停会点亮底下列表）。
+- **滑块不贴列表**：轨道 `$scrollbar-size`（12px），滑块靠 `border: 3px solid transparent` + `background-clip: padding-box` 缩成 6px。**只能写 `background-color`** —— `background` 简写会把 `background-clip` 重置回 `border-box`。
+- **滚动条那 12px 是从容器 padding box 里切走的，滚动容器必须把它让出来**，否则内容右侧凭空比左侧少 12px、和同级整宽按钮也差一截。两种让位方式：自己是最外层（面板 / 抽屉 / 弹窗内容区）就把 `padding-right` 减 `$scrollbar-size`；嵌在别人留白里（预设网格、卡片里的列表、`Tabs` 面板、**抽屉里「最近回复」那种内层列表**）用 `@include scroll-bleed`（`margin-right: -$scrollbar-size`）把滚动条推进外层留白。**外层右留白必须 ≥ 12px，否则会撑出横向滚动条**（`overflow-y: auto` 会把 `overflow-x` 算成 `auto`）。
+- **双层滚动（抽屉 body + 内层列表）允许两个滚动条落在同一列**：`useHoverScrollbar` 只给「指针到 target 的最近滚动祖先」挂 `data-scroll-hover`，同一时刻只有一条 thumb 显形，不会叠在一起。前提是两层的滚动条都 `scroll-bleed` 到同一片外层留白。
+- **`scroll-thin` 里必须带 `scrollbar-gutter: stable`**：不溢出时也留着那 12px。不然内容「刚好放得下」时没有滚动条，上面那套让位就多让了 12px —— 胶囊反而比按钮突出去 12px。顺带消掉内容从「放得下」变「要滚」时右边突然少 12px 的抖动。
+- **预设列表一律不套外框**：滚动条用 `scroll-bleed` 推进外层留白，行块左右边缘才和标题行、整宽按钮对齐。动作预设这种多行列表是「每行自己一颗宽胶囊」（`border` + `$bg-inset` + `$radius`），和预设胶囊共用同一套 hover / active 配色 —— 别再给整块套一层 `border`（`ScrollArea` 的 `framed` 变体已因此删掉）。
+- **无头 Chrome 不画滚动条**，验证必须 `headless: false`；有头模式又拿不到真实 hover，所以 `:hover` 方案连截图都验不了。
+- **预设网格的 `max-height` 必须是「整数排」的高度**：4 排 = 30×4 + 5×3 = **135px**（`PRESET_GRID_MAX_HEIGHT`，五处共用）。多 1px 就会在「正好 4 排」时冒出滚动条，少 1px 就把最后一排切一截；`box-sizing: border-box` 下 `max-height` **含 padding**，带上下内边距的容器（人声 5/5、行距 9）要把 padding 算进去 = 157px，别只算 `4×行高 + 3×行距`。
+- **`Segmented` 外层类只能写 `margin`**（`.root` 是 `inline-flex`、`.block` 是 `display: flex; width: 100%`）；去掉可见标签后 `ariaLabel` 是唯一无障碍名称。**四个「切换方式」统一 `.modeSwitch { margin-top: 12px }`**，和上方组件隔 12px。
+- **`Tabs` 的选中下划线是 `.tab::after` 且左右都贴 `0`**：标签块从内容区最左开始，下划线必须和它对齐（原来 inset 6px，比下面的文案缩进 6px）。别用 `border` 画 —— 会把 32px 定高再撑出 2px。
+- **`Segmented` 的禁用态是整块变灰**（根节点挂 `.disabled { opacity: .5 }`），别再给 `.option:disabled` 也写透明度 —— 两层相乘会灰到看不见。粒子 / 滤镜关掉开关时传 `disabled={!enabled}`；但**预设胶囊不要禁用**，`handleXxxPresetChange` 本来就会顺带 `setEnabled(true)`。
+- **上面那个 `Button` 的下外边距必须归零**：`Button` 是 `inline-flex`，它的**外边距盒**会算进行盒高度 —— 按钮留 `margin-bottom: 2px`，下面 Segmented 的实际间距就是 12+2=14（实测过 `margin-top: 8` + `margin-bottom: 2` 渲染成 10px 的坑）。**量间距要量 `getBoundingClientRect()` 的差，别只看 margin**。
+- `VoiceSetting` 里「气泡显示」那个 Segmented 是标签 + 控件的组合（`.behaviorRow` 的 `gap: 6px`），不参与上面那条 12px 约定。
+- `fr` 分配的是扣掉 `gap` 后的剩余空间，`3fr : 2fr` 恒为 6:4。
+- **grid 的 `align-content` 默认 `stretch`**，列表容器（尤其 `flex: 1 1 0`）要显式 `start`。
+- 图标路径用 `import.meta.env.BASE_URL`；**别用 `box-shadow` 画小图标**（不占布局盒、父级 `overflow: hidden` 会裁），改用 `radial-gradient`。
+- `Input` 步进器只在 `:focus-within` 出现；外壳高度靠给 `input` 写 `display: block`；`addon` 是右侧独立方块，同高、6px 缝。
 
 ## 组件层级
 
-- **`Modal` 要放在 `Drawer` 外层**：抽屉内容区是 `overflow: auto`，嵌在里面的弹窗会被裁掉。层级用 `Modal zIndex={40}` > `Drawer 31` > 常规卡片。
-- **`DropdownSelect` 的菜单是绝对定位、没有 portal**，所以含下拉的区域不能加 `overflow: auto`，否则菜单被祖先裁掉。宁让弹窗自然变高。
-- 气泡的 `z-index: 5` 在 `.live2d`（z-index 3）的层叠上下文里，永远压在 LiveOverview 卡片（z-index 8）下面。
-- **`Button` 永远不换行、不被压缩**：`.button` 上写了 `white-space: nowrap` + `flex-shrink: 0`。放进「输入框 + 按钮」这种 flex 行时，少几个像素就会把「设置」折成上下两行；`flex-shrink: 0` 让输入框先让位。
-- **`Input` 的 `className` 落在内层 `<input>` 上，不是外层 `.wrap` 外壳**。所以 `.urlInput { flex: 1 }` 这种布局类其实一直没生效 —— 真正参与 flex 布局的是外壳。要在行里控制宽度只能按位置选（`.urlRow > :first-child`），别指望传 className。
-- **`Button` 的 `@include ellipsis` 对胶囊不起作用**：`Button` 是 `inline-flex`，直接写在里面的文字是匿名 flex 子项，`text-overflow` 只对块级/内联级盒子里的文本生效。要让胶囊文字省略，得把文字包一层 `<span>`，而且**必须给这个 span 写 `min-width: 0`** —— flex 子项的自动最小尺寸是 `min-content`，`white-space: nowrap` 的文字缩不下来，省略号永远不会出现。
-- **`Button` 的 `.xs` 内边距保持 4px**：预设胶囊用它，舞台背景那行是 5 等分栅格，每边多 2px 就会把「Lo-fi」挤成省略号。
-- **`Card` 的 `headerProps` 里别用叫 `.head` 的类**：`Card` 内部已经有一个 `.head`（`margin-bottom: 12px`），两边都是单类选择器，谁生效取决于 CSS 打包顺序。换个名字（如 `.dragHead`），要改间距就用 `.panel .dragHead` 两级选择器。
-- **`Card` 的 `headerProps` 可以只把拖拽 `handlers` 挂在标题栏上**（`useDragPosition` 的 `handlers` 直接展开进去），列表区域就能保留滚动和选中文字；整块拖动会和滚动打架。
-- **舞台浮层一律「组件自己取数」**：`NowPlayingCard` / `IncomeCard` / `GiftRankCard` 都从上下文直接拿数据，不收 props。容器（`LiveOverview`）只负责摆放和整块拖动，这样把某张卡单独挪到舞台别处不用改调用方。
-- 卡片高度对齐靠各自 `.root { min-height: 154px }`，不靠容器统一给 —— 拆成独立组件后，容器再统一加类就变成耦合了。
+- **`Modal` 放 `Drawer` 外层**（40 > 31），抽屉内容区是 `overflow: auto`。
+- **`DropdownSelect` 菜单绝对定位、无 portal**，含下拉的区域不能 `overflow: auto`。
+- **`Tooltip` 弹层 portal 到 `body`**：`Drawer` 用 `transform: translateX()` 做进场，**带 `transform` 的祖先会成为 `position: fixed` 的包含块** —— 留在原地会按「相对抽屉」定位、整块飘到屏幕外（实测 x 从 1177 跑到 2258）。`.popup` 的字体/颜色显式声明，挪走不掉样式。凡是可能放进抽屉的浮层都得这么处理。
+- **`Button` 永不换行、不被压缩**（`nowrap` + `flex-shrink: 0`）。**`Input` 的 `className` 落在内层 `<input>`**，布局要按位置选。
+- **`Button` 里文字要省略**：包一层 `<span>` 并给 `min-width: 0`。`.xs` 内边距保持 4px（5 等分栅格会把「Lo-fi」挤成省略号）。
+- **`Card` 的 `headerProps` 别用 `.head` 类名**（内部已有）；只挂拖拽 `handlers`，列表区保留滚动与选中文字。
+- **「直播配置」抽屉里礼物行的左右要和内容区贴边**（`padding: 5px 0`）：礼物图标对齐上方「礼物单价」文案、行尾按钮对齐底部「完成」按钮。弹幕指令那 12px 内边距是画在 `.list` 的 1px 外框**里面**的，外框本身贴边 —— 别把两者混为一谈，也别用负边距去凑（右边紧挨着 `Tabs` 面板 `scroll-bleed` 出来的滚动条）。
+- **舞台浮层一律「组件自己取数」**，容器只摆放和整块拖动。卡片高度靠各自 `.root { min-height: 154px }` 对齐。
+- **舞台四块浮层**：概览（左上，560 宽）、弹幕（右上，`top:16 right:16`，z-index 9）、礼物动作（左下，`bottom:46 left:24`）、弹幕指令（右下，`bottom:46 right:24`），后三块都是 268 宽 + `max-height: min(66%, 540px)` + 底色 `#09232bf2`（比 Card 更实，免得两层毛玻璃糊在一起）。开关在 `StageToolbar`，状态在 `App`。**右侧一列上下两块会重叠**（弹幕攒满会盖住指令卡顶部），这是自由摆放的已知取舍。
+- **`ChatCommandCard` 的内容从 `CHAT_COMMANDS` 生成**，不手写：按 `[关键字|…]` 归组（标题另走 `FAMILY_LABEL`：外观→角色外观、音色→角色音色、背景→舞台背景、粒子→粒子特效、滤镜→舞台滤镜、音乐→背景音乐 —— 关键字要短是给观众手打的），**模板原样显示、绝不替换**（`$角色名称` 就是留给观众填的位置；替成具体值会让人以为只能发那一个）。**只列开着的指令**，全关时整块 `return null`。
+- **`GiftMotionCard` 行结构跟着台上模型数变**：`modelCount === 1` 时礼物名与动作并成一行、不显示角色名。**不能按 `row.targets.length === 1` 判断**。
 
 ## 数据与状态
 
-- 持久化统一 `localStorage`，键名前缀 `ailive.`（如 `ailive.gift-prices`、`ailive.gift-motions`）。写入放在 `useEffect` 里，保持 setState updater 是纯函数。
-- 只存配过的项，空串/空值在保存时**删键**，不留无用条目。
-- 「打开抽屉时同步草稿」的 effect 用 `wasOpenRef` 判断上升沿，避免每次依赖变化都覆盖用户正在编辑的内容。
-- `LiveDataProvider` 通过 `useLiveServer` 持有唯一一条 SSE 连接，舞台卡片和弹幕面板共享；`MIN_REPLY_INTERVAL_MS = 6000`。
-- **自定义项一律「内置数组 + 用户数组」合成**：背景 `[...BACKGROUND_PRESETS, ...customBackgrounds]`、音乐 `[...MUSIC_PRESETS, ...customTracks]`。面板和轮播/列表循环都吃这个合成数组，不要在两处各拼一次。合成之后靠 `id.startsWith('custom:')` 区分能不能删 —— id 前缀是这套约定的唯一凭据。
-- **预设胶囊统一用 `PresetChip`**（舞台背景 / 舞台滤镜 / 背景音乐三处）：`label / active / onSelect / onRemove?`，不传 `onRemove` 就没有删除角标。角标本身是 `ChipRemove`（`PresetChip` 和 `VoiceSetting` 共用）：平时透明只留一根灰 ×，`:hover` / `:focus-visible` 才铺圆底。它是 `span + role="button"` 套在 `<button>` 里（HTML 其实不允许），`onClick` / `onKeyDown` 都必须 `stopPropagation`，空格还要 `preventDefault`，外面可能套 Tooltip 所以要带 `data-tooltip-ignore`。
-- **小图标里的「×」不要用字符**：字体基线偏移在 14px 的圆里肉眼可见，`line-height` 怎么调都只是把偏差挪个方向。用 `::before` / `::after` 两条 `7px × 1px` 的细线，`grid-area: 1 / 1` 叠在同一格、`place-items: center` 居中后各转 ±45°，bar 自己的盒中心就是单元格中心，旋转不改变中心 —— 几何上精确居中。
-- **删除「正在用的那一个」必须同时收掉它的使用方**：背景要退回默认底图、滤镜要退回「标准」并重算参数、音乐要暂停 + 清 `audioRef` + 退回默认曲目。只从数组里 filter 掉会留下一个指向已删项的引用，本地文件的 `blob:` 还会在被回收后变成哑巴。回收 `blob:` 的顺序是**先停播放再 revoke**。
-- **播放/轮播里要读最新列表时用 `ref`**：`startSource` 是稳定引用的 `useCallback`，闭包里只能拿到首次渲染的列表，自定义项永远接不上。写 `tracksRef.current = allTracks` 每帧同步。
-- **返回 `Promise<boolean>` 的上下文方法不要顺手设全局 error**：调用方（弹窗）要自己显示错误，两处都设会在面板和弹窗同时飘两条。`addTrack` / `previewUrl` 就是只返回成败。
-- **试听必须用独立播放器，不能借主播放器**：`MusicProvider` 里 `preview` 是一整套独立的 `audio` 元素 + `analyser` + `track/playing/currentTime/duration`。借用主播放器（哪怕把现场扣下来备份）会让舞台那张「正在播放」卡片跟着试听一起变 —— 用户只是想听一下地址对不对，台面上的歌不该被顶掉。现在 `beginPreview()` 只做两件事：记住外面在不在放（`previewWasPlayingRef`）、`pause()`；`endPreview()` 清空试听 + 原本在放的 `play()` 一下，位置和频谱节点全在，无缝续上。`playing` 要在 `pause()` 之前读（`paused` 同步翻转）；`beginPreview` 要挡重复调用（StrictMode 双跑）；「添加成功」那条分支关窗时传 `endPreview(false)`，否则刚加的那首会被外面的播放盖掉。
-- **试听状态在关窗时一并清掉**（`endPreview` 里调 `stopPreview`），下次打开是一张空卡片（`等待试听 / 尚未选择音乐 / 0:00 / --:--`），不留上一首的残影。没有可播内容时 `NowPlayingCard` 不传 `onToggle`，圆环退回纯装饰。
-- 礼物目录外的自定义礼物要能持久显示：行来源是 `Object.keys(giftPrices) ∪ 本次出现过的 giftTotals`，再减去内置目录。
-- **`blob:` URL 不能持久化**，刷新后必然失效。写 `localStorage` 和读 `localStorage` 两边都要过滤（`!url.startsWith('blob:')`），只写过滤不够 —— 老数据里可能已经存进去了。
-- **交给别处的对象 URL 不能再 revoke**：弹窗里预览本地图会 `URL.createObjectURL`，关闭时 revoke 是对的；但一旦点「确定」把地址交给了别的组件，revoke 会让那边变空白。用 `committedRef` 标记「已交付」，cleanup 里跳过。
-- 「无背景」这类开关**只控制渲染，不清数据**：`backgroundMode === 'none'` 时跳过 `backgroundImage`，`backgroundUrl` 留着，切回「固定」立刻恢复。点预设 / 添加背景要顺手从 `none` 切回 `fixed`，否则用户点了看不见东西。**正因为数据留着，胶囊的选中态不能只看 URL**：要写 `backgroundMode !== 'none' && backgroundUrl === url`，否则台上空了、胶囊还绿着，看着像「既没背景又选了那张」。
-- **`PresetChip` 的 `active` 要同步 `aria-pressed`**：`Button` 的 `active` 只加了个 CSS 类，选中态纯粹是颜色差异，读屏用户完全摸不到。三处预设列表都走 `PresetChip`，在它里面传一次就够。
+- 持久化统一 `localStorage`，键前缀 `ailive.`；写入放 `useEffect`，updater 保持纯函数。**只存配过的项 / 非默认值**（弹幕指令只存被关掉的），空值删键。
+- 「打开抽屉时同步草稿」用 `wasOpenRef` 判上升沿。`LiveDataProvider` 通过 `useLiveServer` 持有唯一一条 SSE；`MIN_REPLY_INTERVAL_MS = 6000`。
+- **自定义项 = 内置数组 + 用户数组**（背景 / 音乐 / 滤镜），靠 `id.startsWith('custom:')` 区分可删。
+- **胶囊的 hover 和 active 必须是两种颜色**：hover 走中性提亮（`$bg-hover` + `$border-strong` + `$text`），active 才是绿底（`$accent-chip-fill`）。外观预设这种「再点一次取消」的多选组，两者同色就分不清哪个是真选中的。选中项被悬停时由 `.chip.active:hover:not(:disabled)`（比 `.chip:hover:not(:disabled)` 多一个类）保持绿色、只把底色提亮到 `$accent-fill-hover`，否则会看着像刚被取消。
+- **`PresetChip` 自带 `Tooltip`**（外层是 block 触发器，所以胶囊要 `width: 100%` 才撑满栅格）。调用点**不要再套一层** `Tooltip`，否则弹两个气泡；`ChipRemove` 上的 `data-tooltip-ignore` 负责让删除角标不弹提示。名字被省略号截断时，提示是看全名的唯一入口。
+- **预设胶囊统一 `PresetChip`**（背景 / 滤镜 / 音乐 / 人声 / 粒子 / 外观），`onRemove` 决定有没有角标；角标是 `ChipRemove`：`span + role="button"` 套在 `<button>` 里，要 `stopPropagation`、空格 `preventDefault`、带 `data-tooltip-ignore`，hover 铺 `rgba(255,255,255,.12)` 半透明白。**带角标的胶囊要文字真居中，左侧补 `&::before { flex: 0 0 14px }`**，只写 `text-align: center` 会偏左（代价是长名字更早截断）。`active` 要同步 `aria-pressed`。**外观预设是多选**，同一排可以同时亮好几个。**胶囊里的长文字必须包一层 `.label`** —— `Button` 是 `inline-flex`，直接给它写 `text-overflow` 对匿名 flex 子项无效。
+- **小图标里的「×」不要用字符**（基线偏移调不平）：两条 `7px × 1px` 细线 + `grid-area: 1 / 1` + `place-items: center` + ±45°。
+- **删「正在用的那一个」必须同时收掉使用方**：背景退回默认底图、滤镜退回「标准」、音乐暂停 + 清 `audioRef` + 退回默认曲目。`blob:` **先停播放再 revoke**。
+- **播放/轮播里要读最新列表用 `ref`**（`tracksRef.current = allTracks`），稳定引用的 `useCallback` 闭包拿不到新列表。
+- **返回 `Promise<boolean>` 的上下文方法不要顺手设全局 error**，提示交给调用方。
+- **试听必须独立播放器**（独立 `audio` + `analyser` + 状态），借用主播放器会让舞台「正在播放」卡片跟着变。`beginPreview` 在 `pause()` 前读 `playing`、挡重复调用；`endPreview(false)` = 已有新曲目、别恢复外面播放；关窗 `stopPreview()` 清干净。
+- 礼物目录外的礼物行来源 = `giftPrices` ∪ 本次 `giftTotals` − 内置目录。**`blob:` 不能持久化**，读和写两边都过滤；**交给别处的对象 URL 不能再 revoke**（`committedRef`）。
+- **礼物图标 = `public/gifts/<icon>.svg` + `src/data/gifts.ts` 的 `DOUYIN_GIFTS`**（OpenMoji，72×72 + 黑 2px 描边）。目录按**单价升序**排，新礼物插到对应价位，别一律追加到末尾（`GiftMotionCard` 也照这个顺序）。目录外礼物渲染成 `?`，补法 = 下一张图 + 加一条目录。`giftPrice()` 先查用户 `prices` 再落默认值，加目录不会覆盖用户改过的价。
+- **挑图标要按实际尺寸（列表里 22px）和已有图标并排比**：只看 64px 大图会选到撞脸的（「你最好看」用带闪光的粉心 = 和「小心心」分不出，改成心形眼笑脸）。
+- **「无背景」只控制渲染、不清数据**：`backgroundMode === 'none'` 跳过 `backgroundImage`；点预设 / 添加背景要顺手切回 `fixed`。**胶囊选中态要写 `backgroundMode !== 'none' && backgroundUrl === url`**。
+- **背景换图是交叉淡入淡出**：旧图保持 `opacity: 1` 垫底、新图 0→1（两层同时淡会透底色、像闪）。新图先 `new Image()` 预载；旧层用 `setTimeout` 卸载（动画被关掉时 `animationend` 不会来），`BACKGROUND_FADE_MS` 与 `$background-fade` 手动对齐。
+- **「固定 / 循环 / 随机」四处共用 `PresetRotateMode`**（`StageProvider/presets.ts`，间隔 `PRESET_ROTATE_INTERVAL_MS = 12000`）。`pickNextIndex` 的随机分支偏移取 `[1, length-1]` —— `Math.random() * length` 有 1/n 概率连着同一个，看着像没切换。
+- **自动切换的 effect 依赖里带当前预设**（换完重跑、计时重置，手动点也不会「刚点完就被换走」）；配套要求 `handleXxxPresetChange` 必须 `useCallback`，每次渲染换新函数会让计时器永远重启。**关掉粒子 / 滤镜时要暂停**（`!enabled` 直接 return），否则重新打开会看到一个没选过的效果。
+- **粒子和滤镜的胶囊都写 `active={enabled && preset === id}`**：关掉整排都该灭（两处已统一，别只给粒子加 `enabled &&`）。
+- **开关只管「渲染与否」，不许顺手改选中项**：`filterEnabled` 关掉时 `filterPreset` 和那套参数原样留着，重新打开要回到关掉前的样子 —— 旧代码在 `onEnabledChange` 里 `handleFilterPresetChange('standard')`，一关一开用户选的滤镜就没了。**只有选中项已经指不到东西（自定义滤镜被删）才退回「标准」**；删预设时也**只退参数和选中项、不动开关**（关着的时候删一个不能自己弹回开启）。
 
 ## 触发动作（Live2D）
 
-- 礼物动作是**按模型分别配**的：`giftMotions: Record<礼物, Record<模型 id, 动作名>>`。舞台同时渲染所有模型，所以礼物到达时要遍历 `modelSources` 逐个 `updateCharacter(id, …)`，不能只改 `updateActiveCharacter`。
-- 旧格式（`Record<礼物, 动作名>`）靠通配键 `GIFT_MOTION_ANY_MODEL = '*'` 兜底：解析时 `entry[modelId] ?? entry['*']`，用户在弹窗里确认一次就展开成具体模型。
-- `CharacterState.motionNonce` 是重放计数器。**同一个动作值没变时 Live2D 不会重播**，靠 nonce 自增绕过；`Live2D` 的 `applyModelProps` 里 `motionReplay = (next.motionNonce ?? 0) !== entry.motionNonce`，和 `motionChanged` 取或。
-- 礼物动作走**队列**，不是「最新礼物决定当前动作」：`useLiveServer` 每 400ms flush 一次，一个窗口里可能挤进好几条礼物，只认 feed 末尾那条会丢掉其余。入队认 `douyinRoom.feed`（靠 `queuedGiftIdRef` 记最大已入队 id 挑新的，`feed` 变空说明重连过，id 计数要归零），出队认 `giftTick` 计数器，播放窗口用 `setTimeout` 推进。
-- **播放窗口的定时器绝不能放 effect 的 cleanup**：cleanup 每次依赖变化都执行，会把「窗口结束」信号提前吃掉，队列直接卡死。
-- 礼物动作**优先级高于说话动作**：开播时给 `CharacterState.motionHoldUntil` 写 `Date.now() + 1200`，`Live2D` 里 `speakingStarted` 触发 `speakMotion` 前比一下。用时间戳而不是布尔标志 —— 说话可能持续好几秒，布尔标志没人清会永久锁死后续说话动作。
-- **坑**：`applyModelProps` 里 `entry.motionHoldUntil = next.motionHoldUntil` 在判断之前赋值，守卫必须读 `next.motionHoldUntil`（或在赋值前算好），读 `entry` 拿到的是刚被覆盖的新值。
-- 由弹幕驱动的 effect，依赖里必须带 `characterStates`（模型加载约 2.8s，比礼物晚到），同时用 `ref` 防止配置一改就重放上一条。
-- 多模型时还有一层：manifest 并行加载，先就绪的模型不能把礼物「用掉」。用 `pendingModelsRef` 记没就绪的模型，effect 重跑时只补这几个。
-- `LiveFeedItem['id']` 是 `number`，`useRef` 的类型要写全。
-- **舞台字幕只反映 `activeMotion` 状态，看不到说话动作**：`speakMotion` 是 `Live2D` 内部直接调 `model.motion()`，不经过 React state。要观测它只能在运行时 hook 模型类或加临时探针。
+- 礼物动作**按模型分别配**（`giftMotions: Record<礼物, Record<模型 id, 动作名>>`），到达时遍历 `modelSources` 逐个 `updateCharacter`；旧格式靠 `GIFT_MOTION_ANY_MODEL = '*'` 兜底。
+- **`activeMotion` 只归用户所有**（`ModelControlPanel` 里点的那一下），它同时是列表选中态、说话触发动作和舞台字幕。礼物等外部触发走 `overrideMotion` + `overrideNonce`（一次性、不回写选中）—— 否则送一次礼物就把用户选的预设顶掉。`Live2D` 里三档优先级：换预设 > 一次性动作 > 开口重播预设，必须是同一条 `else` 链。
+- 礼物动作走**队列**：`queuedGiftIdRef` 记最大已入队 id（`feed` 变空 = 重连，归零），`giftTick` 推进，播放窗口用 `setTimeout`。**窗口定时器绝不能放 effect 的 cleanup**，否则队列卡死。
+- 礼物动作**优先级高于说话**：`motionHoldUntil` 用时间戳（布尔没人清会永久锁死）。**坑**：`applyModelProps` 里先赋值后判断，守卫必须读 `next.motionHoldUntil`。
+- 弹幕驱动的 effect 依赖要带 `characterStates`（模型比礼物晚到约 2.8s），并用 `ref` 防重放。多模型 manifest 并行加载：`pendingModelsRef` 记没就绪的，重跑时只补这几个。
+- **说话触发动作 = 动作预设里选中的那一项**，没有独立的 `speakingMotion` / `speakMotion` 字段（都删了）：`applyModelProps` 里「开始说话」直接用 `next.motion` 重播一次，且必须是 `else if` —— 切预设和开口撞在同一帧时 `if` 分支已经播过，再调一次会把动作从头重启。
+- `LiveFeedItem['id']` 是 `number`。舞台字幕反映的就是 `activeMotion`，说话时重播同一个动作，所以字幕不用额外标注「说话中」；**礼物动作不会改它**。
+
+## 弹幕指令
+
+- 格式 `[关键字|限定词…]内容`。元数据 + 解析在 `src/data/chatCommands.ts`，执行在 `src/hooks/useChatCommand`，排队发声在 `AiChatProvider`。
+- **动作立刻执行，反馈进 AI 队列**。优先级 `gift 30 > member 20 > command 15 > chat 10`，共用 `MIN_REPLY_INTERVAL_MS`。绕开弹幕冷却与「同内容只答一次」，但有 `COMMAND_USER_COOLDOWN_MS = 3000` 的每人节流，**动作和反馈一起挡**。
+- **不依赖 `autoReply` 开关**：`pickNext(allowAi)` 在 `!autoActive` 时只挑 command，没配 Key 也能用；被关掉的指令当普通弹幕交给 AI。
+- 模型指令由**点名角色**说（`speakerFor`），舞台指令走 `nextSpeaker()` 轮转。反馈文案是执行结果本身，**不经过 LLM**，失败也要说「没有找到…」。
+- **切换方式也做成指令**：`[粒子|固定 / 循环切换 / 随机切换]`、`[滤镜|…]`（共 6 条，模板写成无变量的 `[粒子|固定]`）。执行时**顺带打开对应开关**，否则关着的时候设了模式什么也看不见。
+- **已知不一致（未修）**：`parseChatCommand` 注释里「`[背景|电影]` 和 `[背景]电影` 两种写法都收」是假的 —— 名字放在 `|` 后面时 `payload` 为空、直接 `return null`。实测 `[背景|电影]` 不动、`[背景]赛博` 正常。
+- 配置面板每条模板下面列「现在能填哪些名字」。**模板里的变量一律以「名称」结尾**（`$角色名称` / `$外观名称` / `$音色名称` / `$背景名称` / `$特效名称` / `$滤镜名称` / `$音乐名称`），和示例行的真实值 `[外观|DS 鲸鱼娘]love` 一眼分开；**模板不做任何替换**，示例行才用真实值。
+- **提示只列「台上看得见的模型」**（`modelVisible !== false`）；**外观 / 外观清除两条再筛掉没有外观的模型**（`manifest.expressions` 为空），清空后返回空数组，渲染端用 `hint.length > 0` 兜住。**音色不筛外观**。
+- **提示行是结构化的**：`HintLine = { label, value }[]`，一段一个「标签 + 内容」，标签 `$text-faint` / 内容 `$text-soft` —— 一行能填好几个名字，同色看不出哪段是键。**段间只留间距不加分隔符**（`.optionPart + .optionPart { margin-left: 10px }`）。
+- **`Tooltip` 的 `title` 是 `ReactNode` 不是 `string`**（分色、分段只能靠节点）；传字符串的老调用方不受影响。**多行用 `.tipLine + .tipLine { border-top }` 隔开**（多个角色 = 多行），两处复用同一组 `.optionPart / .optionLabel / .optionValue`（CSS Module 类名是全局的，portal 出去也不掉样式）。
+- **标题行里的说明图标**（「动作预设 ⓘ」）：内联 SVG（`currentColor` + `aria-hidden`，别用字符 `ⓘ`，基线会飘）+ `.labelWithHint { inline-flex; align-items: center; gap: 4px }` 兜住垂直居中；图标加 `role="img"` + `aria-label` + **`tabIndex={0}`**，否则 `<span>` 收不到 `onFocus`、键盘用户看不到提示。平时 `$text-faint`、hover / `:focus-visible` 提到 `$text-muted`，`cursor: help`。
 
 ## 构建与验证
 
-- `tsc -b` 必须加 `--force`。
-- 沙箱里 `vite build` 删 `dist` 会报 `[safe-delete]`，先 `mv dist /tmp/...` 再 build。
-- 本机 dev server 只监听 `[::1]:5173`，Playwright 必须用 `http://localhost:5173/`；重负载页面（Live2D + swiftshader）约 17fps，固定延迟采样抓不准，要用页面内 `setInterval` / `rAF` 采样器。
-- Playwright 在 `C:\Users\Lenovo\AppData\Local\Temp\pwcheck`，`channel: 'chrome'`，`--use-gl=angle --use-angle=swiftshader`。
-- CSS 模块类名会被哈希化（`_grid_f1nvh_19`），不要用 `[class*="..."]` 定位，改用 `aria-label` 或 `role`。
-- **`Segmented` 不是 button**：容器是 `role="radiogroup"`、每一段是 `role="radio"`，`getByRole('button', { name: '无背景' })` 会一直等到超时，要用 `getByRole('radio', ...)`。当前选中项靠 `aria-checked="true"` 读。
-- **`Modal` 的标题容器是 `.header` + `<h2>`**，类名被哈希化，Playwright 里 `dialog.locator('header')` 会超时，用 `h2` 定位。弹窗面板本身是 `<section role="dialog">`，**不是原生 `<dialog>` 元素** —— `waitForSelector('dialog')` 会一直等到超时，要用 `[role="dialog"]`；注意这个面板自己就是 `section`，所以面板内 `.locator('section')` 取到的是内容里的 `Card`（如 `NowPlayingCard`），不是面板本身。
-- 应用挂载约需 2.8s，mock EventSource 的计时从「组件挂载后」才开始，别用 `goto` 后的绝对时间戳判断。
+- `tsc -b` 必须 `--force`；`vite build` 前先 `mv dist /tmp/...`（沙箱 safe-delete）。
+- **沙箱里 `cdn.jsdelivr.net` 被 SSL 拦（`schannel: failed to receive handshake`），但 `raw.githubusercontent.com` 通** —— 要素材（OpenMoji 等）直接 `curl https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/svg/<CODE>.svg`。
+- Playwright 在 `C:\Users\Lenovo\AppData\Local\Temp\pwcheck`，`channel: 'chrome'`，`--use-gl=angle --use-angle=swiftshader`，访问 `http://localhost:5173/`。重负载页面约 17fps，用页面内采样器。
+- **CSS 模块类名会哈希化**，别用 `[class*="..."]`，改用 `aria-label` / `role` / `data-*`。**`Segmented` 是 `radiogroup` + `radio`**（`aria-checked`）；**`Modal` 是 `<section role="dialog">`**，标题用 `h2`；**`Switch` 是原生 `<input type="checkbox" role="switch">`**，`aria-checked` 属性不存在，用 `getByRole('switch').isChecked()`。
+- 应用挂载约 2.8s。mock 直播流：`page.addInitScript` 替换 `window.EventSource` 并暴露 `__push`，feed 每 400ms flush，推完等 600ms。
+- **验 Live2D 真被调了哪个动作**：拿 `performance.getEntriesByType('resource')` 里 `pixi-live2d-display` 那条**带 `?v=` 的完整 URL** 去 `page.evaluate` 里 `import()`，得到同一个模块实例，改 `Live2DModel.prototype.motion` 记参数即可。
+- **没配 Key 也能驱动「说话」**：`addInitScript` 种 `ailive.volcengine-tts-config`（假 apiKey），`page.route('**/volcengine-tts')` 回一行 `{code:20000000, data:<base64>}` 的 NDJSON。`useTts` 在 `await audio.play()` 之前就 `setSpeakingModel()`，blob 解不出音频（控制台报 "no supported source"）也足够让 `speaking` 翻一次 true。
+- **抽屉 `scrollable={false}` 时内容要自己撑满高度**：`Tabs` 的 `.root` 是 `height: 100%`、`.panel` 自己滚。
+- **读「哪个胶囊被选中」用 `aria-pressed`**（`PresetChip` 同步的），别只看背景色 —— 悬停那一颗也有提亮背景。要读颜色就先 `page.mouse.move(2, 2)` 并等 200ms 以上。

@@ -23,13 +23,27 @@
   line-height: 1.4;
 }
 
-/// 细滚动条。
+/// 细滚动条。**平时透明，鼠标移进容器才显形** —— 列表边上常年挂着一根灰条太吵。
+/// 显形靠 `useHoverScrollbar` 挂的 `data-scroll-hover`：Chromium 不会因为容器 `:hover`
+/// 去重新解析 `::-webkit-scrollbar-thumb`，只能由 JS 换属性触发样式重算。
 /// 只用 -webkit- 伪元素：一旦写了 scrollbar-color / scrollbar-width（且不为 auto），
 /// Chrome 121+ 就会忽略 ::-webkit-scrollbar 的圆角与 hover 变色，只能得到方块状的 thumb。
+///
+/// 轨道宽 `$scrollbar-size`，这 12px 是从容器的 padding box 里切走的 ——
+/// 内容区右侧会凭空比左侧少 12px，和同级的整宽按钮也差一截。所以滚动容器必须把它让出来：
+///   · 自己就是最外层（面板 / 抽屉 / 弹窗的内容区）→ 把 `padding-right` 减 `$scrollbar-size`
+///   · 嵌在别人的留白里（预设网格、卡片里的列表）→ `@include scroll-bleed` 把滚动条推出去
 @mixin scroll-thin {
+  // 不管内容溢没溢出都把这 12px 留着：
+  //   · 内容从「刚好放下」变成「要滚」时，右边不会突然少掉 12px（不会抖一下）
+  //   · 上面那套让位（padding-right 减 12 / scroll-bleed）才有确定的对齐基准 ——
+  //     只在真溢出时才出现滚动条的话，内容刚好放得下时留白会少 12px、胶囊反而突出去
+  scrollbar-gutter: stable;
+
   &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    // 12 = 6px 滑块 + 左右各 3px 空隙。透明时也占着，显形时不会把内容挤一下
+    width: $scrollbar-size;
+    height: $scrollbar-size;
   }
 
   &::-webkit-scrollbar-track {
@@ -37,17 +51,32 @@
   }
 
   &::-webkit-scrollbar-thumb {
+    // 透明边框 + padding-box：滑块和列表之间留出 3px，别贴着内容。
+    // 注意下面只能用 background-color，写成 background 简写会把 background-clip 重置回 border-box
+    border: 3px solid transparent;
+    background-clip: padding-box;
     border-radius: 999px;
-    background: #4a6a78;
+    background-color: transparent;
+  }
 
-    &:hover {
-      background: #5d8492;
-    }
+  &[data-scroll-hover]::-webkit-scrollbar-thumb {
+    background-color: #4a6a78;
+  }
+
+  // 指针压到滚动条上时再亮一档，拖起来有反馈
+  &[data-scroll-hover]::-webkit-scrollbar-thumb:hover {
+    background-color: #5d8492;
   }
 
   &::-webkit-scrollbar-corner {
     background: transparent;
   }
+}
+
+/// 把滚动条推进外层的右留白里：内容右边缘和同级整宽元素（整宽按钮、滑块）对齐。
+/// 外层右侧留白必须 ≥ `$scrollbar-size`，否则会撑出横向滚动条。
+@mixin scroll-bleed {
+  margin-right: -$scrollbar-size;
 }
 
 /// 状态小圆点（顶栏「系统在线」、舞台「LIVE PREVIEW」共用）

@@ -94,6 +94,8 @@
     // 关键：grid 默认 align-content 是 stretch，行数少时会把多余高度平摊给每一行，
     // 三条回复就能被撑成三块 200px 高的空卡片。改成 start 让行按内容高度排、空白留在底部
     align-content: start;
+    // 滚动条推进抽屉面板的 22px 右留白里，否则每条回复右边都比左边少 12px
+    @include scroll-bleed;
     @include scroll-thin;
   }
 

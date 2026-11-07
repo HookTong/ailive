@@ -9,13 +9,22 @@
   @include section-title;
 }
 
+// 滚动条推进区块外的右留白里，胶囊右边缘和下面的「展开细粒度控制」对齐
 .presets {
-  margin: 0 0 4px;
-  padding-right: 3px;
+  margin-bottom: 4px;
+  @include scroll-bleed;
 }
 
+// 下边距必须归零：按钮是 inline-flex，它的**外边距盒**会算进行盒高度，
+// 留 2px 的话下面那行切换方式的实际间距就变成 10px（见 .modeSwitch）
 .detailToggle {
-  margin: 8px 0 2px;
+  margin: 8px 0 0;
+}
+
+// 切换方式：只写外边距，display 交给 Segmented 的 .block。
+// 四个切换方式统一和上方组件隔 12px
+.modeSwitch {
+  margin-top: 12px;
 }
 
 .fineControls {

@@ -7,9 +7,16 @@ export type BubbleMode = 'speaking' | 'always'
 export type CharacterState = {
   manifest: ModelManifest | null
   configError: boolean
+  /**
+   * 动作预设的选中项。**只由用户在控制台里选**，同时也是「说话时触发的动作」。
+   * 礼物等外部触发的一次性动作走 overrideMotion，不许回写这里 ——
+   * 否则送一次礼物就把用户选的预设顶掉了。
+   */
   activeMotion: string
-  /** 动作重放计数：同一个动作被再次触发时自增，Live2D 靠它区分「值没变但要重播」 */
-  motionNonce: number
+  /** 一次性动作（礼物触发）：播完不影响 activeMotion，也不改变说话触发动作 */
+  overrideMotion: string
+  /** 一次性动作的重放计数：同一个动作被再次触发时自增，Live2D 靠它区分「值没变但要重播」 */
+  overrideNonce: number
   /**
    * 礼物动作的独占截止时间（毫秒时间戳）。
    * 在此之前说话动作不许抢 —— 礼物优先级高于「开始说话」触发的动作。
@@ -22,8 +29,6 @@ export type CharacterState = {
   /** 模型在舞台上是否可见 */
   modelVisible: boolean
   bubbleMode: BubbleMode
-  /** 说话时触发的动作分组名，空串表示不触发 */
-  speakingMotion: string
 }
 
 export type ModelContextValue = {

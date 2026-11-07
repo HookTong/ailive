@@ -1,8 +1,11 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
+// 左右留白都取 24px —— 右侧要减掉滚动条那 12px，内容才不会整体偏左
+$pad-x: 24px;
+
 .panel {
-  padding: 28px 24px 16px;
+  padding: 28px ($pad-x - $scrollbar-size) 16px $pad-x;
   min-height: 0;
   overflow-y: auto;
   border-right: 1px solid $border;
@@ -54,6 +57,32 @@
 
 .count {
   color: #5e747f;
+}
+
+// 标题 + 说明图标：图标是 12px 的 SVG，靠 flex 才能和 12px 的字垂直居中对齐
+.labelWithHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// 「动作预设」后面那颗 i：比标题暗一档，悬停 / 键盘聚焦时提亮到标题色
+.hintIcon {
+  display: inline-flex;
+  color: $text-faint;
+  cursor: help;
+  transition: color $ease;
+
+  &:hover {
+    color: $text-muted;
+  }
+
+  &:focus-visible {
+    color: $text-muted;
+    border-radius: 50%;
+    outline: 1px solid $accent-line;
+    outline-offset: 2px;
+  }
 }
 
 .picker {
@@ -211,39 +240,61 @@
   line-height: 1.4;
 }
 
+// 动作预设：外面不套框，每一行自己带边框。
+// 滚动条推进面板的右留白里，行块左右边缘才能和上面的「动作预设 / 8」、下面的按钮对齐
 .motionList {
   margin-top: 10px;
-  padding-right: 4px;
+  @include scroll-bleed;
 }
 
+// 每行自己是一颗「宽胶囊」：静止 = 内嵌底色 + 常规描边，
+// 悬停 = 中性提亮，选中 = 绿底。和预设胶囊同一套语言，别在这里另起一套
 .motion {
-  border: 0;
-  background: transparent;
-  color: #8fa1a9;
   display: flex;
   align-items: center;
   gap: 12px;
-  text-align: left;
-  padding: 10px 8px;
+  padding: 9px 8px;
+  border: 1px solid $border-input;
   border-radius: $radius;
+  background: $bg-inset;
+  color: #8fa1a9;
   font-family: $font-ui;
   font-size: 13px;
+  text-align: left;
   cursor: pointer;
+  transition: border-color $ease, background $ease, color $ease;
 
   &:hover {
+    border-color: $border-strong;
     background: $bg-hover;
     color: $text;
   }
 }
 
-.motionActive {
-  background: $bg-hover;
-  color: $text;
+// 用两级选择器压过 `.motion:hover`（同为 0,2,0，靠源码顺序决胜），
+// 否则鼠标停在已选动作上会变成中性色，看着像没选中
+.motion.motionActive {
+  border-color: $accent-chip-line;
+  background: $accent-chip-fill;
+  color: $accent-text;
+
+  .motionIcon {
+    color: $accent-soft;
+  }
+
+  .motionCopy small {
+    color: #8fc4b4;
+  }
 
   .play {
     color: #64dfc1;
     font-size: 9px;
   }
+}
+
+// 已选项再被悬停：保持绿色，只把底色提亮一档
+.motion.motionActive:hover {
+  background: $accent-fill-hover;
 }
 
 .motionIcon {
@@ -274,9 +325,11 @@
   color: #637b86;
 }
 
+// 外观预设：和粒子 / 滤镜那几组一样是胶囊网格。
+// 滚动条推进面板的右留白里，胶囊右边缘才能和下面的「清除外观」对齐
 .expressionList {
   margin-top: 10px;
-  padding-right: 4px;
+  @include scroll-bleed;
 }
 
 // 清空已选外观
@@ -288,50 +341,19 @@
   }
 }
 
-.expression {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  min-height: 34px;
-  padding: 9px 8px;
-  border: 1px solid transparent;
-  border-radius: $radius-sm;
-  background: transparent;
-  color: #8fa1a9;
-  font-family: $font-ui;
-  font-size: 13px;
-  text-align: left;
-  @include ellipsis;
-  cursor: pointer;
-
-  &:hover {
-    border-color: #31514f;
-    background: $bg-hover;
-    color: $text;
-  }
-}
-
-.expressionActive {
-  border-color: #31514f;
-  background: $bg-hover;
-  color: $text;
-}
-
-.expressionMark {
-  flex: 0 0 auto;
-  color: $accent;
-  font-size: 9px;
-}
-
 .loading {
   padding: 12px 8px;
   color: #718691;
   @include mono(12px);
+  // 网格里的占位要横跨整行，否则只占第一列
+  grid-column: 1 / -1;
 }
 
-.sizeBlock {
+// 「模型大小」只有一根滑块，上沿的空隙得和别的块一致。
+// Slider 自带 margin-top: 12px（它上面通常直接接标题或别的控件，需要这点呼吸感），
+// 再叠上外面 `.block` 的 20px 下边距，两块之间就成了 32px，看着比别处空一大截。
+// 两级选择器压过 Slider 自己的单类规则，别指望打包顺序
+.sizeBlock .sizeSlider {
   margin-top: 0;
 }
 

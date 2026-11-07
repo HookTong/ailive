@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { PARTICLE_PRESETS, type ParticlePreset, type ParticlePresetSettings } from '../../components/Atmosphere'
 import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from '../../components/FilterSetting'
-import { BACKGROUND_CYCLE_INTERVAL_MS, BACKGROUND_PRESETS, type BackgroundPreset } from './presets'
+import {
+  BACKGROUND_CYCLE_INTERVAL_MS,
+  BACKGROUND_PRESETS,
+  PRESET_ROTATE_INTERVAL_MS,
+  type BackgroundPreset,
+  type PresetRotateMode,
+} from './presets'
 import { StageContext, type BackgroundMode, type StageContextValue } from './StageContext'
 
 const DEFAULT_BACKGROUND_URL = '/background.png'
@@ -66,6 +72,18 @@ function createParticlePresetConfigs(): Record<ParticlePreset, ParticlePresetSet
   ) as Record<ParticlePreset, ParticlePresetSettings>
 }
 
+/**
+ * 自动切换时挑下一个下标。
+ * 随机模式下直接 `Math.random() * length` 有 1/n 的概率连着两次同一个，
+ * 看起来就像「没切换」—— 偏移量取 `[1, length-1]` 天然排除自己。
+ */
+function pickNextIndex(length: number, currentIndex: number, mode: PresetRotateMode): number {
+  if (length <= 1) return 0
+  const base = currentIndex < 0 ? 0 : currentIndex
+  if (mode === 'random') return (base + Math.floor(Math.random() * (length - 1)) + 1) % length
+  return (base + 1) % length
+}
+
 type StageProviderProps = {
   children: ReactNode
 }
@@ -86,14 +104,18 @@ export function StageProvider({ children }: StageProviderProps) {
     () => createParticlePresetConfigs()
   )
   const [particlePreset, setParticlePreset] = useState<ParticlePreset>('stardust')
+  const [particleMode, setParticleMode] = useState<PresetRotateMode>('fixed')
   const [particleIntensity, setParticleIntensity] = useState(PARTICLE_PRESETS[0].intensity)
   const [particleSpeed, setParticleSpeed] = useState(PARTICLE_PRESETS[0].speed)
   const [particleOpacity, setParticleOpacity] = useState(PARTICLE_PRESETS[0].opacity)
   const [particleColor, setParticleColor] = useState(PARTICLE_PRESETS[0].color)
   const [particleSize, setParticleSize] = useState(PARTICLE_PRESETS[0].size)
 
-  const [filterEnabled, setFilterEnabled] = useState(true)
+  // 开关和选中项分开存：关掉只是「不渲染」，选中项和那套参数都留着。
+  // 对外暴露的是 handleFilterEnabledChange（带「选中项还在不在」的兜底），不是这个裸 setter
+  const [filterEnabled, setFilterEnabledState] = useState(true)
   const [filterPreset, setFilterPreset] = useState<FilterPreset>('standard')
+  const [filterMode, setFilterMode] = useState<PresetRotateMode>('fixed')
   const [filterBrightness, setFilterBrightness] = useState(1)
   const [filterContrast, setFilterContrast] = useState(1)
   const [filterSaturation, setFilterSaturation] = useState(1)
@@ -171,7 +193,8 @@ export function StageProvider({ children }: StageProviderProps) {
     }))
   }
 
-  const handleParticlePresetChange = (nextPreset: ParticlePreset) => {
+  // useCallback 是必须的：自动切换的 effect 依赖它，每次渲染换一个新函数会让计时器永远重启
+  const handleParticlePresetChange = useCallback((nextPreset: ParticlePreset) => {
     const config = particlePresetConfigs[nextPreset]
     if (!config) return
     setParticlePreset(nextPreset)
@@ -180,7 +203,7 @@ export function StageProvider({ children }: StageProviderProps) {
     setParticleSpeed(config.speed)
     setParticleOpacity(config.opacity)
     setParticleSize(config.size)
-  }
+  }, [particlePresetConfigs])
 
   const handleParticleColorChange = (color: string) => {
     setParticleColor(color)
@@ -207,44 +230,98 @@ export function StageProvider({ children }: StageProviderProps) {
     updateParticleSetting('size', size)
   }
 
-  const handleFilterPresetChange = (id: FilterPreset) => {
-    const preset = FILTER_PRESETS.find((item) => item.id === id) ?? customFilterPresets.find((item) => item.id === id)
-    if (!preset) return
-    setFilterPreset(id)
-    setFilterEnabled(true)
+  /** 把一套滤镜参数铺到舞台上。只管参数 —— 开关和选中项由调用方决定 */
+  const applyFilterPreset = useCallback((preset: { brightness: number; contrast: number; saturation: number; blur: number; vignette: boolean }) => {
     setFilterBrightness(preset.brightness)
     setFilterContrast(preset.contrast)
     setFilterSaturation(preset.saturation)
     setFilterBlur(preset.blur)
     setVignette(preset.vignette)
-  }
+  }, [])
+
+  const handleFilterPresetChange = useCallback((id: FilterPreset) => {
+    const preset = FILTER_PRESETS.find((item) => item.id === id) ?? customFilterPresets.find((item) => item.id === id)
+    if (!preset) return
+    setFilterPreset(id)
+    setFilterEnabledState(true)
+    applyFilterPreset(preset)
+  }, [customFilterPresets, applyFilterPreset])
+
+  // 内置 + 自定义，自动切换按这个顺序走
+  const allFilterPresets = useMemo(
+    () => [...FILTER_PRESETS, ...customFilterPresets],
+    [customFilterPresets],
+  )
+
+  /**
+   * 开关舞台滤镜。
+   *
+   * 关掉只是「不渲染」，选中的预设和那套参数都原样留着 —— 重新打开要回到关掉前的样子。
+   * 所以这里**不能**顺手切到「标准」：那样用户关一下再开，选好的滤镜就没了、画面也回到原色。
+   * 唯一该退回「标准」的情况是选中项已经指不到东西 —— 关着的时候那个自定义滤镜被删了。
+   */
+  const handleFilterEnabledChange = useCallback((enabled: boolean) => {
+    if (!enabled) {
+      setFilterEnabledState(false)
+      return
+    }
+    if (allFilterPresets.some((item) => item.id === filterPreset)) setFilterEnabledState(true)
+    else handleFilterPresetChange('standard')
+  }, [allFilterPresets, filterPreset, handleFilterPresetChange])
+
+  /**
+   * 粒子自动切换。依赖里带 `particlePreset`：换完一次这个 effect 会重跑、计时自然重置，
+   * 手动点预设也会把计时重置（不会出现「刚点完就被换走」）。
+   * 关掉粒子时整段跳过 —— 后台默默换预设，重新打开时会看到一个没选过的效果。
+   */
+  useEffect(() => {
+    if (particleMode === 'fixed' || !particleEnabled) return
+    const timer = window.setTimeout(() => {
+      const index = PARTICLE_PRESETS.findIndex((item) => item.id === particlePreset)
+      handleParticlePresetChange(PARTICLE_PRESETS[pickNextIndex(PARTICLE_PRESETS.length, index, particleMode)].id)
+    }, PRESET_ROTATE_INTERVAL_MS)
+    return () => window.clearTimeout(timer)
+  }, [particleMode, particleEnabled, particlePreset, handleParticlePresetChange])
+
+  // 滤镜自动切换，规则和粒子一致
+  useEffect(() => {
+    if (filterMode === 'fixed' || !filterEnabled) return
+    const timer = window.setTimeout(() => {
+      const index = allFilterPresets.findIndex((item) => item.id === filterPreset)
+      const next = allFilterPresets[pickNextIndex(allFilterPresets.length, index, filterMode)]
+      if (next) handleFilterPresetChange(next.id)
+    }, PRESET_ROTATE_INTERVAL_MS)
+    return () => window.clearTimeout(timer)
+  }, [filterMode, filterEnabled, filterPreset, allFilterPresets, handleFilterPresetChange])
 
   const addCustomFilterPreset = (preset: CustomFilterPreset) => {
     setCustomFilterPresets((current) => [...current, preset])
     setFilterPreset(preset.id)
-    setFilterEnabled(true)
-    setFilterBrightness(preset.brightness)
-    setFilterContrast(preset.contrast)
-    setFilterSaturation(preset.saturation)
-    setFilterBlur(preset.blur)
-    setVignette(preset.vignette)
+    setFilterEnabledState(true)
+    applyFilterPreset(preset)
   }
 
   /**
    * 删掉一个自定义滤镜。
    * 删的正是当前滤镜时退回「标准」—— 不然画面还停在那套参数上，
    * 胶囊却没了，用户找不到是谁在起作用。
+   *
+   * 这里**只退参数和选中项，不动开关**：滤镜本来就关着的话，不能因为删了一个预设
+   * 就自己弹回开启。
    */
   const removeCustomFilterPreset = (id: FilterPreset) => {
     if (!customFilterPresets.some((item) => item.id === id)) return
     setCustomFilterPresets((current) => current.filter((item) => item.id !== id))
-    if (filterPreset === id) handleFilterPresetChange('standard')
+    if (filterPreset !== id) return
+    setFilterPreset('standard')
+    applyFilterPreset(FILTER_PRESETS[0])
   }
 
   const resetStage = () => {
     setBackgroundUrl(DEFAULT_BACKGROUND_URL)
     setBackgroundMode('fixed')
     setParticleEnabled(true)
+    setParticleMode('fixed')
     setParticlePresetConfigs(createParticlePresetConfigs())
     setParticleIntensity(PARTICLE_PRESETS[0].intensity)
     setParticleSpeed(PARTICLE_PRESETS[0].speed)
@@ -257,7 +334,8 @@ export function StageProvider({ children }: StageProviderProps) {
     setFilterSaturation(1)
     setFilterBlur(0)
     setFilterPreset('standard')
-    setFilterEnabled(true)
+    setFilterEnabledState(true)
+    setFilterMode('fixed')
     setVignette(true)
   }
 
@@ -272,6 +350,8 @@ export function StageProvider({ children }: StageProviderProps) {
     particleEnabled,
     setParticleEnabled,
     particlePreset,
+    particleMode,
+    setParticleMode,
     particleIntensity,
     particleSpeed,
     particleOpacity,
@@ -284,8 +364,11 @@ export function StageProvider({ children }: StageProviderProps) {
     handleParticleOpacityChange,
     handleParticleSizeChange,
     filterEnabled,
-    setFilterEnabled,
+    // 对外就是「开关」，不是裸 setter：重新打开时会把选中项还回去（见 handleFilterEnabledChange）
+    setFilterEnabled: handleFilterEnabledChange,
     filterPreset,
+    filterMode,
+    setFilterMode,
     filterBrightness,
     filterContrast,
     filterSaturation,
@@ -307,6 +390,7 @@ export function StageProvider({ children }: StageProviderProps) {
     customBackgrounds,
     particleEnabled,
     particlePreset,
+    particleMode,
     particleIntensity,
     particleSpeed,
     particleOpacity,
@@ -314,12 +398,16 @@ export function StageProvider({ children }: StageProviderProps) {
     particleSize,
     filterEnabled,
     filterPreset,
+    filterMode,
     filterBrightness,
     filterContrast,
     filterSaturation,
     filterBlur,
     vignette,
     customFilterPresets,
+    // 不放进依赖的话，value 会一直攥着第一次渲染时那个闭包，
+    // 里面的 filterPreset / customFilterPresets 都是旧的，兜底判断会失效
+    handleFilterEnabledChange,
   ])
 
   return (

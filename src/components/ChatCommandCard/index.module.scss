@@ -1,0 +1,115 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+// 舞台右下角的「弹幕指令」速查卡：和左下角的礼物动作面板同宽、同一套毛玻璃。
+// 整块可拖动（handlers 挂在 Card 根节点上），定位交给这里，外观来自 Card。
+.root {
+  position: absolute;
+  z-index: 8;
+  right: 24px;
+  bottom: 46px;
+  width: 268px;
+  color: #d9e8e3;
+  pointer-events: auto;
+  text-shadow: 0 1px 2px #061016;
+  cursor: grab;
+  touch-action: none;
+  // 和弹幕面板、礼物动作面板同一套尺寸规则：最多占舞台高度的 66%、封顶 540px，
+  // 超出部分交给列表自己滚。
+  // 注意：右下角这一列和上面的弹幕面板共用，弹幕攒多了会盖住这张卡的顶部 ——
+  // 四块浮层都是自由摆放的，重叠了就把这张卡拖走（或者点工具条上的「隐藏指令」）
+  display: flex;
+  flex-direction: column;
+  max-height: min(66%, 540px);
+  overflow: hidden;
+  // 底下的直播概览可能被这张卡盖住，底色比普通卡片再实一点，
+  // 否则两层毛玻璃叠在一起，底下的数字会透上来糊成一片
+  background: #09232bf2;
+}
+
+.root.dragging {
+  cursor: grabbing;
+}
+
+// 标题行只留间距。类名不能叫 .head —— Card 内部已经有一个 .head，
+// 两边都是单类选择器，谁生效取决于 CSS 打包顺序，所以换个名字、用两级选择器压
+.root .headRow {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+// 标题和数量都比 Card 的默认字号大一档：11px 在舞台背景上确实看不清
+.title {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.count {
+  font-size: 12px;
+}
+
+// 一句话说明这张卡是干什么的。11px 是这里能用的最小档，再小在舞台背景上就糊了
+.hint {
+  flex: 0 0 auto;
+  margin: 0 0 10px;
+  color: #7f9a93;
+  @include mono(11px);
+  line-height: 1.5;
+}
+
+// 列表是唯一可伸缩的块：内容少时按内容高度，内容多时吃掉剩余空间再自己滚。
+// min-height: 0 必须写，否则 flex 子项的自动最小尺寸会把面板撑破
+.list {
+  display: grid;
+  align-content: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  // 滚动条推进 Card 的 12px 留白里，例子右边缘和标题行对齐
+  @include scroll-bleed;
+  @include scroll-thin;
+}
+
+// 分类名：比例子暗一档，一眼能分出「这是标题、那是命令」
+.family {
+  margin-bottom: 5px;
+  color: #6f8a84;
+  @include mono(11px);
+  letter-spacing: 0.08em;
+}
+
+// 同一类的几条例子自动换行排开，不用一行一条（19 条全竖着排会把卡片撑得很长）
+.commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+// 例子**不是按钮**：只给静态底色的等宽字体块，别用胶囊那套 hover ——
+// 看着能点却点不动比没有交互更糟
+.command {
+  max-width: 100%;
+  padding: 3px 6px;
+  border: 1px solid #2b444d;
+  border-radius: $radius-sm;
+  background: #0d2b33b3;
+  color: #d9f0e6;
+  @include mono(11px);
+  line-height: 1.35;
+  // 一条指令从中间断开就看不出怎么拼了，宁可整条省略
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 760px) {
+  .root {
+    right: 10px;
+    bottom: 40px;
+    width: min(268px, calc(100% - 20px));
+  }
+}

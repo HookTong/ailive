@@ -2,14 +2,13 @@ import { useState } from 'react'
 import type { VolcengineVoicePreset } from '../../hooks/useTts/api'
 import { useVoice } from '../../hooks'
 import { Button } from '../Button'
-import { ChipRemove } from '../ChipRemove'
-import { DropdownSelect, type DropdownOption } from '../DropdownSelect'
+import { DropdownSelect } from '../DropdownSelect'
 import { Input, Textarea } from '../Input'
 import { Modal } from '../Modal'
+import { PresetChip } from '../PresetChip'
 import { RequiredMark } from '../RequiredMark'
 import { ScrollArea } from '../ScrollArea'
 import { Segmented, type SegmentedOption } from '../Segmented'
-import { Tooltip } from '../Tooltip'
 import type { BubbleMode } from '../../contexts/ModelProvider/ModelContext'
 import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
@@ -25,10 +24,6 @@ type VoiceSettingProps = {
   /** 气泡显示策略 */
   bubbleMode: BubbleMode
   onBubbleModeChange: (mode: BubbleMode) => void
-  /** 说话时触发的动作分组名，空串表示不触发 */
-  speakingMotion: string
-  speakingMotionOptions: DropdownOption[]
-  onSpeakingMotionChange: (motion: string) => void
 }
 
 const voiceResourceOptions = [
@@ -43,7 +38,7 @@ const BUBBLE_MODE_OPTIONS: readonly SegmentedOption<BubbleMode>[] = [
 
 export function VoiceSetting({
   presetId, speaking, error, onPresetChange, onSpeak, onAddVoice, onDeleteVoice,
-  bubbleMode, onBubbleModeChange, speakingMotion, speakingMotionOptions, onSpeakingMotionChange,
+  bubbleMode, onBubbleModeChange,
 }: VoiceSettingProps) {
   // 音色列表（内置 + 自定义）由 VoiceProvider 合并好后直接给出
   const { voiceConfig, voices, openTtsConfig } = useVoice()
@@ -110,27 +105,23 @@ export function VoiceSetting({
       <ScrollArea
         columns={3}
         gap="9px 8px"
-        maxHeight="154px"
+        // 高度刚好装 4 行，不多不少：上下各 5px 内边距（见 .presets）+ 4×30px 胶囊 + 3×9px 行距 = 157px。
+        // 少 3px（老值 154）就会在「正好 4 行」时冒出滚动条，还把第 4 行切掉一截
+        maxHeight="157px"
         className={styles.presets}
         role="group"
         ariaLabel="人声风格预设"
       >
         {voices.map((preset) => (
           <div className={styles.presetWrap} key={preset.id}>
-            <Tooltip block placement="top" title={preset.label}>
-              <Button
-                variant="chip"
-                size="xs"
-                active={preset.id === selectedPreset.id}
-                className={styles.preset}
-                onClick={() => onPresetChange(preset)}
-              >
-                <span className={styles.presetLabel}>{preset.label}</span>
-                {preset.id.startsWith('custom:') && (
-                  <ChipRemove label={preset.label} onRemove={() => onDeleteVoice(preset.id)} />
-                )}
-              </Button>
-            </Tooltip>
+            {/* 提示由 PresetChip 内部的 Tooltip 出，这里别再套一层 */}
+            <PresetChip
+              label={preset.label}
+              active={preset.id === selectedPreset.id}
+              onSelect={() => onPresetChange(preset)}
+              onRemove={preset.id.startsWith('custom:') ? () => onDeleteVoice(preset.id) : undefined}
+              className={styles.preset}
+            />
           </div>
         ))}
       </ScrollArea>
@@ -157,7 +148,7 @@ export function VoiceSetting({
       </span>
       {error && <div className={styles.error}>{error}</div>}
 
-      {/* 气泡与说话动作：标签在上，控件各占一行 */}
+      {/* 气泡显示：标签在上，控件独占一行 */}
       <div className={styles.behavior}>
         <div className={styles.behaviorRow}>
           <span>气泡显示</span>
@@ -167,16 +158,6 @@ export function VoiceSetting({
             value={bubbleMode}
             options={BUBBLE_MODE_OPTIONS}
             onChange={onBubbleModeChange}
-          />
-        </div>
-        <div className={styles.behaviorRow}>
-          <span>说话触发动作</span>
-          <DropdownSelect
-            ariaLabel="说话触发动作"
-            size="sm"
-            value={speakingMotion}
-            options={speakingMotionOptions}
-            onChange={onSpeakingMotionChange}
           />
         </div>
       </div>

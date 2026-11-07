@@ -23,9 +23,11 @@
   font-size: 11px;
 }
 
+// 滚动条推进面板的右留白里，胶囊右边缘和下面的「添加音色」对齐
 .presets {
   margin-top: 10px;
-  padding: 5px 4px 5px 0;
+  padding: 5px 0;
+  @include scroll-bleed;
 }
 
 .presetWrap {
@@ -33,30 +35,17 @@
   min-width: 0;
 }
 
-// 音色胶囊：左侧名称可省略，右侧是删除角标
+// 音色胶囊的版式（名称居中 + 右侧删除角标 + 左侧等宽占位）全在 PresetChip 里，
+// 这里只补一个撑满栅格宽度。要改视觉去改 PresetChip，别在这儿再写一遍
 .presetWrap .preset {
   width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 5px 0 8px;
 }
-
-.presetLabel {
-  display: block;
-  min-width: 0;
-  flex: 1;
-  @include ellipsis;
-}
-
-// 删除角标收进 ChipRemove 组件了（圆底只在 hover 出现、× 用两条线画），
-// 这里只保留胶囊自己的左右内边距
 
 .addButton {
   margin-top: 6px;
 }
 
-// 气泡显示 / 说话触发动作：标签在上，控件各占一行
+// 气泡显示：标签在上，控件独占一行
 .behavior {
   display: flex;
   flex-direction: column;

@@ -3,6 +3,7 @@ import { useDragPosition, useLiveData, useModel } from '../../hooks'
 import { DOUYIN_GIFTS, giftIcon } from '../../data/gifts'
 import { giftMotionTargets } from '../../data/giftMotions'
 import { Card } from '../Card'
+import { cx } from '../../utils/cx'
 import styles from './index.module.scss'
 
 /**
@@ -30,7 +31,7 @@ export function GiftMotionCard() {
 
   // 配了动作的礼物 → 每个模型各做什么。没配动作的模型不进这一行，
   // 一个模型都解析不出来的礼物（换过模型、动作没了）整条也不显示
-  const rows = useMemo(() => {
+  const { rows, modelCount } = useMemo(() => {
     // 只看当前还在台面上的模型：隐藏的不列（和 AiChatProvider 挑说话角色同一套判断），
     // 删除的模型本来就不在 modelSources 里，遗留的动作配置自然也不会漏出来
     const models = modelSources
@@ -42,12 +43,21 @@ export function GiftMotionCard() {
       }))
     // 按礼物目录的顺序排，和「直播配置」抽屉里看到的一致
     const catalogOrder = new Map(DOUYIN_GIFTS.map((gift, index) => [gift.name, index]))
-    return Object.entries(giftMotions)
+    const list = Object.entries(giftMotions)
       .map(([name, entry]) => ({ name, targets: giftMotionTargets(entry, models) }))
       .filter((row) => row.targets.length > 0)
       .sort((a, b) => (catalogOrder.get(a.name) ?? Number.MAX_SAFE_INTEGER)
         - (catalogOrder.get(b.name) ?? Number.MAX_SAFE_INTEGER))
+    return { rows: list, modelCount: models.length }
   }, [giftMotions, modelSources, characterStates])
+
+  /**
+   * 台上只有一个模型时，每行的「角色名」是多余的 —— 每个礼物都只可能由它来演。
+   * 这时礼物名和动作并成一行，省下的那一行让更多礼物能同时露出来。
+   * 注意判断依据是「台上几个模型」，不是「这一行有几个角色」：台上有两个模型、
+   * 某个礼物只配了其中一个时，角色名恰恰是最需要看的信息，不能省。
+   */
+  const singleModel = modelCount === 1
 
   const listRef = useRef<HTMLUListElement>(null)
 
@@ -127,26 +137,36 @@ export function GiftMotionCard() {
       <ul ref={listRef} className={styles.list}>
         {rows.map((row) => {
           const icon = giftIcon(row.name)
+          const [target] = row.targets
           return (
-            <li key={row.name} className={styles.row}>
+            <li key={row.name} className={cx(styles.row, singleModel && styles.rowSingle)}>
               <span className={styles.icon}>
                 {icon
                   ? <img src={icon} alt="" aria-hidden />
                   : <span className={styles.iconFallback} aria-hidden>?</span>}
               </span>
-              <span className={styles.body}>
-                <span className={styles.name} title={row.name}>{row.name}</span>
-                <span className={styles.targets}>
-                  {row.targets.map((target) => (
-                    // 268px 放不下「角色：动作 · 角色：动作」一行并排，改成每个角色独占一行
-                    <span key={target.modelId} className={styles.target}>
-                      <em>{target.modelName}</em>
-                      <i className={styles.sep} aria-hidden>·</i>
-                      <b>{target.motionLabel}</b>
-                    </span>
-                  ))}
+              {/* 单模型：礼物名 · 动作，一行说完，不重复角色名 */}
+              {singleModel && target ? (
+                <span className={styles.inline}>
+                  <span className={styles.name} title={row.name}>{row.name}</span>
+                  <i className={styles.sep} aria-hidden>·</i>
+                  <b className={styles.motion}>{target.motionLabel}</b>
                 </span>
-              </span>
+              ) : (
+                <span className={styles.body}>
+                  <span className={styles.name} title={row.name}>{row.name}</span>
+                  <span className={styles.targets}>
+                    {row.targets.map((item) => (
+                      // 268px 放不下「角色：动作 · 角色：动作」一行并排，改成每个角色独占一行
+                      <span key={item.modelId} className={styles.target}>
+                        <em>{item.modelName}</em>
+                        <i className={styles.sep} aria-hidden>·</i>
+                        <b>{item.motionLabel}</b>
+                      </span>
+                    ))}
+                  </span>
+                </span>
+              )}
             </li>
           )
         })}

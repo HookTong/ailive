@@ -37,6 +37,12 @@
   width: 100%;
 }
 
+// 禁用时整块一起变灰：只给按钮加透明度的话，外框和分隔线还是亮的，
+// 看着像「只有文字灰了」而不是控件被禁用
+.disabled {
+  opacity: 0.5;
+}
+
 .option {
   display: inline-flex;
   align-items: center;
@@ -63,7 +69,6 @@
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
   }
 }
 

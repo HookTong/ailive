@@ -30,14 +30,43 @@
   }
 }
 
+// 换背景时的淡入淡出时长。改这里要同步改 index.tsx 的 BACKGROUND_FADE_MS，
+// 那边用它安排「旧图什么时候卸」
+$background-fade: 560ms;
+
+// 背景容器：多张图叠在这里，靠 DOM 顺序决定谁在上面。
+// 滤镜挂在这一层，两张图共用同一套参数，不会出现新旧图滤镜不一致
 .stageBackground {
   position: absolute;
   z-index: 0;
   inset: -12px;
+  pointer-events: none;
+}
+
+// 单张背景。进入时从 0 淡到 1，下面那张旧图保持不透明垫着，
+// 叠出来就是标准的交叉淡入 —— 中途不会透出 .preview 的渐变底
+.backgroundLayer {
+  position: absolute;
+  inset: 0;
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  pointer-events: none;
+  animation: backgroundFadeIn $background-fade ease both;
+}
+
+// 切到「无背景」：底下没有别的图可垫，整组原地淡出后再卸载
+.stageBackgroundOut {
+  animation: backgroundFadeOut $background-fade ease both;
+}
+
+@keyframes backgroundFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes backgroundFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .vignette {

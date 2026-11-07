@@ -58,6 +58,8 @@
   padding: 0;
   overflow-y: auto;
   list-style: none;
+  // 滚动条推进 Card 的 14px 留白里，礼物名右边缘和标题行对齐
+  @include scroll-bleed;
   @include scroll-thin;
 }
 
@@ -66,6 +68,16 @@
   grid-template-columns: 22px minmax(0, 1fr);
   align-items: start;
   gap: 8px;
+}
+
+// 台上只有一个模型：整行就一行字，图标改为垂直居中。
+// 那 1px 的 margin-top 是给「图标压着第一行文字」用的，单行时反而是歪的
+.row.rowSingle {
+  align-items: center;
+
+  .icon {
+    margin-top: 0;
+  }
 }
 
 .icon {
@@ -131,6 +143,32 @@
     color: #eef0cf;
     font-weight: 400;
   }
+}
+
+// 单模型的一行式：礼物名 · 动作。名字可以压短（省略号），动作不缩 ——
+// 这一行真正要传达的是「哪个礼物触发什么动作」，动作被截断就白写了
+.inline {
+  @include mono(11px);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+
+  // 间距交给 flex 的 gap，把 .target 里那对左右外边距归零
+  .sep {
+    margin: 0;
+  }
+}
+
+.inline .name {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.motion {
+  flex: 0 0 auto;
+  color: #eef0cf;
+  font-weight: 400;
 }
 
 .sep {
