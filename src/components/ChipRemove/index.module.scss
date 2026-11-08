@@ -11,7 +11,7 @@
   border-radius: 50%;
   // 平时透明：常显一个实心圆在胶囊里太抢眼，圆底留到鼠标移入再出现
   background: transparent;
-  color: #8298a2;
+  color: $text-muted;
   cursor: pointer;
   transition: background $ease, color $ease;
 
@@ -42,13 +42,13 @@
   // 移入时铺一层半透明白：在深色胶囊和选中的青绿胶囊上都能自然提亮，
   // 又不会像实心红那样抢眼 —— 删除是个小动作，不该整块跳出来
   &:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: $overlay-strong;
     color: $text;
   }
 
   // 键盘 Tab 过来时要看得见焦点：圆底只在 hover 出现，焦点只能靠描边
   &:focus-visible {
-    background: rgba(255, 255, 255, 0.12);
+    background: $overlay-strong;
     color: $text;
     outline: 1px solid $warn;
     outline-offset: 1px;

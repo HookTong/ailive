@@ -8,7 +8,7 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: #071016b8;
+  background: $backdrop;
 }
 
 .panel {
@@ -40,7 +40,7 @@
 
 // 面板色（右侧控制台同色系），滤镜 / TTS 弹窗用它
 .panelSoft {
-  border-color: #38515d;
+  border-color: $border-strong;
   background: $bg-panel;
 }
 
@@ -55,7 +55,7 @@
 
 .eyebrow {
   @include mono(12px);
-  color: #6f8590;
+  color: $text-faint;
   letter-spacing: 0.16em;
 }
 

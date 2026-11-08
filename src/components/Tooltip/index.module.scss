@@ -18,11 +18,12 @@
   width: max-content;
   max-width: min(360px, calc(100vw - 24px));
   padding: 6px 10px;
-  border: 0;
+  // 浅色主题下提示框是白底压白面板，只靠投影分不出层次，补一道描边
+  border: 1px solid $border;
   border-radius: 7px;
-  background: #0a1820e8;
-  box-shadow: 0 8px 18px #02070d99;
-  color: #d6e8e4;
+  background: $bg-panel-raised;
+  box-shadow: $shadow-pop;
+  color: $text;
   font-family: $font-ui;
   font-size: 11px;
   line-height: 1.35;

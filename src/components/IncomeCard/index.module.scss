@@ -8,7 +8,7 @@
 
 .amount {
   display: block;
-  color: #f2e5ba;
+  color: $gold;
   font-size: 24px;
 
   small {
@@ -20,13 +20,13 @@
   display: flex;
   gap: 18px;
   margin: 9px 0 12px;
-  color: #8eaaa5;
+  color: $text-muted;
   @include mono($fs-label);
 
   b {
     display: block;
     margin-top: 3px;
-    color: #d8e7d4;
+    color: $text;
     font-size: 12px;
   }
 }
@@ -36,12 +36,12 @@
   grid-template-columns: 1fr auto;
   gap: 5px 12px;
   margin: 0;
-  color: #91aaa7;
+  color: $text-muted;
   @include mono($fs-label);
 }
 
 .root dd {
   margin: 0;
-  color: #dae7d9;
+  color: $text;
   font-size: 12px;
 }

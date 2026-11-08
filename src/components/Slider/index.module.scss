@@ -1,15 +1,15 @@
-@use 'sass:color';
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
-// $accent 的 RGB 三元组，用来在 rgb(... / alpha) 里带动态透明度。
+// 主色 + 动态透明度。$accent 现在是 var(--accent)，Sass 取不到通道值，
+// 所以主色另存了一份 --accent-rgb（空格分隔的三元组）。
 // 整串要 unquote 成裸 CSS，否则 Sass 会把 rgb() 当内置函数求值并报缺参数。
-$sheen-color: unquote('rgb(#{color.red($accent)} #{color.green($accent)} #{color.blue($accent)} / calc(var(--slider-sheen) * 0.34))');
+$sheen-color: unquote('rgb(var(--accent-rgb) / calc(var(--slider-sheen) * 0.34))');
 
 .slider {
   display: block;
   margin-top: 12px;
-  color: #80919b;
+  color: $text-muted;
   @include mono(12px);
   letter-spacing: 0.08em;
 }
@@ -24,7 +24,7 @@ $sheen-color: unquote('rgb(#{color.red($accent)} #{color.green($accent)} #{color
 .value {
   // letter-spacing 会在末字后多留一个字距，补掉它右边缘才和轨道齐平
   margin-right: -0.08em;
-  color: #5e747f;
+  color: $text-dim;
   font-weight: 400;
 }
 

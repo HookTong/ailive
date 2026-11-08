@@ -7,9 +7,9 @@
   top: 18px;
   left: 24px;
   width: min(560px, calc(100% - 48px));
-  color: #d9e8e3;
+  color: $text;
   pointer-events: auto;
-  text-shadow: 0 1px 2px #061016;
+  text-shadow: $text-shadow;
   cursor: grab;
   user-select: none;
   touch-action: none;

@@ -35,14 +35,14 @@
   max-width: min(calc(320px * var(--bubble-scale)), 86%);
   transform: translate(-50%, -100%);
   padding: calc(13px * var(--bubble-scale)) calc(18px * var(--bubble-scale));
-  border: 1px solid #8adbc47a;
+  border: 1px solid $bubble-border;
   border-radius: calc(18px * var(--bubble-scale));
   // 底色必须和尾巴的 `::after` 完全一致且**不透明**：尾巴上半部分要盖住气泡的
   // 下边框才能融成一体，只要留一点透明度，那 1px 的描边就会从菱形里透出来，
   // 看着就是「菱形和气泡之间有条缝」
-  background: #f4fff9;
-  color: #173338;
-  box-shadow: 0 10px 24px #06101666;
+  background: $bubble-bg;
+  color: $bubble-text;
+  box-shadow: $bubble-shadow;
   font-family: $font-ui;
   font-size: calc(16px * var(--bubble-scale));
   line-height: 1.5;
@@ -59,9 +59,9 @@
     bottom: calc(-10px * var(--bubble-scale));
     width: calc(18px * var(--bubble-scale));
     height: calc(18px * var(--bubble-scale));
-    border-right: 1px solid #8adbc47a;
-    border-bottom: 1px solid #8adbc47a;
-    background: #f4fff9;
+    border-right: 1px solid $bubble-border;
+    border-bottom: 1px solid $bubble-border;
+    background: $bubble-bg;
     transform: translateX(-50%) rotate(45deg);
   }
 }
@@ -82,14 +82,15 @@
   max-width: calc(200px * var(--plate-scale));
   transform: translate(-50%, 0);
   padding: calc(4px * var(--plate-scale)) calc(11px * var(--plate-scale));
-  border: 1px solid #ffffff2e;
+  border: 1px solid $glass-border;
   border-radius: 999px;
   // 半透明靠「底色压低不透明度 + 背后模糊」一起成立：只把底色做淡的话，
-  // 遇到高对比的背景（霓虹、亮地板）字会被背景吃掉；只模糊不压透明度又太实
-  background: #0a1a21a6;
-  backdrop-filter: blur(8px);
-  color: #eaf6f7;
-  box-shadow: 0 4px 14px #050b1066, inset 0 1px #ffffff1a;
+  // 遇到高对比的背景（霓虹、亮地板）字会被背景吃掉；只模糊不压透明度又太实。
+  // 模糊半径跟舞台卡片共用 $glass-blur，改透明度时两边一起看
+  background: $glass-bg;
+  backdrop-filter: blur($glass-blur);
+  color: $text;
+  box-shadow: $shadow-card, inset 0 1px $glass-rim;
   font-family: $font-ui;
   font-size: calc(#{$fs-body} * var(--plate-scale));
   line-height: 1.4;
@@ -120,7 +121,12 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  color: #9eb1ba;
+  padding: 8px 14px;
+  border: 1px solid $glass-border;
+  border-radius: $radius-lg;
+  background: $glass-bg;
+  backdrop-filter: blur($glass-blur);
+  color: $text;
   font-size: 13px;
 
   small {
@@ -134,8 +140,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #66dfc1;
-  box-shadow: 0 0 18px #66dfc1;
+  background: $accent;
+  box-shadow: 0 0 18px $accent;
 }
 
 .dotWarning {

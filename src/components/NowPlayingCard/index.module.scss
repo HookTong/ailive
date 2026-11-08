@@ -15,14 +15,14 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid #8adbc45c;
+  border: 1px solid $accent-chip-line;
   border-radius: 50%;
 
   i {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #f5d67d;
+    background: $gold;
   }
 }
 
@@ -39,8 +39,8 @@
   transition: border-color $ease, background $ease;
 
   &:hover {
-    border-color: #8adbc4;
-    background: #8adbc41f;
+    border-color: $accent;
+    background: color-mix(in srgb, #{$accent} 12%, transparent);
   }
 
   &:focus-visible {
@@ -52,11 +52,11 @@
 @keyframes breathe {
   0%,
   100% {
-    box-shadow: 0 0 0 1px #8adbc433, 0 0 10px 1px #f5d67d2e;
+    box-shadow: 0 0 0 1px color-mix(in srgb, #{$accent} 20%, transparent), 0 0 10px 1px color-mix(in srgb, #{$gold} 18%, transparent);
   }
 
   50% {
-    box-shadow: 0 0 0 1px #8adbc466, 0 0 22px 6px #f5d67d5c;
+    box-shadow: 0 0 0 1px color-mix(in srgb, #{$accent} 40%, transparent), 0 0 22px 6px color-mix(in srgb, #{$gold} 36%, transparent);
   }
 }
 
@@ -69,18 +69,18 @@
 .status {
   @include ellipsis;
   @include mono(11px);
-  color: #8ee2c2;
+  color: $accent;
 }
 
 .title {
   @include ellipsis;
-  color: #f0f4e7;
+  color: $text;
   font-size: 15px;
 }
 
 .time {
   @include mono(11px);
-  color: #a8c2be;
+  color: $text-muted;
 }
 
 .bars {
@@ -95,7 +95,7 @@
   width: 7px;
   height: 100%;
   border-radius: 2px;
-  background: #f0d98b;
+  background: $gold;
   transform: scaleY(calc(0.18 + var(--level, 0) * 0.82));
   transform-origin: bottom;
   transition: transform 240ms ease, opacity 200ms ease;

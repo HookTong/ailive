@@ -49,14 +49,14 @@
   overflow: hidden;
   border: 1px solid $border-inset;
   border-radius: $radius-md;
-  background: radial-gradient(circle at 50% 35%, #24424d, $bg-inset 72%);
+  background: radial-gradient(circle at 50% 35%, $bg-glow, $bg-inset 72%);
 
   &::before {
     content: '';
     position: absolute;
     inset: 0;
     opacity: 0.2;
-    background-image: linear-gradient(#7fbbc011 1px, transparent 1px), linear-gradient(90deg, #7fbbc011 1px, transparent 1px);
+    background-image: linear-gradient($glass-sheen 1px, transparent 1px), linear-gradient(90deg, $glass-sheen 1px, transparent 1px);
     background-size: 36px 36px;
     pointer-events: none;
   }
@@ -67,7 +67,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: #718691;
+  color: $text-faint;
   @include mono(12px);
 }
 
@@ -80,7 +80,7 @@
 
 .status {
   margin-top: 10px;
-  color: #9aaeb5;
+  color: $text-soft;
   @include mono(12px);
 }
 

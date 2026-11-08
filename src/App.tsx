@@ -4,7 +4,7 @@ import { ModelControlPanel } from './components/ModelControlPanel'
 import { StageControlPanel } from './components/StageControlPanel'
 import { StageToolbar } from './components/StageToolbar'
 import { TopBar } from './components/TopBar'
-import { ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider, AiChatProvider } from './contexts'
+import { ThemeProvider, ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider, AiChatProvider } from './contexts'
 import { useLiveData, useModel, useVoice, useHoverScrollbar, GIFT_MOTION_ANY_MODEL, resolveGiftMotion } from './hooks'
 import { normalizeGiftName } from './data/gifts'
 
@@ -217,13 +217,15 @@ function AppContent() {
 
 function App() {
   return (
-    <ModelProvider>
-      <StageProvider>
-        <LiveDataProvider>
-          <VoiceAndModelBridge />
-        </LiveDataProvider>
-      </StageProvider>
-    </ModelProvider>
+    <ThemeProvider>
+      <ModelProvider>
+        <StageProvider>
+          <LiveDataProvider>
+            <VoiceAndModelBridge />
+          </LiveDataProvider>
+        </StageProvider>
+      </ModelProvider>
+    </ThemeProvider>
   )
 }
 

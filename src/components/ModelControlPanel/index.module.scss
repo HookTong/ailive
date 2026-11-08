@@ -17,7 +17,7 @@ $pad-x: 24px;
 
 .eyebrow {
   @include mono(12px);
-  color: #6f8590;
+  color: $text-faint;
   letter-spacing: 0.16em;
 }
 
@@ -41,22 +41,22 @@ $pad-x: 24px;
 .labelRow {
   display: flex;
   justify-content: space-between;
-  color: #80919b;
+  color: $text-muted;
   @include mono(12px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .tinyTag {
-  color: #6ae0c2;
-  border: 1px solid #366158;
+  color: $accent;
+  border: 1px solid $accent-line;
   padding: 3px 6px;
   border-radius: $radius-xs;
   font-size: 11px;
 }
 
 .count {
-  color: #5e747f;
+  color: $text-faint;
 }
 
 // 标题 + 说明图标：图标靠 flex 才能和 12px 的字垂直居中对齐
@@ -77,9 +77,9 @@ $pad-x: 24px;
   gap: 11px;
   align-items: center;
   padding: 12px 11px;
-  border: 1px solid #2b3d48;
+  border: 1px solid $border-strong;
   border-radius: $radius-lg;
-  background: #1b2935;
+  background: $bg-panel-raised;
   color: $text;
   font-family: $font-ui;
   font-size: 13px;
@@ -88,13 +88,13 @@ $pad-x: 24px;
 
   &:hover {
     border-color: $accent-chip-line;
-    background: #20313c;
+    background: $bg-hover;
   }
 }
 
 .picker .triggerOpen {
   border-color: $accent-chip-line;
-  background: #20313c;
+  background: $bg-hover;
 }
 
 .orb {
@@ -104,8 +104,8 @@ $pad-x: 24px;
   height: 34px;
   flex: 0 0 auto;
   border-radius: 50%;
-  color: #77e5c8;
-  background: #294940;
+  color: $accent-text;
+  background: $accent-fill;
   font-size: 18px;
 }
 
@@ -117,7 +117,7 @@ $pad-x: 24px;
 .modelKind {
   display: block;
   margin-top: 2px;
-  color: #7d919b;
+  color: $text-muted;
   @include mono(12px);
 }
 
@@ -126,8 +126,8 @@ $pad-x: 24px;
   height: 8px;
   flex: 0 0 8px;
   margin-left: auto;
-  border-right: 1.5px solid #718691;
-  border-bottom: 1.5px solid #718691;
+  border-right: 1.5px solid $text-muted;
+  border-bottom: 1.5px solid $text-muted;
   transform: rotate(45deg);
   transition: transform $ease;
 }
@@ -152,19 +152,19 @@ $pad-x: 24px;
 .optionRow {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid #263d48;
+  border-bottom: 1px solid $border-soft;
 
   &:last-child {
     border-bottom: 0;
   }
 
   &:hover {
-    background: #213943;
+    background: $bg-hover;
   }
 }
 
 .optionRowActive {
-  background: #213943;
+  background: $bg-hover;
 }
 
 .option {
@@ -175,7 +175,7 @@ $pad-x: 24px;
   gap: 3px;
   border: 0;
   background: transparent;
-  color: #bacbd0;
+  color: $text-soft;
   padding: 9px 10px;
   font-family: $font-ui;
   font-size: 12px;
@@ -188,7 +188,7 @@ $pad-x: 24px;
 }
 
 .optionMeta {
-  color: #718b95;
+  color: $text-faint;
   @include mono(11px);
 }
 
@@ -196,12 +196,12 @@ $pad-x: 24px;
   flex: 0 0 34px;
   border: 0;
   background: transparent;
-  color: #718b95;
+  color: $text-faint;
   font-size: 18px;
   cursor: pointer;
 
   &:hover {
-    color: #f09b91;
+    color: $danger-text;
   }
 }
 
@@ -211,7 +211,8 @@ $pad-x: 24px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
-  margin-top: 10px;
+  // 和右侧「添加背景 / 添加音乐」那几处同一个间距（基准是「展开细粒度控制」）
+  margin-top: $stack-gap;
 }
 
 .error {
@@ -238,7 +239,7 @@ $pad-x: 24px;
   border: 1px solid $border-input;
   border-radius: $radius;
   background: $bg-inset;
-  color: #8fa1a9;
+  color: $text-soft;
   font-family: $font-ui;
   font-size: 13px;
   text-align: left;
@@ -264,11 +265,11 @@ $pad-x: 24px;
   }
 
   .motionCopy small {
-    color: #8fc4b4;
+    color: $accent-soft;
   }
 
   .play {
-    color: #64dfc1;
+    color: $accent;
     font-size: 9px;
   }
 }
@@ -279,7 +280,7 @@ $pad-x: 24px;
 }
 
 .motionIcon {
-  color: #68d8ba;
+  color: $accent;
   font-size: 16px;
   width: 15px;
 }
@@ -303,7 +304,7 @@ $pad-x: 24px;
 
 .play {
   margin-left: auto;
-  color: #637b86;
+  color: $text-faint;
 }
 
 // 外观预设：和粒子 / 滤镜那几组一样是胶囊网格。
@@ -313,9 +314,9 @@ $pad-x: 24px;
   @include scroll-bleed;
 }
 
-// 清空已选外观
+// 清空已选外观：上间距和其他「网格 → 整宽按钮」一样是 $stack-gap
 .clearExpressions {
-  margin-top: 8px;
+  margin-top: $stack-gap;
 
   &:disabled {
     opacity: 0.45;
@@ -324,7 +325,7 @@ $pad-x: 24px;
 
 .loading {
   padding: 12px 8px;
-  color: #718691;
+  color: $text-faint;
   @include mono(12px);
   // 网格里的占位要横跨整行，否则只占第一列
   grid-column: 1 / -1;

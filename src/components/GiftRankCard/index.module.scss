@@ -12,7 +12,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  color: #c9ddd5;
+  color: $text-soft;
   @include mono($fs-label);
 }
 
@@ -29,15 +29,16 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #d3bc69;
-  color: #173338;
+  // 金底 + 面板底色当字色：两套主题下都是「亮底暗字 / 暗底亮字」，不用另配一组
+  background: $gold;
+  color: $bg-panel;
   font-style: normal;
   font-size: 10px;
 }
 
-// 只有第一名是金底，其余用浅色
+// 只有第一名是金底，其余用次级文字色（同样靠 $bg-panel 反色）
 .item:nth-child(n + 2) .rank {
-  background: #dde5df;
+  background: $text-soft;
 }
 
 .name {
@@ -45,13 +46,13 @@
 }
 
 .count {
-  color: #e3e6c7;
+  color: $gold;
   font-weight: 400;
 }
 
 .empty {
   display: block;
   padding: 8px 0;
-  color: #7d968f;
+  color: $text-faint;
   font-size: 12px;
 }

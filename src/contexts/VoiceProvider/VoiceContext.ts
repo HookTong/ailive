@@ -14,7 +14,7 @@ export type VoiceContextValue = {
   lastSpoken: Record<string, string>
   speak: (text: string, preset: VolcengineVoicePreset, modelId: string) => Promise<void>
   stopSpeaking: () => void
-  /** TTS 配置弹窗是否打开：顶栏按钮与「测试发声」共用同一份状态 */
+  /** TTS 配置弹窗是否打开：顶栏按钮与「测试说话」共用同一份状态 */
   ttsConfigOpen: boolean
   openTtsConfig: () => void
   closeTtsConfig: () => void

@@ -9,24 +9,27 @@
 .title {
   display: flex;
   justify-content: space-between;
-  color: #80919b;
+  color: $text-muted;
   @include mono(12px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .tinyTag {
-  color: #6ae0c2;
-  border: 1px solid #366158;
+  color: $accent;
+  border: 1px solid $accent-line;
   padding: 3px 6px;
   border-radius: $radius-xs;
   font-size: 11px;
 }
 
+// 音色胶囊的滚动区上下各留 5px。157px 的高度上限就按这个算（见 index.tsx），别单独改
+$preset-pad-y: 5px;
+
 // 滚动条推进面板的右留白里，胶囊右边缘和下面的「添加音色」对齐
 .presets {
   margin-top: 10px;
-  padding: 5px 0;
+  padding: $preset-pad-y 0;
   @include scroll-bleed;
 }
 
@@ -41,17 +44,21 @@
   width: 100%;
 }
 
+// 胶囊底边到按钮的距离要等于 $stack-gap，但 .presets 自己还留着 $preset-pad-y
+// 的下内边距，所以这里减掉它 —— 否则视觉上比右侧「添加背景」少 5px
 .addButton {
-  margin-top: 6px;
+  margin-top: $stack-gap - $preset-pad-y;
 }
 
+// 「添加音色 → 输入框 → 测试说话」这一竖线用同一个间距，
+// 和上面胶囊到按钮、右侧「添加自定义滤镜 → 切换方式」保持一致
 .textarea {
-  margin-top: 9px;
+  margin-top: $stack-gap;
 }
 
 .speakWrap {
   display: block;
-  margin-top: 7px;
+  margin-top: $stack-gap;
 
   .speakButton {
     width: 100%;
@@ -104,7 +111,7 @@
 
 .hint {
   margin: -2px 0 0;
-  color: #718691;
+  color: $text-faint;
   font-family: $font-ui;
   font-size: 12px;
   line-height: 1.6;

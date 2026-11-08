@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  color: #82949d;
+  color: $text-muted;
   @include mono(12px);
   letter-spacing: 0.1em;
   border-bottom: 1px solid $border;
@@ -32,14 +32,14 @@
     padding: 0 11px;
     border: 1px solid $border-inset;
     border-radius: $radius-pill;
-    background: #16232d;
-    color: #9db0b9;
+    background: $bg-panel-raised;
+    color: $text-muted;
     @include mono(12px);
     letter-spacing: 0.06em;
     cursor: pointer;
 
     &:hover {
-      border-color: #3d5563;
+      border-color: $border-strong;
       color: $text;
     }
   }

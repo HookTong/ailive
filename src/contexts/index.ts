@@ -1,3 +1,4 @@
+export { ThemeProvider } from './ThemeProvider'
 export { ModelProvider } from './ModelProvider'
 export { StageProvider } from './StageProvider'
 export { VoiceProvider } from './VoiceProvider'

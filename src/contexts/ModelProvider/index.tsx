@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Model3Config, ModelManifest, ModelSource } from './types'
 import { DEFAULT_VOLCENGINE_VOICE_PRESET_ID } from '../VoiceProvider/presets'
 import { ModelContext, type CharacterState, type ModelContextValue } from './ModelContext'
+import {
+  DEFAULT_CHARACTER_STATE,
+  loadModelConsole,
+  saveModelConsole,
+} from './storage'
 
 const DEFAULT_MODEL_SOURCE: ModelSource = {
   id: 'whale-local',
@@ -15,18 +20,9 @@ const ONLINE_MODELS_STORAGE_KEY = 'ailive.online-models'
 const createCharacterState = (): CharacterState => ({
   manifest: null,
   configError: false,
-  activeMotion: 'idle',
-  overrideMotion: '',
-  overrideNonce: 0,
-  motionHoldUntil: 0,
+  // 默认值集中在 storage 里：持久化要拿它做「读不懂就退回默认」，两处各写一份迟早对不上
+  ...DEFAULT_CHARACTER_STATE,
   selectedExpressions: [],
-  modelSize: 0.6,
-  positionResetKey: 0,
-  voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
-  modelVisible: true,
-  bubbleMode: 'speaking',
-  // 名牌默认不显示：舞台上多一颗胶囊会压住角色脚下的画面，需要认人时再开
-  nameplateVisible: false,
 })
 
 function loadOnlineModelSources(): ModelSource[] {
@@ -97,10 +93,20 @@ type ModelProviderProps = {
 }
 
 export function ModelProvider({ children }: ModelProviderProps) {
+  // 上次的控制台设置，只在挂载时读一次
+  const [stored] = useState(loadModelConsole)
+
   const [modelSources, setModelSources] = useState<ModelSource[]>(() => [DEFAULT_MODEL_SOURCE, ...loadOnlineModelSources()])
-  const [activeModelId, setActiveModelId] = useState(DEFAULT_MODEL_SOURCE.id)
+  // 存的那个模型可能已经被删了（在线模型列表是另一份存储），对不上就回到默认模型
+  const [activeModelId, setActiveModelId] = useState(() =>
+    modelSources.some((source) => source.id === stored.activeModelId) ? stored.activeModelId : DEFAULT_MODEL_SOURCE.id
+  )
   const [characterStates, setCharacterStates] = useState<Record<string, CharacterState>>(() =>
-    Object.fromEntries(modelSources.map((source) => [source.id, createCharacterState()]))
+    Object.fromEntries(modelSources.map((source) => [
+      source.id,
+      // 存过的字段盖在默认值上；没存过的模型（新加的）就是一份默认状态
+      { ...createCharacterState(), ...stored.states[source.id] },
+    ]))
   )
 
   const activeCharacter = characterStates[activeModelId] ?? createCharacterState()
@@ -120,6 +126,14 @@ export function ModelProvider({ children }: ModelProviderProps) {
       // Storage unavailable
     }
   }, [modelSources])
+
+  /**
+   * 角色设置落盘：每个角色一份「配过的那几项」，外加当前选中的是哪个模型。
+   * 模型加载完会再刷一次 state（manifest 变了），那次的载荷没变，saveModelConsole 会跳过。
+   */
+  useEffect(() => {
+    saveModelConsole(activeModelId, characterStates, DEFAULT_MODEL_SOURCE.id)
+  }, [activeModelId, characterStates])
 
   // Load manifests for all models
   useEffect(() => {
@@ -218,15 +232,16 @@ export function ModelProvider({ children }: ModelProviderProps) {
   }
 
   const resetActiveCharacter = () => {
+    // 字段和 DEFAULT_CHARACTER_STATE 对齐（positionResetKey 除外，它是自增的重置计数）
     updateActiveCharacter({
-      activeMotion: 'idle',
+      activeMotion: DEFAULT_CHARACTER_STATE.activeMotion,
       selectedExpressions: [],
-      modelSize: 0.6,
+      modelSize: DEFAULT_CHARACTER_STATE.modelSize,
       positionResetKey: activeCharacter.positionResetKey + 1,
-      voicePresetId: DEFAULT_VOLCENGINE_VOICE_PRESET_ID,
-      modelVisible: true,
-      bubbleMode: 'speaking',
-      nameplateVisible: false,
+      voicePresetId: DEFAULT_CHARACTER_STATE.voicePresetId,
+      modelVisible: DEFAULT_CHARACTER_STATE.modelVisible,
+      bubbleMode: DEFAULT_CHARACTER_STATE.bubbleMode,
+      nameplateVisible: DEFAULT_CHARACTER_STATE.nameplateVisible,
     })
   }
 

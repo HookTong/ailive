@@ -9,9 +9,9 @@
   bottom: 46px;
   left: 24px;
   width: 268px;
-  color: #d9e8e3;
+  color: $text;
   pointer-events: auto;
-  text-shadow: 0 1px 2px #061016;
+  text-shadow: $text-shadow;
   cursor: grab;
   touch-action: none;
   // 和弹幕面板同一套尺寸规则：最多占舞台高度的 66%、封顶 540px，
@@ -22,7 +22,7 @@
   overflow: hidden;
   // 面板内容多时会往上长，可能盖住直播概览的卡片。底色比普通卡片再实一点，
   // 否则两层毛玻璃叠在一起，底下的数字会透上来糊成一片
-  background: #09232bf2;
+  background: $glass-bg-solid;
 }
 
 .root.dragging {
@@ -99,9 +99,9 @@
 .iconFallback {
   width: 18px;
   height: 18px;
-  border: 1px dashed #3f565c;
+  border: 1px dashed $border-strong;
   border-radius: 50%;
-  color: #7d968f;
+  color: $text-faint;
   font-size: 10px;
   line-height: 16px;
   text-align: center;
@@ -116,7 +116,7 @@
 .name {
   @include mono(12px);
   @include ellipsis;
-  color: #dae7d9;
+  color: $text;
 }
 
 .targets {
@@ -135,12 +135,12 @@
   text-overflow: ellipsis;
 
   em {
-    color: #9db8b2;
+    color: $text-muted;
     font-style: normal;
   }
 
   b {
-    color: #eef0cf;
+    color: $text;
     font-weight: 400;
   }
 }
@@ -167,13 +167,13 @@
 
 .motion {
   flex: 0 0 auto;
-  color: #eef0cf;
+  color: $text;
   font-weight: 400;
 }
 
 .sep {
   margin: 0 5px;
-  color: #5b716c;
+  color: $text-faint;
   font-style: normal;
 }
 

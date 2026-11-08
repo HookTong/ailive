@@ -9,14 +9,12 @@
   @include section-title;
 }
 
-// 滚动条推进区块外的右留白里，胶囊右边缘和下面的整宽按钮对齐
+// 滚动条推进区块外的右留白里，胶囊右边缘和下面的整宽按钮对齐。
+// 到按钮的间距只在这一层给（$stack-gap），按钮自己不再加 margin ——
+// 和背景 / 音色那两处同一个值，三块才对得齐
 .presets {
-  margin-bottom: 14px;
+  margin-bottom: $stack-gap;
   @include scroll-bleed;
-}
-
-.customButton {
-  margin-top: 6px;
 }
 
 // 切换方式：只写外边距，display 交给 Segmented 的 .block。
@@ -62,7 +60,7 @@
   overflow: hidden;
   border: 1px solid $border-input;
   border-radius: $radius;
-  background: linear-gradient(145deg, #172936, $bg-deep);
+  background: linear-gradient(145deg, $bg-panel-raised, $bg-deep);
   background-position: center;
   background-size: cover;
   color: $text-muted;

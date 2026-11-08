@@ -5,7 +5,7 @@
   flex: 1;
   min-height: 480px;
   overflow: hidden;
-  background: linear-gradient(145deg, #172936, $bg-deep);
+  background: linear-gradient(145deg, $bg-panel-raised, $bg-deep);
 
   &::before {
     content: '';
@@ -13,7 +13,7 @@
     inset: 0;
     z-index: 1;
     opacity: 0.18;
-    background-image: linear-gradient(#7fbbc011 1px, transparent 1px), linear-gradient(90deg, #7fbbc011 1px, transparent 1px);
+    background-image: linear-gradient($glass-sheen 1px, transparent 1px), linear-gradient(90deg, $glass-sheen 1px, transparent 1px);
     background-size: 48px 48px;
   }
 }
@@ -74,7 +74,7 @@ $background-fade: 560ms;
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  background: radial-gradient(ellipse at center, transparent 44%, #050a12a8 100%);
+  background: radial-gradient(ellipse at center, transparent 44%, $vignette 100%);
   transition: opacity 0.25s ease;
 }
 

@@ -9,16 +9,19 @@
   @include section-title;
 }
 
-// 滚动条推进区块外的右留白里，胶囊右边缘和下面的「展开细粒度控制」对齐
+// 滚动条推进区块外的右留白里，胶囊右边缘和下面的「展开细粒度控制」对齐。
+// 到按钮的间距只在这一层给（$stack-gap），按钮自己不加 ——
+// 和背景 / 滤镜 / 音乐 / 音色那几处同一个值
 .presets {
-  margin-bottom: 4px;
+  margin-bottom: $stack-gap;
   @include scroll-bleed;
 }
 
 // 下边距必须归零：按钮是 inline-flex，它的**外边距盒**会算进行盒高度，
-// 留 2px 的话下面那行切换方式的实际间距就变成 10px（见 .modeSwitch）
+// 留 2px 的话下面那行切换方式的实际间距就变成 10px（见 .modeSwitch）。
+// 上边距也归零 —— 上面那 12px 由 .presets 的 margin-bottom 给，两处都写会相加
 .detailToggle {
-  margin: 8px 0 0;
+  margin: 0;
 }
 
 // 切换方式：只写外边距，display 交给 Segmented 的 .block。

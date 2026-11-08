@@ -1,0 +1,201 @@
+// 主题调色板：暗色（默认）+ 浅色。
+//
+// 颜色全部走 CSS 变量，`tokens.scss` 里把它们再导出成同名的 Sass 变量
+// （`$bg-panel: var(--bg-panel)`），所以组件里照旧写 `$bg-panel`，
+// 运行时由 `<html data-theme="light|dark">` 决定实际色值 —— 切换主题不需要重编译。
+//
+// 两套色板是「同一套语义、不同的明暗」，键名一一对应：
+//   背景 base（页面） < panel（左右控制台） < panel-raised（抽屉 / 弹窗） < inset（输入框）
+//   raised 在暗色里比 panel 更亮（离观者更近），在浅色里两者都趋近纯白，靠边框分层。
+//
+// 新增颜色请**同时**补两处，只写 `:root` 的话浅色主题下会沿用暗色的值。
+
+:root {
+  color-scheme: dark;
+
+  // 背景
+  --bg-base: #101722;
+  --bg-deep: #0f1b25;
+  --bg-topbar: #111a25;
+  --bg-panel: #131e29;
+  --bg-panel-raised: #172732;
+  --bg-inset: #101b24;
+  --bg-hover: #1c2b36;
+  // 应用外壳那圈径向渐变的亮部（暗色里偏蓝，浅色里是白）
+  --bg-glow: #1c3343;
+
+  // 边框
+  --border: #253340;
+  --border-soft: #293945;
+  --border-inset: #293d48;
+  --border-input: #2d4651;
+  --border-strong: #35505c;
+
+  // 控件（滑块未填充轨道）
+  --slider-track: #354a55;
+
+  // 文字
+  --text: #e8f1f1;
+  --text-soft: #b8c8cd;
+  --text-muted: #82939d;
+  --text-dim: #637983;
+  --text-faint: #607680;
+
+  // 主色（青绿）
+  --accent: #66dfc1;
+  // 主色的 RGB 三元组（空格分隔）：需要在 rgb(... / alpha) 里带动态透明度的地方用，
+  // Sass 没法对 var() 做 color.red() 之类的取值，只能把通道单独存一份
+  --accent-rgb: 102 223 193;
+  --accent-bright: #62e8cb;
+  --accent-soft: #9ee7d2;
+  --accent-text: #b8f5e2;
+  --accent-line: #3d615b;
+  --accent-line-hover: #66dfc1;
+  --accent-fill: #1a3537;
+  --accent-fill-hover: #21453f;
+  --accent-chip-line: #4b8178;
+  --accent-chip-fill: #1d4541;
+
+  // 警示 / 危险
+  --warn: #e0ab63;
+  --danger-text: #ffc0b5;
+  --danger-line: #7b4b49;
+  --danger-fill: #4b2c30;
+  --danger-fill-hover: #63363a;
+  --danger-line-hover: #d78276;
+
+  // 强调金（礼物榜、音乐卡）与直播红点
+  --gold: #f0d98b;
+  --gold-soft: #c9b478;
+  --live: #ff5f6d;
+
+  // 中性叠加：暗色下叠白，浅色下叠黑。
+  // 列表行悬停、图标按钮悬停、分隔线这类「在白底上也要成立」的地方都用它
+  --overlay-weak: #ffffff08;
+  --overlay: #ffffff0f;
+  --overlay-strong: #ffffff1a;
+  --overlay-stronger: #ffffff2e;
+
+  // 舞台浮层的玻璃底（盖在背景图上，所以两套主题都要半透明）。
+  // 卡片要能透出底下背景的一点色，才不像贴上去的白板 —— 但小字（10–12px）还得压得住，
+  // 所以透明度靠 `glass` 里的 backdrop blur 兜底：透出来的是糊过的色块，不是细节。
+  // solid 那一档给「可能两层叠在一起」的卡（礼物动作 / 弹幕指令）用，比普通卡实一档
+  --glass-bg: #09232bb8;
+  --glass-bg-solid: #09232bd1;
+  --glass-border: #6b928b66;
+  --glass-rim: #ffffff1a;
+  --glass-sheen: #7fbbc011;
+  // 舞台四角的暗角
+  --vignette: #050a12a8;
+  // 压在图上的文字投影：浅色主题下文字本身够深，再加投影反而发脏
+  --text-shadow: 0 1px 2px #061016;
+
+  // 对话气泡：舞台上永远是「浅底深字」，两套主题共用
+  --bubble-bg: #f4fff9;
+  --bubble-text: #173338;
+  --bubble-border: #8adbc47a;
+  --bubble-shadow: 0 10px 24px #06101666;
+
+  // 遮罩与抽屉投影
+  --backdrop: #071016b8;
+  --shadow-drawer-left: -24px 0 64px #04090d99;
+  --shadow-drawer-right: 24px 0 64px #04090d99;
+
+  // 阴影
+  --shadow-pop: 0 12px 24px #07101699;
+  --shadow-modal: 0 20px 60px #071016cc;
+  --shadow-card: 0 4px 14px #050b1066;
+  --shadow-glass: 0 10px 30px #06111666, inset 0 1px #b5e5d51c;
+
+  // 滚动条滑块
+  --scrollbar-thumb: #4a6a78;
+  --scrollbar-thumb-hover: #5d8492;
+
+  // 状态点（顶栏「系统在线」、舞台 LIVE）
+  --dot: #66e4c7;
+  --dot-halo: #66e4c71c;
+}
+
+// 浅色：白为主色调，色相仍跟着暗色那套青灰走，避免切过去像换了个产品
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-base: #eef3f5;
+  --bg-deep: #e7eef1;
+  --bg-topbar: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-raised: #ffffff;
+  --bg-inset: #f2f6f7;
+  --bg-hover: #e9f1f3;
+  --bg-glow: #ffffff;
+
+  --border: #dbe5e8;
+  --border-soft: #e4ecef;
+  --border-inset: #d8e3e6;
+  --border-input: #cfdde1;
+  --border-strong: #c2d3d8;
+
+  --slider-track: #ccdadd;
+
+  // 浅底上的次级文字要压得比暗色更深，否则一片糊
+  --text: #16242c;
+  --text-soft: #3a5058;
+  --text-muted: #55707a;
+  --text-dim: #6b828b;
+  --text-faint: #7a9099;
+
+  // 青绿在白底上必须降亮度才够对比
+  --accent: #0f9d86;
+  --accent-rgb: 15 157 134;
+  --accent-bright: #0b8a75;
+  --accent-soft: #0d7d6a;
+  --accent-text: #0a6b5b;
+  --accent-line: #9dd3c8;
+  --accent-line-hover: #0f9d86;
+  --accent-fill: #e2f6f1;
+  --accent-fill-hover: #d0efe8;
+  --accent-chip-line: #6fc4b4;
+  --accent-chip-fill: #d9f2ec;
+
+  --warn: #9a6b1f;
+  --danger-text: #b03a2e;
+  --danger-line: #e2b0a8;
+  --danger-fill: #fbeae7;
+  --danger-fill-hover: #f7dad5;
+  --danger-line-hover: #c1553f;
+
+  --gold: #9a7620;
+  --gold-soft: #86671c;
+  --live: #e5484d;
+
+  --overlay-weak: #0d1b2108;
+  --overlay: #0d1b210f;
+  --overlay-strong: #0d1b211a;
+  --overlay-stronger: #0d1b212e;
+
+  // 玻璃卡片在白底主题下是「磨砂白」，盖在深色背景图上依旧压得住文字。
+  // 白底卡要透出背景色，透明度只能给到 ~75%：再透，10px 的小字就会跟着背景花掉
+  --glass-bg: #ffffffb3;
+  --glass-bg-solid: #ffffffcc;
+  --glass-border: #ffffffcc;
+  --glass-rim: #ffffff;
+  --glass-sheen: #ffffff33;
+  --vignette: #0d1b2140;
+  --text-shadow: none;
+
+  // 浅色下弹窗是白底压白页，遮罩太淡就分不出层次
+  --backdrop: #0d1b2161;
+  --shadow-drawer-left: -20px 0 48px #1734401f;
+  --shadow-drawer-right: 20px 0 48px #1734401f;
+
+  --shadow-pop: 0 10px 24px #17344024;
+  --shadow-modal: 0 20px 60px #1734402e;
+  --shadow-card: 0 4px 14px #1734401f;
+  --shadow-glass: 0 10px 30px #1734401f, inset 0 1px #ffffff;
+
+  --scrollbar-thumb: #b3c6cb;
+  --scrollbar-thumb-hover: #93aab1;
+
+  --dot: #0f9d86;
+  --dot-halo: #0f9d8622;
+}

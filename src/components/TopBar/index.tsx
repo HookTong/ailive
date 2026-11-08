@@ -2,11 +2,12 @@ import { useAiChat, useLiveData, useVoice } from '../../hooks'
 import { Button } from '../Button'
 import { AiConfigDrawer } from '../AiConfigDrawer'
 import { LiveConfigDrawer } from '../LiveConfigDrawer'
+import { ThemeMenu } from '../ThemeMenu'
 import { TtsConfigModal } from '../TtsConfigModal'
 import styles from './index.module.scss'
 
 /**
- * 顶部品牌栏：左侧 logo + 站点名，右侧直播 / AI / TTS 三个配置入口。
+ * 顶部品牌栏：左侧 logo + 站点名，右侧直播 / AI / TTS 三个配置入口 + 主题切换。
  * 三个配置界面都挂在这里，全局各一份（AI 配置是右侧抽屉，另外两个是弹窗）。
  */
 export function TopBar() {
@@ -38,6 +39,7 @@ export function TopBar() {
         <Button variant="ghost" size="xs" className={styles.configButton} onClick={openTtsConfig}>
           TTS 配置
         </Button>
+        <ThemeMenu />
       </div>
       <LiveConfigDrawer />
       <AiConfigDrawer open={aiConfigOpen} onClose={closeAiConfig} />

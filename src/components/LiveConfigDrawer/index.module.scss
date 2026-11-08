@@ -39,7 +39,7 @@
 
   li {
     display: grid;
-    grid-template-columns: 26px minmax(0, 1fr) 148px auto;
+    grid-template-columns: 26px minmax(0, 1fr) 148px auto auto;
     align-items: center;
     gap: 10px;
     // 横向不留内边距：礼物图标要对齐上面的「礼物单价」文案，右边的
@@ -49,7 +49,7 @@
     border-radius: $radius;
 
     &:hover {
-      background: #ffffff08;
+      background: $overlay-weak;
     }
   }
 }
@@ -111,6 +111,25 @@
 .giftList .motionButtonOn {
   border-color: $accent-line;
   color: $accent-text;
+}
+
+// 行末的「清除角色动作」：只描红 —— 红边框 + 红字，不铺底色，
+// 指针进来才垫一层淡红（和左边中性色的「触发角色动作」一眼分得开，又不至于 28 行全红）。
+// 两级选择器是为了压过 .ghost / .ghost:hover:not(:disabled)：后者会把边框改成青色、
+// 文字提亮，所以悬停时这三个属性都得显式写回来，不能只写 background
+.giftList .clearButton {
+  height: 32px;
+  padding: 0 9px;
+  white-space: nowrap;
+  border-color: $danger-line;
+  color: $danger-text;
+  @include mono(11px);
+
+  &:hover:not(:disabled) {
+    border-color: $danger-line;
+    background: $danger-fill;
+    color: $danger-text;
+  }
 }
 
 // 动作配置弹窗

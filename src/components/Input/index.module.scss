@@ -165,7 +165,7 @@
   transition: color 0.15s, background-color 0.15s;
 
   &:hover {
-    background: #ffffff0f;
+    background: $overlay;
     color: $text-soft;
   }
 
@@ -196,7 +196,7 @@
   transition: opacity 0.12s ease, color 0.15s, background-color 0.15s;
 
   &:hover {
-    background: #ffffff0f;
+    background: $overlay;
     color: $text;
   }
 
@@ -243,7 +243,7 @@
   border: 0;
   border-radius: 3px;
   background: transparent;
-  color: #6b818b;
+  color: $text-faint;
   cursor: pointer;
   transition: color 0.12s, background-color 0.12s;
 
@@ -260,12 +260,12 @@
   }
 
   &:hover {
-    background: #ffffff0f;
+    background: $overlay;
     color: $text-soft;
   }
 
   &:active {
-    background: #ffffff1a;
+    background: $overlay-strong;
     color: $text;
   }
 
@@ -282,17 +282,17 @@
   resize: vertical;
   @include field;
   padding: 8px;
-  color: #d9e4e5;
+  color: $text;
   font-family: $font-ui;
   font-size: 12px;
-  @include autofill-reset($bg-inset, #d9e4e5);
+  @include autofill-reset($bg-inset, $text);
 
   &::placeholder {
     color: $text-faint;
   }
 
   &:focus {
-    border-color: #5ba895;
+    border-color: $accent-line-hover;
   }
 }
 

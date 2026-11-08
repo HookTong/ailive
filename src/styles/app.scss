@@ -8,7 +8,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-rows: 72px 1fr;
-  background: radial-gradient(circle at 72% 32%, #1c3343 0, $bg-base 44%);
+  background: radial-gradient(circle at 72% 32%, $bg-glow 0, $bg-base 44%);
 }
 
 // 主工作区

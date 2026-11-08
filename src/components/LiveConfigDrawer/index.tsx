@@ -148,6 +148,15 @@ export function LiveConfigDrawer() {
     setMotionTarget(name)
   }
 
+  /** 清掉这个礼物配给所有角色的动作（含旧格式的通配键），只动草稿，点「完成」才落盘 */
+  const clearMotions = (name: string) => {
+    setDraftMotions((current) => {
+      const copy = { ...current }
+      delete copy[name]
+      return copy
+    })
+  }
+
   const confirmMotion = () => {
     if (!motionTarget) return
     const next: Record<string, string> = {}
@@ -256,6 +265,17 @@ export function LiveConfigDrawer() {
                         onClick={() => openMotionModal(row.name)}
                       >
                         触发角色动作
+                      </Button>
+                      {/* 没配过就没什么可清的，禁用掉但保留占位，免得各行的单价框左右错位 */}
+                      <Button
+                        variant="ghost"
+                        className={styles.clearButton}
+                        aria-label={`清除角色动作（${row.name}）`}
+                        title={summary ? `清除：${summary}` : '这个礼物还没有配置动作'}
+                        disabled={!summary}
+                        onClick={() => clearMotions(row.name)}
+                      >
+                        清除角色动作
                       </Button>
                     </li>
                   )

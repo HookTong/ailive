@@ -5,9 +5,12 @@
 $pad-x: 24px;
 
 .panel {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  padding: 28px ($pad-x - $scrollbar-size) 18px $pad-x;
+  // 底部 16px 和左侧角色控制台一致 —— 两个「重置」按钮到面板底边要一样远
+  padding: 28px ($pad-x - $scrollbar-size) 16px $pad-x;
   border-left: 1px solid $border;
   background: $bg-panel;
   @include scroll-thin;
@@ -15,7 +18,7 @@ $pad-x: 24px;
 
 .eyebrow {
   @include mono(12px);
-  color: #6f8590;
+  color: $text-faint;
   letter-spacing: 0.16em;
 }
 
@@ -48,23 +51,22 @@ $pad-x: 24px;
 }
 
 .tinyTag {
-  color: #6ae0c2;
-  border: 1px solid #366158;
+  color: $accent;
+  border: 1px solid $accent-line;
   padding: 3px 6px;
   border-radius: $radius-xs;
   font-size: 11px;
 }
 
-// 预设容器到下面那行按钮（添加背景 / 播放 + 添加音乐）的间距。
+// 预设容器到下面那行按钮（添加背景 / 播放 + 添加音乐）的间距，取全局的 $stack-gap。
 // 只在这一层给、行自己不再加 margin —— 两行的盒模型不一样：
 // 添加背景是 inline-flex 按钮（外边距不合并，会叠加上去），
 // 音乐那行是 block 级 grid（相邻外边距会合并取 max），只有「只给一处」两边才都等于这个值
-$preset-row-gap: 18px;
 
 // 背景预设：3 列由 ScrollArea 的 columns 决定，这里只管间距。
 // 滚动条推进面板的右留白里，胶囊右边缘才能和下面的整宽按钮对齐
 .backgroundPresets {
-  margin-bottom: $preset-row-gap;
+  margin-bottom: $stack-gap;
   @include scroll-bleed;
 }
 
@@ -72,7 +74,7 @@ $preset-row-gap: 18px;
 
 // 音乐按钮组：3 列由 ScrollArea 的 columns 决定，这里只管间距和让位
 .musicPresets {
-  margin-bottom: $preset-row-gap;
+  margin-bottom: $stack-gap;
   @include scroll-bleed;
 }
 
@@ -110,6 +112,25 @@ $preset-row-gap: 18px;
 // 标签文案已经去掉，这里只剩这一条外边距 —— 别再套一层 flex column 的壳
 .modeSwitch {
   margin-top: 12px;
+}
+
+// 最后一个区块紧贴底部的「重置舞台」：分隔线交给 .footer 画，
+// 这里再留一条就成了双线；22px 的下外边距也会把按钮推得比左侧远。
+// 下内边距取 20px —— 左侧最后一个区块（角色显示设置）的下外边距就是 20px，
+// 两边「内容到分隔线」的距离才对得上
+.block:last-of-type {
+  margin-bottom: 0;
+  padding-bottom: 20px;
+  border-bottom: 0;
+}
+
+// 底部只留「重置舞台」，和左侧「重置角色」同一套：一条分隔线 + 18px 上留白。
+// 到面板底边的距离由 .panel 的 padding-bottom（16px）负责，这里别再补。
+// `margin-top: auto` 让内容不满一屏时也贴着底边（面板是 flex column）
+.footer {
+  margin-top: auto;
+  border-top: 1px solid $border-soft;
+  padding-top: 18px;
 }
 
 .resetButton {

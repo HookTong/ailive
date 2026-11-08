@@ -14,7 +14,7 @@ type TtsConfigModalProps = {
 
 /**
  * 火山 TTS 的 API Key / 接口地址配置弹窗。
- * 顶栏按钮与「测试发声」（缺 Key 时）都走这里；取消即丢弃草稿，保存才写回配置与 localStorage。
+ * 顶栏按钮与「测试说话」（缺 Key 时）都走这里；取消即丢弃草稿，保存才写回配置与 localStorage。
  */
 export function TtsConfigModal({ open, onClose }: TtsConfigModalProps) {
   const { voiceConfig, setVoiceConfig } = useVoice()

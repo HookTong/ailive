@@ -9,6 +9,13 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 
 ## 样式
 
+- **颜色一律走 CSS 变量，禁止在模块里写十六进制**。色值只存在于 `src/styles/themes.scss`（暗色在 `:root`，浅色在 `[data-theme='light']`），`tokens.scss` 里的 `$bg-panel` 之类全是 `var(--bg-panel)` 的别名 —— 组件照旧写 `$token`，切主题时浏览器直接换值。**新增颜色必须两处都补**，只写 `:root` 的话浅色主题下会沿用暗色值。
+- **Sass 拿不到 `var()` 的颜色通道**：`color.red($accent)` / `rgba($accent, .3)` 这类写法会直接让编译报错（`$color: var(--accent) is not a color`）。要带透明度用 `color-mix(in srgb, #{$accent} 30%, transparent)`；确实需要通道值时用 `--accent-rgb`（空格分隔三元组，`rgb(var(--accent-rgb) / .34)`）。
+- **中性叠加用 `$overlay-weak / $overlay / $overlay-strong / $overlay-stronger`**（暗色叠白、浅色叠黑），别再写 `#ffffff08` —— 浅色主题下白叠白等于没有效果。
+- **压在舞台背景图上的文字投影用 `$text-shadow`**（浅色下是 `none`），玻璃浮层用 `$glass-bg` / `$glass-bg-solid` / `$glass-border` / `$glass-rim`，阴影用 `$shadow-pop` / `$shadow-modal` / `$shadow-card` / `$shadow-glass` / `$shadow-drawer-left|right`（整套值按主题换，不只是颜色）。
+- **`danger` 变体没有 `:disabled` 样式**（只有 `.primary` 有），用它的按钮要自己补禁用态。
+- **气泡是两套主题共用的**：`$bubble-*` 在浅色下也不变（舞台上永远是浅底深字）；`$gold` / `$live` / `$warn` / `$danger-*` 这些强调色在浅色下都调暗过，别拿暗色的字面量去覆盖。
+- **主题切换**：`ThemeProvider`（`contexts/ThemeProvider`）只管把 `<html data-theme>` 写成 `light|dark`，组件零感知；模式存 `ailive.theme`（`system` 是默认值、不写盘），`system` 时监听 `prefers-color-scheme`。首帧由 `index.html` 里一段内联脚本先定好，避免浅色系统下先闪一帧深色。
 - **字体栈必须带中文字体**（`PingFang SC` / `Hiragino Sans GB` / `Microsoft YaHei` 排在通用族前），否则汉字逐字回退、笔画对不上。
 - **字号只用刻度**：`$fs-micro` 10 / `$fs-label` 11 / `$fs-body` 12 / `$fs-title` 13（`@include mono()` 默认 `$fs-label`），别写 7px / 8px。
 - **要特定高度的按钮别传 `Button` 的 `size`**（写死 30–36px），在模块里自己写 `height` / `padding`；要压过 variant 类用**两级选择器**，单类对单类看打包顺序。
@@ -32,6 +39,9 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 - **grid 的 `align-content` 默认 `stretch`**，列表容器（尤其 `flex: 1 1 0`）要显式 `start`。
 - 图标路径用 `import.meta.env.BASE_URL`；**别用 `box-shadow` 画小图标**（不占布局盒、父级 `overflow: hidden` 会裁），改用 `radial-gradient`。
 - `Input` 步进器只在 `:focus-within` 出现；外壳高度靠给 `input` 写 `display: block`；`addon` 是右侧独立方块，同高、6px 缝。
+- **控制台里纵向堆叠的控件间距统一 `$stack-gap`（12px，`tokens.scss`）**，基准是「展开细粒度控制」：预设网格 → 整宽按钮（背景 / 滤镜 / 音乐 / 展开细粒度控制 / 添加音色 / 添加模型+隐藏模型 / 清除外观），以及「说话」那组的按钮 → 输入框 → 测试说话。**只在一层给**（上一块的 `margin-bottom`，下一块自己不加）—— 添加按钮是 inline-flex（外边距不合并、两处相加），音乐那行是 block 级 grid（合并取 max），只有一处有值两边才都等于 12。音色的 `.presets` 自带上下 5px 内边距（157px 高度上限按它算），所以它的按钮写 `margin-top: $stack-gap - $preset-pad-y`。**量视觉间距要用最后一个胶囊的 bottom，不能用 ScrollArea 的 bottom**（音色的网格有 5px 下内边距，容器口径会差 5px）。
+- **舞台卡片的透明度 = `--glass-bg`（70%/72%）+ `$glass-blur`（12px）一起调**：只有 `Card` 用 `@include glass`，改 token 就覆盖全部六张卡；`GiftMotionCard` / `ChatCommandCard` 另有 `$glass-bg-solid`（80%/82%）覆盖，给可能两层叠在一起的卡用。**透明度和模糊是一对**，底色越透越要靠 blur 把背景糊成色块，否则 10px 小字跟着霓虹轮廓花掉 —— 浅色 90% 时 blur 8px 够用，降到 70% 必须提到 12px。`Live2D` 的名牌 / `.state` 也走 `$glass-bg` + `$glass-blur`。
+- **左右控制台底部的「重置」按钮是同一套版式**：面板 `.panel` 必须是 `display: flex; flex-direction: column`，按钮包在 `.footer { margin-top: auto; border-top: 1px solid $border-soft; padding-top: 18px }` 里（内容不满一屏也贴底），`padding-bottom` 两边都是 16px。**分隔线归 footer 画，最后一个区块要 `margin-bottom: 0; border-bottom: 0`，但 `padding-bottom` 留 20px**（左侧最后一个区块的下外边距就是 20）—— 清成 0 的话内容会直接贴在线上。用 `:last-of-type` 不是 `:last-child`（footer 排在区块后面，`section` mixin 的 `:last-child` 永远不匹配）。
 
 ## 组件层级
 
@@ -42,6 +52,7 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 - **`Button` 里文字要省略**：包一层 `<span>` 并给 `min-width: 0`。`.xs` 内边距保持 4px（5 等分栅格会把「Lo-fi」挤成省略号）。
 - **`Card` 的 `headerProps` 别用 `.head` 类名**（内部已有）；只挂拖拽 `handlers`，列表区保留滚动与选中文字。
 - **「直播配置」抽屉里礼物行的左右要和内容区贴边**（`padding: 5px 0`）：礼物图标对齐上方「礼物单价」文案、行尾按钮对齐底部「完成」按钮。弹幕指令那 12px 内边距是画在 `.list` 的 1px 外框**里面**的，外框本身贴边 —— 别把两者混为一谈，也别用负边距去凑（右边紧挨着 `Tabs` 面板 `scroll-bleed` 出来的滚动条）。
+- **礼物行末尾的「清除角色动作」禁用态要保留占位**（`disabled`，不是不渲染）：行是 grid，少一格会让 26 行的单价框左右错位。样式是「只描红」：`border-color: $danger-line` + `color: $danger-text` + 透明底，**悬停才垫 `$danger-fill` 淡红底**（用 `ghost` 变体 + 两级选择器压色，悬停时 `border-color` / `color` 必须显式写回来 —— 否则 `.ghost:hover:not(:disabled)` 会把边框改青、文字提亮，只写 `background` 会被它盖掉）。**无障碍名称写成「清除角色动作（礼物名）」**：既带上可见文案（Label in Name），又能区分 28 个同名按钮。清除只动 `draftMotions`，和抽屉里其它编辑一样，点「完成」才落盘。
 - **舞台浮层一律「组件自己取数」**，容器只摆放和整块拖动。卡片高度靠各自 `.root { min-height: 154px }` 对齐。
 - **角色名牌在 `Live2D` 里，不属于舞台浮层**：和说话气泡共用同一套定位（`updateOverlays` 每 4 帧跑一次，`getBounds()` 只算一次两块共用）。要点：① 位置要贴「模型真正画到哪里」，**不能按固定比例往上收** —— 画布底部留白每个模型都不一样（鲸鱼娘 13%，有的模型几乎为 0），固定值要么压住角色、要么飘出老远，两头都试过；② 留白靠遍历 Cubism drawable 顶点算（`measureBottomTrim`，只统计 visible 且 opacity > 0 的，否则遮罩层会把范围带偏），**别用 `renderer.extract.pixels()`**：它按 `getLocalBounds()` 建离屏纹理，而 Live2D 这个值返回的是画布原始尺寸（实测 4068×4068 = 66MB），扫一遍要好几秒、直接卡死主线程；③ 顶点还没 update 时全是 0，算出来「留白」是半个画布，名牌会被推到腰上 —— 范围小得离谱就当没量到，退回贴包围盒底边；④ `--plate-scale: clamp(0.9, var(--bubble-scale), 1.2)`，模型拉满时不该变成巨幅招牌；⑤ 初始 `visibility: hidden`，模型没就绪前还没有 left/top，露出来会闪在舞台左上角；⑥ `offsetWidth/Height` 必须缓存、只在缩放变化时失效；⑦ **同一个 `measureSilhouette` 还量 `topTrim`**（`(canvasHeight / 2 - maxY) / canvasHeight`），说话气泡靠它停在真正的头顶上方 —— 气泡原来按包围盒顶边往下 3% 放，头发顶到画布上沿的模型会被盖住头（本地鲸鱼娘 topTrim 0.086、bottomTrim 0.129，两个方向差得完全没关系，不能共用一个数）；⑧ 气泡底边 = 内容顶边 − `BUBBLE_TAIL_DROP × scale` − 4，那个 13.7 是尾巴菱形伸到气泡底边下方的距离（18px 方块转 45° + `bottom: -10px`），**改 SCSS 里尾巴尺寸要同步改它**；⑨ 气泡 top 夹到 ≥ 0，头顶顶到舞台上沿时宁可盖一点头发，也不能被 `overflow: hidden` 裁掉。
 - **`--bubble-scale` 别在 ref 里缓存「上次写进去的值」**：气泡和名牌挂载时机不同（模型一加载就有名牌，气泡要等它开口或切「常显」才出现），共用一份 Map 的话，先挂载的那个会把这轮计算标记成「已写过」，后挂载的就被跳过 —— 元素上还是 CSS 默认的 `1`，模型一大（真实缩放 > 1）气泡就明显偏小，切一次模型才对上。改成和 `element.style.getPropertyValue('--bubble-scale')` 比：行内样式读取不触发重排，也不存在挂载/卸载的缓存一致性问题。
@@ -54,6 +65,11 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 ## 数据与状态
 
 - 持久化统一 `localStorage`，键前缀 `ailive.`；写入放 `useEffect`，updater 保持纯函数。**只存配过的项 / 非默认值**（弹幕指令只存被关掉的），空值删键。
+- **三份控制台设置各有自己的 `storage.ts`**：`ailive.model-console`（`activeModelId` + 每个角色 7 个字段）、`ailive.stage-console`（背景 / 粒子 / 滤镜）、`ailive.music-console`（曲目 / 循环 / 音量）。每个模块的约定一致：`DEFAULT_*` 常量是默认值唯一来源（provider 建初始状态也用它）、`loadX` 逐项校验读不懂就退回默认、`saveX` 只写差异且**全默认时 `removeItem`**（不然以后改默认值老用户不会跟着变）、`lastWritten` 比对载荷避免重复写。
+- **恢复配置必须在 `useState(懒初始化)` 里做，不能放挂载后的 effect**：舞台背景会先按默认图渲染一帧再换图，正好触发交叉淡入淡出，看着像闪一下。
+- **读回来的值要过一遍「还在不在」**：背景 URL 得在 `allBackgrounds` 里（自定义图被删 / blob 失效），滤镜 id 得在 `allFilterPresets` 里（自定义滤镜被删），模型 id 得在 `modelSources` 里，否则各自退回默认。粒子的滑杆初值取 `configs[存储的预设]` 而不是 `PARTICLE_PRESETS[0]`。
+- **粒子参数按预设分别记**（`particleOverrides: Record<预设, Partial<参数>>`）：只写和内置默认不同的键，读的时候再和默认合并。整张 23×5 的表写进去全是没动过的默认值。
+- **音乐只恢复「选中」不恢复「正在播放」**：刷新自动出声会被浏览器自动播放策略拦掉，`track`/`presetId` 设好即可，`toggle()` 首次点击会自己 `startSource`。
 - 「打开抽屉时同步草稿」用 `wasOpenRef` 判上升沿。`LiveDataProvider` 通过 `useLiveServer` 持有唯一一条 SSE；`MIN_REPLY_INTERVAL_MS = 6000`。
 - **自定义项 = 内置数组 + 用户数组**（背景 / 音乐 / 滤镜），靠 `id.startsWith('custom:')` 区分可删。
 - **胶囊的 hover 和 active 必须是两种颜色**：hover 走中性提亮（`$bg-hover` + `$border-strong` + `$text`），active 才是绿底（`$accent-chip-fill`）。外观预设这种「再点一次取消」的多选组，两者同色就分不清哪个是真选中的。选中项被悬停时由 `.chip.active:hover:not(:disabled)`（比 `.chip:hover:not(:disabled)` 多一个类）保持绿色、只把底色提亮到 `$accent-fill-hover`，否则会看着像刚被取消。

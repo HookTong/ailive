@@ -1,5 +1,9 @@
 // 设计令牌：颜色、字体、圆角、阴影、动效。
 // 各组件模块通过 `@use '../../styles/tokens' as *;` 取用，避免样式散落硬编码。
+//
+// 颜色不在这里写死 —— 它们是指向 CSS 变量的别名，具体色值按主题放在 `themes.scss`
+// （暗色在 `:root`，浅色在 `[data-theme='light']`）。组件照旧写 `$bg-panel` 即可，
+// 切主题时浏览器直接换变量值，不需要重新构建样式。
 
 // 字体
 // Manrope / DM Mono 都没有中文字形，汉字会逐字回退到系统默认字体（Windows 上常常是
@@ -17,54 +21,97 @@ $fs-body: 12px; // 正文
 $fs-title: 13px; // 小节标题
 
 // 背景
-$bg-base: #101722;
-$bg-deep: #0f1b25;
-$bg-topbar: #111a25;
-$bg-panel: #131e29;
-$bg-panel-raised: #172732;
-$bg-inset: #101b24;
-$bg-hover: #1c2b36;
+$bg-base: var(--bg-base);
+$bg-deep: var(--bg-deep);
+$bg-topbar: var(--bg-topbar);
+$bg-panel: var(--bg-panel);
+$bg-panel-raised: var(--bg-panel-raised);
+$bg-inset: var(--bg-inset);
+$bg-hover: var(--bg-hover);
+$bg-glow: var(--bg-glow);
 
 // 边框
-$border: #253340;
-$border-soft: #293945;
-$border-inset: #293d48;
-$border-input: #2d4651;
-$border-strong: #35505c;
+$border: var(--border);
+$border-soft: var(--border-soft);
+$border-inset: var(--border-inset);
+$border-input: var(--border-input);
+$border-strong: var(--border-strong);
 
 // 控件（滑块未填充轨道）
-$slider-track: #354a55;
+$slider-track: var(--slider-track);
 
 // 文字
-$text: #e8f1f1;
-$text-soft: #b8c8cd;
-$text-muted: #82939d;
-$text-dim: #637983;
-$text-faint: #607680;
+$text: var(--text);
+$text-soft: var(--text-soft);
+$text-muted: var(--text-muted);
+$text-dim: var(--text-dim);
+$text-faint: var(--text-faint);
 
 // 主色（青绿）
-$accent: #66dfc1;
-$accent-bright: #62e8cb;
-$accent-soft: #9ee7d2;
-$accent-text: #b8f5e2;
-$accent-line: #3d615b;
-$accent-line-hover: #66dfc1;
-$accent-fill: #1a3537;
-$accent-fill-hover: #21453f;
-$accent-chip-line: #4b8178;
-$accent-chip-fill: #1d4541;
+$accent: var(--accent);
+// 主色的 RGB 三元组，供 `rgb(var(--accent-rgb) / .3)` 这类带透明度的用法
+$accent-rgb: var(--accent-rgb);
+$accent-bright: var(--accent-bright);
+$accent-soft: var(--accent-soft);
+$accent-text: var(--accent-text);
+$accent-line: var(--accent-line);
+$accent-line-hover: var(--accent-line-hover);
+$accent-fill: var(--accent-fill);
+$accent-fill-hover: var(--accent-fill-hover);
+$accent-chip-line: var(--accent-chip-line);
+$accent-chip-fill: var(--accent-chip-fill);
 
 // 警示 / 危险
-$warn: #e0ab63;
-$danger-text: #ffc0b5;
-$danger-line: #7b4b49;
-$danger-fill: #4b2c30;
-$danger-fill-hover: #63363a;
-$danger-line-hover: #d78276;
+$warn: var(--warn);
+$danger-text: var(--danger-text);
+$danger-line: var(--danger-line);
+$danger-fill: var(--danger-fill);
+$danger-fill-hover: var(--danger-fill-hover);
+$danger-line-hover: var(--danger-line-hover);
+
+// 强调金（礼物榜、音乐卡）与直播红点
+$gold: var(--gold);
+$gold-soft: var(--gold-soft);
+$live: var(--live);
+
+// 中性叠加：暗色叠白、浅色叠黑。列表行悬停、图标按钮悬停都用它，
+// 别再直接写 #ffffff08 这类字面量 —— 浅色主题下白叠白等于没效果
+$overlay-weak: var(--overlay-weak);
+$overlay: var(--overlay);
+$overlay-strong: var(--overlay-strong);
+$overlay-stronger: var(--overlay-stronger);
+
+// 舞台浮层的玻璃底（盖在背景图上，两套主题都要半透明）
+$glass-bg: var(--glass-bg);
+$glass-bg-solid: var(--glass-bg-solid);
+$glass-border: var(--glass-border);
+$glass-rim: var(--glass-rim);
+$glass-sheen: var(--glass-sheen);
+$vignette: var(--vignette);
+// 压在背景图上的文字投影（浅色主题下是 none）
+$text-shadow: var(--text-shadow);
+
+// 对话气泡：舞台上永远是「浅底深字」，两套主题共用
+$bubble-bg: var(--bubble-bg);
+$bubble-text: var(--bubble-text);
+$bubble-border: var(--bubble-border);
+$bubble-shadow: var(--bubble-shadow);
 
 // 细滚动条占掉的横向空间。`::-webkit-scrollbar` 是从容器的 padding box 里切走这 12px 的，
 // 内容区右侧会凭空比左侧少一截，滚动容器必须把它让出来（见 mixins 的 scroll-thin / scroll-bleed）
 $scrollbar-size: 12px;
+
+// 控制台里纵向堆叠的控件之间的标准间距 —— 整条竖线上的「上一块到下一块」都用它：
+//   · 预设网格 → 整宽按钮（添加背景 / 添加自定义滤镜 / 展开细粒度控制 / 添加音色 …）
+//   · 按钮 → 输入框 → 按钮（「说话」那一组）
+// 各处分挂一边：多数挂在上一块的 margin-bottom，下一块自己不加（inline-flex 的外边距
+// 不合并，两处都写会相加）；音色的网格自带 5px 下内边距，所以它的按钮减掉这 5px。
+// 基准是「展开细粒度控制」，改的时候所有位置一起看。
+$stack-gap: 12px;
+
+// 玻璃底的背后模糊半径。和 `--glass-bg` 的透明度是一对：
+// 底色越透，越要靠它把背景糊成色块兜住可读性。舞台卡片、模型名牌共用这个值
+$glass-blur: 12px;
 
 // 圆角
 $radius-xs: 3px;
@@ -75,10 +122,16 @@ $radius-lg: 8px;
 $radius-pill: 10px;
 $radius-card: 14px;
 
-// 阴影
-$shadow-pop: 0 12px 24px #07101699;
-$shadow-modal: 0 20px 60px #071016cc;
-$shadow-glass: 0 10px 30px #06111666, inset 0 1px #b5e5d51c;
+// 遮罩与抽屉投影
+$backdrop: var(--backdrop);
+$shadow-drawer-left: var(--shadow-drawer-left);
+$shadow-drawer-right: var(--shadow-drawer-right);
+
+// 阴影（整套值按主题切换，不只是颜色 —— 浅色下偏移量也得收一点）
+$shadow-pop: var(--shadow-pop);
+$shadow-modal: var(--shadow-modal);
+$shadow-card: var(--shadow-card);
+$shadow-glass: var(--shadow-glass);
 
 // 动效
 $ease: 0.16s ease;

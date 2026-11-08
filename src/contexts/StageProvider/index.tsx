@@ -4,13 +4,19 @@ import { FILTER_PRESETS, type CustomFilterPreset, type FilterPreset } from '../.
 import {
   BACKGROUND_CYCLE_INTERVAL_MS,
   BACKGROUND_PRESETS,
+  DEFAULT_BACKGROUND_URL,
   PRESET_ROTATE_INTERVAL_MS,
   type BackgroundPreset,
   type PresetRotateMode,
 } from './presets'
 import { StageContext, type BackgroundMode, type StageContextValue } from './StageContext'
+import {
+  createParticlePresetConfigs,
+  loadStageConsole,
+  saveStageConsole,
+  toParticleOverrides,
+} from './storage'
 
-const DEFAULT_BACKGROUND_URL = '/background.png'
 const CUSTOM_FILTERS_STORAGE_KEY = 'ailive.custom-filters'
 const CUSTOM_BACKGROUNDS_STORAGE_KEY = 'ailive.custom-backgrounds'
 
@@ -63,15 +69,6 @@ function loadCustomFilterPresets(): CustomFilterPreset[] {
   }
 }
 
-function createParticlePresetConfigs(): Record<ParticlePreset, ParticlePresetSettings> {
-  return Object.fromEntries(
-    PARTICLE_PRESETS.map(({ id, color, intensity, speed, opacity, size }) => [
-      id,
-      { color, intensity, speed, opacity, size }
-    ])
-  ) as Record<ParticlePreset, ParticlePresetSettings>
-}
-
 /**
  * 自动切换时挑下一个下标。
  * 随机模式下直接 `Math.random() * length` 有 1/n 的概率连着两次同一个，
@@ -89,39 +86,84 @@ type StageProviderProps = {
 }
 
 export function StageProvider({ children }: StageProviderProps) {
-  const [backgroundUrl, setBackgroundUrl] = useState(DEFAULT_BACKGROUND_URL)
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('fixed')
+  // 上次的舞台设置，只在挂载时读一次
+  const [stored] = useState(loadStageConsole)
+
   const [customBackgrounds, setCustomBackgrounds] = useState<BackgroundPreset[]>(loadCustomBackgrounds)
+  const [customFilterPresets, setCustomFilterPresets] = useState<CustomFilterPreset[]>(loadCustomFilterPresets)
 
   // 内置预设 + 用户自己加的，循环切换按这个顺序走
   const allBackgrounds = useMemo(
     () => [...BACKGROUND_PRESETS, ...customBackgrounds],
     [customBackgrounds],
   )
-
-  const [particleEnabled, setParticleEnabled] = useState(true)
-  const [particlePresetConfigs, setParticlePresetConfigs] = useState<Record<ParticlePreset, ParticlePresetSettings>>(
-    () => createParticlePresetConfigs()
+  // 内置 + 自定义，滤镜自动切换按这个顺序走
+  const allFilterPresets = useMemo(
+    () => [...FILTER_PRESETS, ...customFilterPresets],
+    [customFilterPresets],
   )
-  const [particlePreset, setParticlePreset] = useState<ParticlePreset>('stardust')
-  const [particleMode, setParticleMode] = useState<PresetRotateMode>('fixed')
-  const [particleIntensity, setParticleIntensity] = useState(PARTICLE_PRESETS[0].intensity)
-  const [particleSpeed, setParticleSpeed] = useState(PARTICLE_PRESETS[0].speed)
-  const [particleOpacity, setParticleOpacity] = useState(PARTICLE_PRESETS[0].opacity)
-  const [particleColor, setParticleColor] = useState(PARTICLE_PRESETS[0].color)
-  const [particleSize, setParticleSize] = useState(PARTICLE_PRESETS[0].size)
+
+  /**
+   * 上次选的那张背景还在不在。自定义背景可能已经被删了，本地图片的 blob 地址刷新后也会被丢掉 ——
+   * 这时得退回默认底图，不然舞台会一直去请求一个打不开的地址。
+   */
+  const [backgroundUrl, setBackgroundUrl] = useState(() =>
+    allBackgrounds.some((preset) => preset.url === stored.backgroundUrl) ? stored.backgroundUrl : DEFAULT_BACKGROUND_URL
+  )
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(stored.backgroundMode)
+
+  const [particleEnabled, setParticleEnabled] = useState(stored.particleEnabled)
+  const [particlePresetConfigs, setParticlePresetConfigs] = useState<Record<ParticlePreset, ParticlePresetSettings>>(
+    () => createParticlePresetConfigs(stored.particleOverrides)
+  )
+  const [particlePreset, setParticlePreset] = useState<ParticlePreset>(stored.particlePreset)
+  const [particleMode, setParticleMode] = useState<PresetRotateMode>(stored.particleMode)
+  // 滑杆的初值取「这个预设自己的那套参数」，不是全局默认值 —— 用户调过的要原样回来
+  const restoredParticle = particlePresetConfigs[stored.particlePreset]
+  const [particleIntensity, setParticleIntensity] = useState(restoredParticle.intensity)
+  const [particleSpeed, setParticleSpeed] = useState(restoredParticle.speed)
+  const [particleOpacity, setParticleOpacity] = useState(restoredParticle.opacity)
+  const [particleColor, setParticleColor] = useState(restoredParticle.color)
+  const [particleSize, setParticleSize] = useState(restoredParticle.size)
+
+  // 存的预设可能已经不在了（自定义滤镜被删掉），退回「标准」连同它那套参数
+  const restoredFilter = allFilterPresets.find((preset) => preset.id === stored.filterPreset) ?? FILTER_PRESETS[0]
 
   // 开关和选中项分开存：关掉只是「不渲染」，选中项和那套参数都留着。
   // 对外暴露的是 handleFilterEnabledChange（带「选中项还在不在」的兜底），不是这个裸 setter
-  const [filterEnabled, setFilterEnabledState] = useState(true)
-  const [filterPreset, setFilterPreset] = useState<FilterPreset>('standard')
-  const [filterMode, setFilterMode] = useState<PresetRotateMode>('fixed')
-  const [filterBrightness, setFilterBrightness] = useState(1)
-  const [filterContrast, setFilterContrast] = useState(1)
-  const [filterSaturation, setFilterSaturation] = useState(1)
-  const [filterBlur, setFilterBlur] = useState(0)
-  const [vignette, setVignette] = useState(true)
-  const [customFilterPresets, setCustomFilterPresets] = useState<CustomFilterPreset[]>(loadCustomFilterPresets)
+  const [filterEnabled, setFilterEnabledState] = useState(stored.filterEnabled)
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>(restoredFilter.id)
+  const [filterMode, setFilterMode] = useState<PresetRotateMode>(stored.filterMode)
+  const [filterBrightness, setFilterBrightness] = useState(restoredFilter.brightness)
+  const [filterContrast, setFilterContrast] = useState(restoredFilter.contrast)
+  const [filterSaturation, setFilterSaturation] = useState(restoredFilter.saturation)
+  const [filterBlur, setFilterBlur] = useState(restoredFilter.blur)
+  const [vignette, setVignette] = useState(restoredFilter.vignette)
+
+  // 舞台设置落盘。载荷没变时 saveStageConsole 自己会跳过（切背景这类动作很频繁）
+  useEffect(() => {
+    saveStageConsole({
+      backgroundUrl,
+      backgroundMode,
+      particleEnabled,
+      particlePreset,
+      particleMode,
+      particleOverrides: toParticleOverrides(particlePresetConfigs),
+      filterEnabled,
+      filterPreset,
+      filterMode,
+    })
+  }, [
+    backgroundUrl,
+    backgroundMode,
+    particleEnabled,
+    particlePreset,
+    particleMode,
+    particlePresetConfigs,
+    filterEnabled,
+    filterPreset,
+    filterMode,
+  ])
 
   // Persist custom filter presets
   useEffect(() => {
@@ -246,12 +288,6 @@ export function StageProvider({ children }: StageProviderProps) {
     setFilterEnabledState(true)
     applyFilterPreset(preset)
   }, [customFilterPresets, applyFilterPreset])
-
-  // 内置 + 自定义，自动切换按这个顺序走
-  const allFilterPresets = useMemo(
-    () => [...FILTER_PRESETS, ...customFilterPresets],
-    [customFilterPresets],
-  )
 
   /**
    * 开关舞台滤镜。

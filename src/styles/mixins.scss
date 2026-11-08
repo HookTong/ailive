@@ -60,12 +60,12 @@
   }
 
   &[data-scroll-hover]::-webkit-scrollbar-thumb {
-    background-color: #4a6a78;
+    background-color: var(--scrollbar-thumb);
   }
 
   // 指针压到滚动条上时再亮一档，拖起来有反馈
   &[data-scroll-hover]::-webkit-scrollbar-thumb:hover {
-    background-color: #5d8492;
+    background-color: var(--scrollbar-thumb-hover);
   }
 
   &::-webkit-scrollbar-corner {
@@ -85,8 +85,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #66e4c7;
-  box-shadow: 0 0 0 3px #66e4c71c;
+  background: var(--dot);
+  box-shadow: 0 0 0 3px var(--dot-halo);
   margin-right: 8px;
 }
 
@@ -116,13 +116,16 @@
   }
 }
 
-/// 玻璃拟态面板（舞台卡片、弹幕面板共用）
+/// 玻璃拟态面板（舞台卡片、弹幕面板共用）。
+/// 底色只是半透明（见 themes.scss 的 --glass-bg），可读性全靠这里的 backdrop blur：
+/// 把底下的背景图糊成色块，透上来的是「颜色」而不是「细节」，10px 的小字才不会跟着花。
+/// 12px 是实测下来的下限 —— 8px 时霓虹灯的轮廓还看得出来，压在字后面很吵。
 @mixin glass {
-  border: 1px solid #6b928b66;
+  border: 1px solid $glass-border;
   border-radius: $radius-card;
-  background: #09232bd9;
+  background: $glass-bg;
   box-shadow: $shadow-glass;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur($glass-blur) saturate(1.12);
 }
 
 /// 控制台里的一节：底部虚线分隔
@@ -143,7 +146,7 @@
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
-  color: #a8b7bd;
+  color: $text-soft;
   font-family: $font-mono;
   font-size: 12px;
   letter-spacing: 0.08em;

@@ -78,8 +78,9 @@
 }
 
 .selected {
-  // 半透明填充：选中段与深色面板融合，不像实心色块那么跳
-  background: rgba($accent, 0.3);
+  // 半透明填充：选中段与面板融合，不像实心色块那么跳。
+  // $accent 是 var()，Sass 的 rgba() 算不了，改用 color-mix
+  background: color-mix(in srgb, #{$accent} 30%, transparent);
   color: $accent-text;
   cursor: default;
 }

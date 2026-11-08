@@ -114,7 +114,7 @@ export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange
             />
           ))}
         </ScrollArea>
-        <Button variant="ghost" size="sm" block className={styles.customButton} disabled={!enabled} onClick={openCustomModal}>
+        <Button variant="ghost" size="sm" block disabled={!enabled} onClick={openCustomModal}>
           ＋ 添加自定义滤镜
         </Button>
         {/* 和背景、音乐那两处一样，切换方式放在这一块的最下面 */}

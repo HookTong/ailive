@@ -1,10 +1,11 @@
+@use './themes';
 @use './tokens' as *;
 
 // 只保留真正的全局规则（元素级 reset）。
 // 所有组件样式都在各自的 index.module.scss 里，靠 CSS Modules 隔离。
 :root {
   font-family: $font-ui;
-  color: #eef2f6;
+  color: $text;
   background: $bg-base;
   font-synthesis: none;
 }
@@ -24,4 +25,5 @@ body {
   margin: 0;
   min-width: 320px;
   background: $bg-base;
+  color: $text;
 }

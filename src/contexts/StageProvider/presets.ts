@@ -13,6 +13,13 @@ export const BACKGROUND_PRESETS: readonly BackgroundPreset[] = [
   { id: 'lofi', label: 'Lo-fi', url: '/bg_lofi.png' },
 ]
 
+/**
+ * 默认底图。单独提出来是因为它有三个用处：舞台没配过时的初值、
+ * 删掉当前自定义背景时的退路、以及持久化里「读不到就退回默认」的兜底 ——
+ * 各写一遍 `'/background.png'` 迟早会改漏一处。
+ */
+export const DEFAULT_BACKGROUND_URL = BACKGROUND_PRESETS[0].url
+
 /** 循环切换时每张背景停留多久。太短会显得晃眼，太长又看不出在切换 */
 export const BACKGROUND_CYCLE_INTERVAL_MS = 12_000
 

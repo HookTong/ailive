@@ -90,7 +90,7 @@ export function VoiceSetting({
 
   return (
     <section className={styles.block}>
-      <div className={styles.title}><span>人声</span><span className={styles.tinyTag}>VOLCANO TTS</span></div>
+      <div className={styles.title}><span>说话</span><span className={styles.tinyTag}>VOLCANO TTS</span></div>
       <ScrollArea
         columns={3}
         gap="9px 8px"
@@ -120,7 +120,7 @@ export function VoiceSetting({
         className={styles.textarea}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
-        placeholder="输入内容测试发声"
+        placeholder="输入内容测试说话"
         aria-label="人声测试内容"
         rows={3}
         maxLength={300}
@@ -132,7 +132,7 @@ export function VoiceSetting({
           disabled={!draft.trim()}
           onClick={handleSpeakClick}
         >
-          {speaking ? '正在说话…' : '▶ 测试发声'}
+          {speaking ? '正在说话…' : '▶ 测试说话'}
         </Button>
       </span>
       {error && <div className={styles.error}>{error}</div>}

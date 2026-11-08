@@ -9,9 +9,9 @@
   right: 24px;
   bottom: 46px;
   width: 268px;
-  color: #d9e8e3;
+  color: $text;
   pointer-events: auto;
-  text-shadow: 0 1px 2px #061016;
+  text-shadow: $text-shadow;
   cursor: grab;
   touch-action: none;
   // 和弹幕面板、礼物动作面板同一套尺寸规则：最多占舞台高度的 66%、封顶 540px，
@@ -24,7 +24,7 @@
   overflow: hidden;
   // 底下的直播概览可能被这张卡盖住，底色比普通卡片再实一点，
   // 否则两层毛玻璃叠在一起，底下的数字会透上来糊成一片
-  background: #09232bf2;
+  background: $glass-bg-solid;
 }
 
 .root.dragging {
@@ -52,7 +52,7 @@
 .hint {
   flex: 0 0 auto;
   margin: 0 0 10px;
-  color: #7f9a93;
+  color: $text-muted;
   @include mono(11px);
   line-height: 1.5;
 }
@@ -77,7 +77,7 @@
 // 分类名：比例子暗一档，一眼能分出「这是标题、那是命令」
 .family {
   margin-bottom: 5px;
-  color: #6f8a84;
+  color: $text-faint;
   @include mono(11px);
   letter-spacing: 0.08em;
 }
@@ -94,10 +94,10 @@
 .command {
   max-width: 100%;
   padding: 3px 6px;
-  border: 1px solid #2b444d;
+  border: 1px solid $border-strong;
   border-radius: $radius-sm;
-  background: #0d2b33b3;
-  color: #d9f0e6;
+  background: $bg-inset;
+  color: $text-soft;
   @include mono(11px);
   line-height: 1.35;
   // 一条指令从中间断开就看不出怎么拼了，宁可整条省略

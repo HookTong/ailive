@@ -36,7 +36,7 @@
 
 .heading {
   @include ellipsis;
-  color: #f0d98b;
+  color: $gold;
   font-size: 12px;
   font-weight: 600;
 }
@@ -44,13 +44,13 @@
 .status {
   @include ellipsis;
   @include mono(12px);
-  color: #7f9c94;
+  color: $text-muted;
 }
 
 .extra {
   flex: 0 0 auto;
   @include mono(12px);
-  color: #9fe1cb;
+  color: $accent-text;
 }
 
 .dot {
@@ -61,20 +61,20 @@
 }
 
 .idle {
-  background: #5d7a74;
+  background: $text-faint;
 }
 
 .live {
-  background: #66e4c7;
-  box-shadow: 0 0 0 3px #66e4c71c;
+  background: var(--dot);
+  box-shadow: 0 0 0 3px var(--dot-halo);
 }
 
 .warn {
   background: $warn;
-  box-shadow: 0 0 0 3px #e0ab631c;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #{$warn} 12%, transparent);
 }
 
 .error {
-  background: #d97b7b;
-  box-shadow: 0 0 0 3px #d97b7b1c;
+  background: $danger-line-hover;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #{$danger-line-hover} 12%, transparent);
 }

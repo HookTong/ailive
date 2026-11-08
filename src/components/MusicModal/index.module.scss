@@ -67,7 +67,7 @@
 
 .fileName {
   min-width: 0;
-  color: #8fa8b0;
+  color: $text-soft;
   @include mono(11px);
   @include ellipsis;
 }

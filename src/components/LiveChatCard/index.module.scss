@@ -12,7 +12,7 @@
   flex-direction: column;
   width: 268px;
   max-height: min(66%, 540px);
-  color: #b6d2c7;
+  color: $text-soft;
   font-size: 12px;
   overflow: hidden;
   /* 整张卡片都是拖拽区，输入框和按钮由 useDragPosition 的 INTERACTIVE 守卫排除 */
@@ -64,7 +64,7 @@
 
 .error {
   margin: 7px 0 0;
-  color: #e79a9a;
+  color: $danger-text;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -72,7 +72,7 @@
 .roomTitle {
   margin: 7px 0 0;
   @include ellipsis;
-  color: #8fb3aa;
+  color: $text-muted;
   font-size: 12px;
 }
 
@@ -81,12 +81,12 @@
   gap: 8px;
   margin: 8px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #27414a;
-  color: #7f9c94;
+  border-bottom: 1px solid $border-soft;
+  color: $text-muted;
   @include mono(11px);
 
   b {
-    color: #cfe9df;
+    color: $text;
     font-weight: 500;
   }
 }
@@ -106,29 +106,29 @@
 
 .row {
   padding: 3px 0;
-  color: #a9c4bc;
+  color: $text-soft;
   font-size: 12px;
   line-height: 1.55;
   word-break: break-word;
 
   b {
     margin-right: 4px;
-    color: #d9e9e3;
+    color: $text;
     font-weight: 500;
   }
 }
 
 .rowChat span {
-  color: #9db8b0;
+  color: $text-muted;
 }
 
 .rowGift {
   b {
-    color: #f0d98b;
+    color: $gold;
   }
 
   em {
-    color: #f0d98b;
+    color: $gold;
     font-style: normal;
   }
 }
@@ -144,27 +144,27 @@
 // 折算金额，比礼物名再淡一档，别抢注意力
 .amount {
   margin-left: 5px;
-  color: #c9b478;
+  color: $gold-soft;
   font-style: normal;
 }
 
 .rowMember,
 .rowFollow {
-  color: #7d968f;
+  color: $text-faint;
   font-size: 12px;
 }
 
 .rowStats {
   margin: 4px 0;
   padding: 3px 0;
-  border-top: 1px dashed #27414a;
-  color: #6fd3b8;
+  border-top: 1px dashed $border-soft;
+  color: $accent;
   @include mono(11px);
 }
 
 .feedEmpty {
   padding: 14px 0;
-  color: #6b8580;
+  color: $text-faint;
   font-size: 12px;
   text-align: center;
 }

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MUSIC_PRESETS, type MusicPreset } from './presets'
 import { MusicContext, type MusicContextValue, type MusicLoopMode, type MusicTrack } from './MusicContext'
+import { DEFAULT_VOLUME, loadMusicConsole, resolveStoredTrack, saveMusicConsole } from './storage'
 
 const DEFAULT_TRACK: MusicTrack = { name: MUSIC_PRESETS[0].label, url: MUSIC_PRESETS[0].url }
-const DEFAULT_VOLUME = 0.55
 const CUSTOM_TRACKS_STORAGE_KEY = 'ailive.custom-tracks'
 
 /** 同源（含 blob / data）的音源才接得上 Web Audio，跨域接进去会被静音 */
@@ -84,19 +84,27 @@ function loadCustomTracks(): MusicPreset[] {
  * 舞台控制台只管 UI，正在播放卡片只管展示，两边共用同一份状态。
  */
 export function MusicProvider({ children }: { children: ReactNode }) {
-  const [track, setTrack] = useState<MusicTrack>(DEFAULT_TRACK)
-  const [presetId, setPresetId] = useState(MUSIC_PRESETS[0].id)
+  // 上次的音乐设置，只在挂载时读一次
+  const [stored] = useState(loadMusicConsole)
+
   const [customTracks, setCustomTracks] = useState<MusicPreset[]>(loadCustomTracks)
-  const [loopMode, setLoopMode] = useState<MusicLoopMode>('single')
+  // 内置预设在前，用户自己添加的排在后面；列表循环按这个顺序走
+  const allTracks = useMemo(() => [...MUSIC_PRESETS, ...customTracks], [customTracks])
+
+  // 存的那首可能已经不在了（自定义音乐被删、本地文件的 blob 地址失效），退回第一首内置曲目。
+  // 只恢复「选中」不恢复「正在播放」：刷新就自动出声会被浏览器的自动播放策略拦掉
+  const [track, setTrack] = useState<MusicTrack>(() => resolveStoredTrack(stored.presetId, allTracks))
+  const [presetId, setPresetId] = useState(() =>
+    allTracks.some((item) => item.id === stored.presetId) ? stored.presetId : MUSIC_PRESETS[0].id
+  )
+  const [loopMode, setLoopMode] = useState<MusicLoopMode>(stored.loopMode)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [volume, setVolumeState] = useState(DEFAULT_VOLUME)
+  const [volume, setVolumeState] = useState(stored.volume)
   const [error, setError] = useState('')
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
 
-  // 内置预设在前，用户自己添加的排在后面；列表循环按这个顺序走
-  const allTracks = useMemo(() => [...MUSIC_PRESETS, ...customTracks], [customTracks])
   // 列表循环在 ended 里要读最新列表，而 audio 元素建好之后不会再重建，只能靠 ref
   const tracksRef = useRef<MusicPreset[]>(allTracks)
   tracksRef.current = allTracks
@@ -238,6 +246,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       // 隐私模式下存不了，不影响本次会话
     }
   }, [customTracks])
+
+  // 音乐设置落盘：选中哪首、循环方式、音量。播放进度和播放状态都不存
+  useEffect(() => {
+    saveMusicConsole({ presetId, loopMode, volume })
+  }, [presetId, loopMode, volume])
 
   /**
    * 停掉并清空试听。关弹窗时调 —— 下次打开是一张干净的卡片，

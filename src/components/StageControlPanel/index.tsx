@@ -243,7 +243,10 @@ export function StageControlPanel() {
           />
         </div>
       </section>
-      <Button size="md" block className={styles.resetButton} onClick={handleResetStage}>↺ 重置舞台</Button>
+      {/* 底部操作：和左侧角色控制台的「重置角色」同一套结构（分隔线 + 18px 上留白） */}
+      <div className={styles.footer}>
+        <Button size="md" block className={styles.resetButton} onClick={handleResetStage}>↺ 重置舞台</Button>
+      </div>
 
       {backgroundModalOpen && (
         <BackgroundModal

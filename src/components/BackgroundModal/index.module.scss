@@ -67,7 +67,7 @@
 
 .fileName {
   min-width: 0;
-  color: #8fa8b0;
+  color: $text-soft;
   @include mono(11px);
   @include ellipsis;
 }
@@ -80,7 +80,7 @@
   overflow: hidden;
   border: 1px solid $border-inset;
   border-radius: $radius-md;
-  background: radial-gradient(circle at 50% 40%, #24424d, $bg-inset 74%);
+  background: radial-gradient(circle at 50% 40%, $bg-glow, $bg-inset 74%);
 }
 
 .previewImage {
@@ -91,7 +91,7 @@
 
 .placeholder {
   padding: 0 24px;
-  color: #718691;
+  color: $text-faint;
   @include mono(12px);
   line-height: 1.6;
   text-align: center;
