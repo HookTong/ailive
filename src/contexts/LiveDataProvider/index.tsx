@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useLiveServer } from '../../hooks/useLiveServer'
 import { DOUYIN_ROOM_STORAGE_KEY } from '../../hooks/useLiveServer/api'
 import { GIFT_MOTION_ANY_MODEL, type GiftMotionMap } from '../../data/giftMotions'
-import { CHAT_COMMANDS, createDefaultChatCommands, type ChatCommandId } from '../../data/chatCommands'
+import { ACTIONS, createDefaultActionSwitches, type ActionId, type ActionSwitches } from '../../data/actions'
 import {
   LiveDataContext,
   type LiveDataContextValue,
@@ -62,8 +62,8 @@ function loadGiftMotions(): GiftMotionMap {
  * 读取指令开关。存的是「被关掉的那几条」，读的时候从「全部启用」出发覆盖一遍 ——
  * 这样以后新增的指令不用迁移数据，默认就是开着的。
  */
-function loadChatCommands(): Record<ChatCommandId, boolean> {
-  const result = createDefaultChatCommands()
+function loadChatCommands(): ActionSwitches {
+  const result = createDefaultActionSwitches()
   try {
     const raw = window.localStorage.getItem(CHAT_COMMANDS_STORAGE_KEY)
     if (!raw) return result
@@ -71,7 +71,7 @@ function loadChatCommands(): Record<ChatCommandId, boolean> {
     if (!parsed || typeof parsed !== 'object') return result
     for (const [id, enabled] of Object.entries(parsed as Record<string, unknown>)) {
       if (!(id in result) || typeof enabled !== 'boolean') continue
-      result[id as ChatCommandId] = enabled
+      result[id as ActionId] = enabled
     }
     return result
   } catch {
@@ -91,7 +91,7 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
 
   const [giftPrices, setGiftPricesState] = useState<Record<string, number>>(loadGiftPrices)
   const [giftMotions, setGiftMotionsState] = useState<GiftMotionMap>(loadGiftMotions)
-  const [chatCommands, setChatCommandsState] = useState<Record<ChatCommandId, boolean>>(loadChatCommands)
+  const [chatCommands, setChatCommandsState] = useState<ActionSwitches>(loadChatCommands)
   const [liveConfigOpen, setLiveConfigOpen] = useState(false)
 
   const handleDouyinRoomChange = (roomId: string | null) => {
@@ -144,9 +144,9 @@ export function LiveDataProvider({ children }: LiveDataProviderProps) {
   }, [giftMotions])
 
   /** 只留认识的指令 id，值一律按布尔处理 */
-  const setChatCommands = useCallback((commands: Record<ChatCommandId, boolean>) => {
-    const next = createDefaultChatCommands()
-    for (const { id } of CHAT_COMMANDS) {
+  const setChatCommands = useCallback((commands: ActionSwitches) => {
+    const next = createDefaultActionSwitches()
+    for (const { id } of ACTIONS) {
       if (typeof commands[id] === 'boolean') next[id] = commands[id]
     }
     setChatCommandsState(next)

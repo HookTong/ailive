@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { Card } from '../Card'
+import { Tag } from '../Tag'
 import { useDragPosition, useLiveData } from '../../hooks'
-import { CHAT_COMMANDS } from '../../data/chatCommands'
+import { ACTIONS, modeGroupTemplate, type ActionGroupId, type ActionMeta } from '../../data/actions'
 import styles from './index.module.scss'
 
 /** 模板里 `[关键字|…]` 的关键字，也就是卡片里分的「类」 */
@@ -17,17 +18,58 @@ const FAMILY_LABEL: Record<string, string> = {
   外观: '角色外观',
   音色: '角色音色',
   背景: '舞台背景',
-  粒子: '粒子特效',
+  特效: '粒子特效',
   滤镜: '舞台滤镜',
   音乐: '背景音乐',
 }
 
+/** 一族里的一条展示项：单条指令，或一组模式合并成的一条 */
+type CommandEntry = { key: string; template: string }
+
 /**
- * 舞台上的「弹幕指令」速查卡：把 `data/chatCommands` 里的指令按类列出来。
+ * 把一族里的动作折成展示项。同一组的几条**合成一条**：
+ * 几种轮换方式并成 `[背景|固定/循环/随机]`，一个开关的两头并成 `[背景|开启/关闭]` ——
+ * 拆开摆着既占地方，又像是几条互不相干的指令。
+ *
+ * 折的时候只拿**已启用**的组员去拼：某一条被单独关掉时，卡片上就不该再出现它。
+ */
+function entriesOf(actions: ActionMeta[]): CommandEntry[] {
+  const grouped = new Map<ActionGroupId, ActionMeta[]>()
+  for (const action of actions) {
+    if (!action.group) continue
+    const bucket = grouped.get(action.group)
+    if (bucket) bucket.push(action)
+    else grouped.set(action.group, [action])
+  }
+
+  const entries: CommandEntry[] = []
+  const emitted = new Set<ActionGroupId>()
+  for (const action of actions) {
+    if (!action.group) {
+      entries.push({ key: action.id, template: action.template })
+      continue
+    }
+    // 一条合并项排在组里第一条出现的位置上，顺序仍由 ACTIONS 决定
+    if (emitted.has(action.group)) continue
+    emitted.add(action.group)
+    entries.push({
+      key: action.group,
+      template: modeGroupTemplate(grouped.get(action.group) ?? [action]),
+    })
+  }
+  return entries
+}
+
+/**
+ * 舞台上的「弹幕指令」速查卡：把 `data/actions` 里的动作按类列出来。
  *
  * 模板**原样显示**，`$角色名称` / `$背景名称` 这类占位符不替换成真实名字 ——
  * 这张卡是「格式说明」不是「当前配置」，替成具体值反而让人以为只能发那一个。
  * 想看现在能填哪些名字，去「直播配置 → 弹幕指令」，那里每条模板下面都列着。
+ *
+ * 同一组的几条合成一条斜杠写法（轮换方式一组、开关的开启 / 关闭一组），
+ * 别拆成一个个 Tag —— 卡片只有 268 宽，并排摆会撑成好几行还让人以为是独立指令。
+ * 限定词和控制台里那排分段控件、开关一字不差（背景「循环」、音乐「单曲循环」），念出来就能对上。
  *
  * 和配置面板分工不同：那边管开关，这边是给台上看的说明卡，
  * 所以**只列开着的指令** —— 关掉的指令发出去没反应，列出来只会让人以为坏了。
@@ -38,23 +80,23 @@ export function ChatCommandCard() {
   const { ref, transform, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging })
 
   const groups = useMemo(() => {
-    // 按「第一次出现」的顺序归组：CHAT_COMMANDS 本身就是 外观 → 音色 → 背景 → 粒子 → 滤镜 → 音乐
+    // 按「第一次出现」的顺序归组：ACTIONS 本身就是 外观 → 音色 → 背景 → 特效 → 滤镜 → 音乐
     const order: string[] = []
-    const byFamily = new Map<string, string[]>()
-    for (const command of CHAT_COMMANDS) {
+    const byFamily = new Map<string, ActionMeta[]>()
+    for (const command of ACTIONS) {
       if (!chatCommands[command.id]) continue
       const family = familyOf(command.template)
       const bucket = byFamily.get(family)
-      if (bucket) bucket.push(command.template)
+      if (bucket) bucket.push(command)
       else {
-        byFamily.set(family, [command.template])
+        byFamily.set(family, [command])
         order.push(family)
       }
     }
     return order.map((family) => ({
       family,
       label: FAMILY_LABEL[family] ?? family,
-      commands: byFamily.get(family) ?? [],
+      entries: entriesOf(byFamily.get(family) ?? []),
     }))
   }, [chatCommands])
 
@@ -75,15 +117,15 @@ export function ChatCommandCard() {
       headerProps={{ className: styles.headRow }}
     >
       <p className={styles.hint}>
-        观众在弹幕里发这些就能远程操作，「$」开头的值写个大概也能认出来
+        观众发这些就能远程操作；斜杠表示任选一个，「$」开头的值写个大概也能认出来
       </p>
       <ul className={styles.list}>
         {groups.map((group) => (
           <li key={group.family}>
             <div className={styles.family}>{group.label}</div>
             <div className={styles.commands}>
-              {group.commands.map((command) => (
-                <code className={styles.command} key={command}>{command}</code>
+              {group.entries.map((entry) => (
+                <Tag tone="neutral" key={entry.key}>{entry.template}</Tag>
               ))}
             </div>
           </li>

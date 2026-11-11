@@ -16,24 +16,14 @@ $pad-x: 24px;
   @include scroll-thin;
 }
 
-.eyebrow {
-  @include mono(12px);
-  color: $text-faint;
-  letter-spacing: 0.16em;
-}
-
+// 页头两行（标题 + 说明）走 mixins 里的 panel-title / panel-intro，
+// 和左侧角色控制台同一套 —— 两栏并排，字号和间距不能各写一份
 .title {
-  margin: 12px 0 8px;
-  color: $text;
-  font-size: 20px;
-  letter-spacing: -0.03em;
+  @include panel-title;
 }
 
 .intro {
-  margin: 0 0 22px;
-  color: $text-muted;
-  font-size: 12px;
-  line-height: 1.6;
+  @include panel-intro;
 }
 
 .block {
@@ -50,18 +40,10 @@ $pad-x: 24px;
   font-weight: 400;
 }
 
-.tinyTag {
-  color: $accent;
-  border: 1px solid $accent-line;
-  padding: 3px 6px;
-  border-radius: $radius-xs;
-  font-size: 11px;
-}
-
-// 预设容器到下面那行按钮（添加背景 / 播放 + 添加音乐）的间距，取全局的 $stack-gap。
+// 预设到下面那行按钮的间距，取全局的 $stack-gap。
 // 只在这一层给、行自己不再加 margin —— 两行的盒模型不一样：
-// 添加背景是 inline-flex 按钮（外边距不合并，会叠加上去），
-// 音乐那行是 block 级 grid（相邻外边距会合并取 max），只有「只给一处」两边才都等于这个值
+// 按钮行是 block 级 grid（相邻外边距会合并取 max），
+// 预设容器是滚动区（外边距不合并，会叠加上去），只有「只给一处」两边才都等于这个值
 
 // 背景预设：3 列由 ScrollArea 的 columns 决定，这里只管间距。
 // 滚动条推进面板的右留白里，胶囊右边缘才能和下面的整宽按钮对齐
@@ -85,8 +67,9 @@ $pad-x: 24px;
   line-height: 1.4;
 }
 
-// 播放 / 添加音乐：两等分，和上面的 3 列胶囊同宽
-.musicActions {
+// 一行两个等宽按钮（播放 + 添加音乐），和上面的 3 列胶囊同宽。
+// 背景那块的「添加背景」现在独占一行，走 Button 的 block
+.actionRow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;

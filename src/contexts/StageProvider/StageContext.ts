@@ -7,15 +7,27 @@ import type { BackgroundPreset, PresetRotateMode } from './presets'
  * 舞台背景的切换方式：
  * - `fixed` 固定，停在你选的那张
  * - `cycle` 循环切换，按预设顺序自动轮播
- * - `none` 无背景，只留粒子与滤镜
+ * - `random` 随机切换，每次挑一张和当前不同的
+ * - `none` 无背景，只留粒子与滤镜。两个入口：面板上「舞台背景」标题右边那个开关，
+ *   和指令 `[背景|关闭]`。它不在切换方式那组里 —— 管的是「铺不铺图」，不是「怎么换图」
  */
-export type BackgroundMode = 'fixed' | 'cycle' | 'none'
+export type BackgroundMode = 'fixed' | 'cycle' | 'random' | 'none'
 
 export type StageContextValue = {
   backgroundUrl: string
   setBackgroundUrl: (url: string) => void
   backgroundMode: BackgroundMode
   setBackgroundMode: (mode: BackgroundMode) => void
+  /**
+   * 关掉背景之前那一种轮换方式。开关重新打开、指令 `[背景|开启]` 都回到它 ——
+   * 否则从「循环」关掉再打开会被降级成「固定」。关掉时下面那排分段控件也照它亮着。
+   */
+  backgroundModeBeforeOff: Exclude<BackgroundMode, 'none'>
+  /**
+   * 舞台背景开关：只控制「铺不铺图」，不换图、不改轮换方式、不清选中项。
+   * 面板上标题右边那个 Switch 和指令 `[背景|开启]` / `[背景|关闭]` 都走这里。
+   */
+  setBackgroundVisible: (visible: boolean) => void
   /** 用户自己添加的背景，排在内置预设之后 */
   customBackgrounds: BackgroundPreset[]
   /** 添加一张自定义背景并立即切换过去 */

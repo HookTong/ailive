@@ -385,7 +385,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [customTracks, presetId])
 
-  const toggle = useCallback(() => {
+  /**
+   * 开始 / 继续播放。**幂等**：已经在放就什么都不做 —— 指令那边分「播放」「暂停」两条，
+   * 观众连发两次「播放」不该把歌停掉（那是 toggle 的语义，按钮才用）。
+   */
+  const play = useCallback(() => {
     const audio = audioRef.current
     // 首次播放时 audio 元素还没建出来（只在真正开始播时才创建），
     // 这里按当前曲目起一个，否则「播放」按钮点了没有任何反应
@@ -394,13 +398,21 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       startSource(track.url, track.name, presetId, true)
       return
     }
-    if (audio.paused) {
-      void audioContextRef.current?.resume()
-      void audio.play().catch(() => setError('浏览器阻止了播放，请再次点击播放'))
-    } else {
-      audio.pause()
-    }
+    if (!audio.paused) return
+    void audioContextRef.current?.resume()
+    void audio.play().catch(() => setError('浏览器阻止了播放，请再次点击播放'))
   }, [startSource, track.url, track.name, presetId])
+
+  /** 暂停，进度留着（再 play 从原处接上）。没在放就什么都不做 */
+  const pause = useCallback(() => {
+    audioRef.current?.pause()
+  }, [])
+
+  const toggle = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio || audio.paused) play()
+    else pause()
+  }, [play, pause])
 
   const setVolume = useCallback((next: number) => {
     setVolumeState(next)
@@ -468,6 +480,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     beginPreview,
     endPreview,
     toggle,
+    play,
+    pause,
     setVolume,
     clearError,
     reset,
@@ -497,6 +511,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     beginPreview,
     endPreview,
     toggle,
+    play,
+    pause,
     setVolume,
     clearError,
     reset,

@@ -98,15 +98,14 @@ export function ModelControlPanel() {
 
   return (
     <aside className={styles.panel}>
-      <div className={styles.eyebrow}>LIVE2D CONTROL</div>
-      <h1 className={styles.title}>角色控制台</h1>
+      {/* 和右侧「舞台控制台」同级，两个面板并排、都是二级标题 */}
+      <h2 className={styles.title}>角色控制台</h2>
       <p className={styles.intro}>管理你的虚拟形象、动作与实时互动。</p>
 
       {/* 当前角色 */}
       <div className={styles.block}>
         <div className={styles.labelRow}>
           <span>当前角色</span>
-          <span className={styles.tinyTag}>LIVE2D</span>
         </div>
         <div className={styles.picker} ref={modelPickerRef}>
           <Button

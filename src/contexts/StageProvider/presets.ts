@@ -26,16 +26,23 @@ export const BACKGROUND_CYCLE_INTERVAL_MS = 12_000
 /**
  * 粒子 / 滤镜这类「一组预设里挑一个」的自动切换方式：
  * - `fixed` 固定，停在你选的那个
- * - `cycle` 循环切换，按预设顺序轮播
- * - `random` 随机切换，每次挑一个和当前不同的
+ * - `cycle` 循环，按预设顺序轮播
+ * - `random` 随机，每次挑一个和当前不同的
  */
 export type PresetRotateMode = 'fixed' | 'cycle' | 'random'
 
-/** 粒子 / 滤镜的切换方式，和背景那组同一个视觉 */
+/**
+ * 背景 / 粒子 / 滤镜的切换方式，三组同一个视觉。
+ * 标签只留两个字：分段控件一共三格，写「循环切换」会把格子挤满；「循环」「随机」单看也认得。
+ * （音乐那组不在这条规则里 —— 「单曲」「列表」离了「循环」就说不清，所以照写四字，
+ * 见 `StageControlPanel` 的 `MUSIC_LOOP_OPTIONS`。）
+ * 这两个字同时就是弹幕指令的限定词（`[特效|循环]`）—— 改文案要连 `data/actions` 的
+ * `qualifier` 一起改，否则观众照着控制台念的指令就发不出去了。
+ */
 export const PRESET_ROTATE_OPTIONS: readonly { value: PresetRotateMode; label: string }[] = [
   { value: 'fixed', label: '固定' },
-  { value: 'cycle', label: '循环切换' },
-  { value: 'random', label: '随机切换' },
+  { value: 'cycle', label: '循环' },
+  { value: 'random', label: '随机' },
 ]
 
 /**

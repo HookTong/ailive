@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { resolveGiftMotion, useLiveData, useModel, type GiftMotionMap } from '../../hooks'
 import { DOUYIN_GIFTS, giftIcon, giftPrice } from '../../data/gifts'
-import type { ChatCommandId } from '../../data/chatCommands'
+import type { ActionSwitches } from '../../data/actions'
 import { cx } from '../../utils/cx'
 import { Button } from '../Button'
 import { ChatCommandSetting } from '../ChatCommandSetting'
@@ -58,7 +58,7 @@ export function LiveConfigDrawer() {
   const [tab, setTab] = useState<ConfigTab>('gift')
   const [draftPrices, setDraftPrices] = useState<Record<string, number>>(giftPrices)
   const [draftMotions, setDraftMotions] = useState<GiftMotionMap>(giftMotions)
-  const [draftCommands, setDraftCommands] = useState<Record<ChatCommandId, boolean>>(chatCommands)
+  const [draftCommands, setDraftCommands] = useState<ActionSwitches>(chatCommands)
   /** 正在配置动作的礼物名，null 表示弹窗关着 */
   const [motionTarget, setMotionTarget] = useState<string | null>(null)
   /** 弹窗里每个模型的临时选择，点「确定」才写回草稿 */

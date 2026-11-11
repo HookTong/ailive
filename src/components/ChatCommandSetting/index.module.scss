@@ -8,11 +8,19 @@
   padding-bottom: 4px;
 }
 
+// 说明整段是次要信息（压暗），标了 <strong> 的重点用主色 + 加粗。
+// 只靠明度差（灰 → 深灰）在浅色主题下几乎看不出来，必须换色相才抓得住眼睛；
+// 主色和下面模板里的指令字同源，读者会自然把「重点」和「指令」连起来
 .intro {
   margin: 0;
   color: $text-muted;
   font-size: $fs-body;
   line-height: 1.7;
+
+  strong {
+    color: $accent-text;
+    font-weight: 600;
+  }
 }
 
 // 三条能直接照抄的例子，比模板里的「角色名」好懂
@@ -31,16 +39,9 @@
     @include mono($fs-label);
     letter-spacing: 0.06em;
   }
-
-  code {
-    padding: 2px 6px;
-    border-radius: $radius-sm;
-    background: $bg-panel-raised;
-    color: $accent-text;
-    @include mono($fs-label);
-  }
 }
 
+// 一组一个操作区域（外观 / 音色 / 背景 / 特效 / 滤镜 / 音乐）
 .group {
   display: grid;
   gap: 8px;
@@ -49,14 +50,23 @@
 .groupHead {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   color: $text-muted;
   @include mono($fs-body);
+}
 
-  > span:first-child {
-    letter-spacing: 0.04em;
-  }
+// 区域名是这一行的主角：观众按「我要动哪块地方」找，靠的就是这两个字
+.groupName {
+  letter-spacing: 0.04em;
+}
+
+// 这组动的是哪块控制台 —— 决定指令的反馈由谁来说。
+// 压到最小号并靠右推：分组已经按区域切开了，控制台只是补充信息，不该和区域名抢位置
+.groupScope {
+  margin-right: auto;
+  color: $text-faint;
+  font-size: $fs-label;
+  letter-spacing: 0;
 }
 
 .groupCount {
@@ -99,44 +109,54 @@
   opacity: 0.45;
 }
 
+// 纵向排列 + 左对齐：模板外面套着 Tooltip 的触发 `<span>`（inline-flex），
+// 排成 flex 列后它会被块级化并按内容收窄 —— 鼠标只在胶囊上才弹提示，不是整行
 .copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
 }
 
+// 第一行只有功能名：一列名词左对齐，扫列表时靠的就是它
+.label {
+  color: $text;
+  font-size: $fs-body;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+// 指令模板：退到第二行当「要发什么」的参考。只留等宽 + 主色，不铺底 ——
+// 底色会把它变成一个「按钮」，而这里只是说明。块级 + fit-content 是为了
+// 不带上行内基线的空隙，同时让 Tooltip 的触发区正好收在文字上
 .template {
   display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 4px;
   color: $accent-text;
-  @include mono($fs-body);
+  @include mono($fs-label);
+  line-height: 1.6;
   @include ellipsis;
 }
 
-.description {
-  display: block;
-  margin-top: 3px;
-  color: $text-soft;
-  font-size: $fs-label;
-  line-height: 1.5;
+// 能填哪些名字挂在 Tooltip 上，所以给个可悬停的暗示：虚线下划线 + help 光标。
+// 只给「有提示」的那些加 —— `[背景|固定]` 这种没有可填的名字，别让人白悬停一次
+.hinted {
+  cursor: help;
+  text-decoration: underline dotted color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+
+  // 没有底色了，悬停反馈改成「虚线变实线」：不改变字号字重，扫列表时不会跳
+  &:hover {
+    text-decoration-style: solid;
+  }
 }
 
-// 可用名字：一行一条（外观按角色分行）。单行长了就省略，完整内容在 Tooltip 里 ——
-// 外观名动辄几十个，行内全铺开会把这一行撑成一段墙。
-.options {
+// 一段「标签 + 内容」。现在只出现在 Tooltip 里，所以一段占一行 ——
+// 「角色：DS 鲛鱼娘」和「外观：love / 兔兔贴纸 / …」挤在一行时，几十个外观名会糊成一片
+.optionPart {
   display: block;
-  margin-top: 2px;
-}
-
-.optionLine {
-  display: block;
-  color: $text-faint;
-  font-size: $fs-micro;
-  line-height: 1.5;
-  @include ellipsis;
-}
-
-// 一段「标签 + 内容」。段与段之间只留间距，不加分隔符 ——
-// 标签和内容已经分了色，再插个圆点反而碎。
-.optionPart + .optionPart {
-  margin-left: 10px;
 }
 
 // 标签压暗、内容提亮：一行里能填好几个名字，不分色就看不出哪段是键、哪段是值。

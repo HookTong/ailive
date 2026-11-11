@@ -22,7 +22,7 @@ export type ParticleSettingProps = {
   onOpacityChange: (value: number) => void
   preset: ParticlePreset
   onPresetChange: (preset: ParticlePreset) => void
-  /** 固定 / 循环切换 / 随机切换 */
+  /** 固定 / 循环 / 随机 */
   mode: PresetRotateMode
   onModeChange: (mode: PresetRotateMode) => void
   color: string
@@ -73,8 +73,10 @@ export function ParticleSetting({
           <PresetChip
             key={id}
             label={label}
-            active={enabled && preset === id}
-            onSelect={() => { onPresetChange(id); onEnabledChange(true) }}
+            active={preset === id}
+            // 关掉时整排点不动，要换预设先开开关
+            disabled={!enabled}
+            onSelect={() => onPresetChange(id)}
           />
         ))}
       </ScrollArea>
@@ -84,6 +86,8 @@ export function ParticleSetting({
         block
         className={styles.detailToggle}
         aria-expanded={showFineControls}
+        // 关掉时展开也没有意义：里面的滑杆和取色器全是禁用的，展开只会让人以为坏了
+        disabled={!enabled}
         onClick={() => setShowFineControls((current) => !current)}
       >
         {showFineControls ? '收起细粒度控制' : '展开细粒度控制'}

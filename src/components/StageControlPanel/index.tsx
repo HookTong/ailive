@@ -8,19 +8,23 @@ import { PresetChip } from '../PresetChip'
 import { ScrollArea, PRESET_GRID_MAX_HEIGHT } from '../ScrollArea'
 import { Segmented, type SegmentedOption } from '../Segmented'
 import { Slider } from '../Slider'
+import { Switch } from '../Switch'
 import { cx } from '../../utils/cx'
 import { useMusic, useStage } from '../../hooks'
-import { BACKGROUND_PRESETS } from '../../contexts/StageProvider/presets'
+import { BACKGROUND_PRESETS, PRESET_ROTATE_OPTIONS } from '../../contexts/StageProvider/presets'
 import type { BackgroundMode } from '../../contexts/StageProvider/StageContext'
 import type { MusicLoopMode } from '../../contexts/MusicProvider/MusicContext'
 import styles from './index.module.scss'
 
-const BACKGROUND_MODE_OPTIONS: readonly SegmentedOption<BackgroundMode>[] = [
-  { value: 'fixed', label: '固定' },
-  { value: 'cycle', label: '循环切换' },
-  { value: 'none', label: '无背景' },
-]
+// 背景的三种轮换方式和粒子 / 滤镜那两组完全一样（固定 / 循环 / 随机），共用一份选项。
+// 面板上的背景开关不在这组里 —— 它管「铺不铺图」而不是「怎么换图」；
+// 命令侧的 `[背景|开启]` / `[背景|关闭]` 就是这同一个开关的指令入口
+const BACKGROUND_MODE_OPTIONS: readonly SegmentedOption<BackgroundMode>[] = PRESET_ROTATE_OPTIONS
 
+// 三格的文案就是指令的限定词（`[音乐|单曲循环]` / `[音乐|列表循环]` / `[音乐|随机播放]`），
+// 改这里要连 data/actions 的 qualifier 一起改。
+// 这里没跟背景那组压成两个字：那组的「循环」「随机」单看也认得，而「单曲」「列表」离了「循环」
+// 就说不清是干什么的，三格各 83px 放得下四字
 const MUSIC_LOOP_OPTIONS: readonly SegmentedOption<MusicLoopMode>[] = [
   { value: 'single', label: '单曲循环' },
   { value: 'list', label: '列表循环' },
@@ -33,6 +37,8 @@ export function StageControlPanel() {
     setBackgroundUrl,
     backgroundMode,
     setBackgroundMode,
+    backgroundModeBeforeOff,
+    setBackgroundVisible,
     customBackgrounds,
     addBackground,
     removeBackground,
@@ -82,9 +88,8 @@ export function StageControlPanel() {
   )
 
   const selectBackground = (url: string) => {
+    // 开关关着时这排胶囊是禁用的，能点到这儿就说明台上正铺着图，直接换
     setBackgroundUrl(url)
-    // 点预设就是想看见它，别停在上一次选的「无背景」上
-    if (backgroundMode === 'none') setBackgroundMode('fixed')
   }
 
   // 音乐播放统一由 MusicProvider 持有，这里只做 UI
@@ -112,12 +117,19 @@ export function StageControlPanel() {
 
   return (
     <aside className={styles.panel}>
-      <div className={styles.eyebrow}>STAGE CONTROL</div>
       <h2 className={styles.title}>舞台控制台</h2>
       <p className={styles.intro}>调整背景、光效、滤镜与声音氛围。</p>
 
       <section className={styles.block}>
-        <div className={styles.blockTitle}><span>舞台背景</span><span className={styles.tinyTag}>IMAGE</span></div>
+        <div className={styles.blockTitle}>
+          <span>舞台背景</span>
+          {/* 开关管「铺不铺图」，位置和粒子 / 滤镜那两处一样 */}
+          <Switch
+            checked={backgroundMode !== 'none'}
+            onChange={setBackgroundVisible}
+            ariaLabel="舞台背景开关"
+          />
+        </div>
         {/* 3 个一行，超过最大高度就在容器里滚动，别把整块面板顶长 */}
         <ScrollArea
           className={styles.backgroundPresets}
@@ -131,16 +143,26 @@ export function StageControlPanel() {
             <PresetChip
               key={id}
               label={label}
-              /* 选了「无背景」台上就没有背景，这组不该继续显示某一张被选中。
-                 backgroundUrl 本身是留着的 —— 切回「固定」时还能接着用上次那张 */
-              active={backgroundMode !== 'none' && backgroundUrl === url}
+              /* 选中态只看「台上该是哪一张」，和开关无关 —— 关掉时这张依然亮着，
+                 只是整排点不动。backgroundUrl 本来就留着，打开还是它 */
+              active={backgroundUrl === url}
+              // 开关关着时整排点不动，和下面那行切换方式一起变灰
+              disabled={backgroundMode === 'none'}
               onSelect={() => selectBackground(url)}
               // 只有自己加的能删；内置预设没传 onRemove，右侧就不会出现角标
               onRemove={id.startsWith('custom:') ? () => removeBackground(id) : undefined}
             />
           ))}
         </ScrollArea>
-        <Button variant="ghost" size="sm" block onClick={() => setBackgroundModalOpen(true)}>
+        {/* 只剩「添加背景」一个，走整宽 —— 和滤镜那块的「＋ 添加自定义滤镜」同一套。
+            开关关着时也一起变灰：台上不铺图，加进来也看不见 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          block
+          disabled={backgroundMode === 'none'}
+          onClick={() => setBackgroundModalOpen(true)}
+        >
           ＋ 添加背景
         </Button>
         {/* 标签文案去掉了，控件靠 aria-label 说明自己是谁 */}
@@ -148,9 +170,13 @@ export function StageControlPanel() {
           className={styles.modeSwitch}
           ariaLabel="背景切换方式"
           block
-          value={backgroundMode}
+          /* 关掉时不换值：选中项留在关之前那一种上，只是整块点不动 ——
+             清零会让人以为「关一次就把轮换方式忘了」 */
+          value={backgroundMode === 'none' ? backgroundModeBeforeOff : backgroundMode}
           options={BACKGROUND_MODE_OPTIONS}
           onChange={setBackgroundMode}
+          // 台上没图就没有「怎么换」可言，和粒子 / 滤镜关掉时一样整块变灰
+          disabled={backgroundMode === 'none'}
         />
       </section>
 
@@ -217,7 +243,7 @@ export function StageControlPanel() {
             />
           ))}
         </ScrollArea>
-        <div className={styles.musicActions}>
+        <div className={styles.actionRow}>
           <Button size="sm" onClick={toggle} disabled={!track.url}>{isPlaying ? '暂停' : '播放'}</Button>
           <Button variant="ghost" size="sm" onClick={() => setMusicModalOpen(true)}>＋ 添加音乐</Button>
         </div>

@@ -10,6 +10,11 @@ export type AiChatSettings = DoubaoChatConfig & {
   persona: string
   /** 配好 Key 之后是否真的开始自动回复 */
   autoReply: boolean
+  /**
+   * 自然语言控制：让模型把「换个赛博背景」这类弹幕理解成控制台动作。
+   * 每条没命中 `[关键字]` 的弹幕会多一次模型调用，所以单独给一个开关。
+   */
+  nlControl: boolean
   /** 推理输入单价，单位：元/百万 tokens */
   inputPrice: number
   /** 推理输出单价，单位：元/百万 tokens */
@@ -37,6 +42,7 @@ function envFallback(): AiChatSettings {
     model: (import.meta.env.VITE_DOUBAO_MODEL as string | undefined) ?? DEFAULT_DOUBAO_MODEL,
     persona: DEFAULT_AI_PERSONA,
     autoReply: true,
+    nlControl: true,
     inputPrice: DEFAULT_AI_INPUT_PRICE,
     outputPrice: DEFAULT_AI_OUTPUT_PRICE,
   }
@@ -55,6 +61,7 @@ export function loadAiChatSettings(): AiChatSettings {
       model: typeof parsed.model === 'string' && parsed.model.trim() ? parsed.model : fallback.model,
       persona: typeof parsed.persona === 'string' && parsed.persona.trim() ? parsed.persona : fallback.persona,
       autoReply: typeof parsed.autoReply === 'boolean' ? parsed.autoReply : fallback.autoReply,
+      nlControl: typeof parsed.nlControl === 'boolean' ? parsed.nlControl : fallback.nlControl,
       inputPrice: readPrice(parsed.inputPrice, fallback.inputPrice),
       outputPrice: readPrice(parsed.outputPrice, fallback.outputPrice),
     }

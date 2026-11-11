@@ -48,7 +48,7 @@ export type FilterSettingProps = FilterValues & {
   onEnabledChange: (enabled: boolean) => void
   preset: FilterPreset
   onPresetChange: (preset: FilterPreset) => void
-  /** 固定 / 循环切换 / 随机切换 */
+  /** 固定 / 循环 / 随机 */
   mode: PresetRotateMode
   onModeChange: (mode: PresetRotateMode) => void
   onBrightnessChange: (value: number) => void
@@ -102,13 +102,21 @@ export function FilterSetting({ enabled, onEnabledChange, preset, onPresetChange
           ariaLabel="舞台滤镜快捷预设"
         >
           {FILTER_PRESETS.map(({ id, label }) => (
-            <PresetChip key={id} label={label} active={enabled && preset === id} onSelect={() => onPresetChange(id)} />
+            <PresetChip
+              key={id}
+              label={label}
+              // 选中态跟着 preset 走、不跟开关走：关掉时这一张依然亮着，只是点不动
+              active={preset === id}
+              disabled={!enabled}
+              onSelect={() => onPresetChange(id)}
+            />
           ))}
           {customPresets.map(({ id, label }) => (
             <PresetChip
               key={id}
               label={label}
-              active={enabled && preset === id}
+              active={preset === id}
+              disabled={!enabled}
               onSelect={() => onPresetChange(id)}
               onRemove={() => onRemoveCustomPreset(id)}
             />

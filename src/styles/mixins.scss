@@ -139,15 +139,43 @@
   }
 }
 
-/// 节标题：左标题右附加信息
+/// 块标题行的排印：等宽 12px、字距拉开、偏亮的中性色。
+/// **两个面板八个块的标题都靠它**（角色控制台的 `.labelRow` / `.title`、
+/// 舞台控制台的 `section-title`），颜色和字号别再各写一份 ——
+/// 曾经一边 `$text-soft` 一边 `$text-muted`，并排一眼就看出来
+@mixin label-type {
+  color: $text-soft;
+  font-family: $font-mono;
+  font-size: $fs-body;
+  letter-spacing: 0.08em;
+}
+
+/// 节标题：左标题右附加信息。
+/// 到下面那块内容的间距和角色控制台的块标题行同一个值（`$label-gap`）——
+/// 两个面板并排，标题到内容的那一步不能一边 12 一边 10
 @mixin section-title {
+  @include label-type;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
-  color: $text-soft;
-  font-family: $font-mono;
+  margin-bottom: $label-gap;
+}
+
+/// 控制台页头的大标题。左右两栏并排，字号和间距必须一模一样 ——
+/// 各写一份就会像 25px / 20px 那样悄悄跑偏，统一走这里。
+/// 上外边距归零：标题是这一列的第一行，顶部留白交给面板的 padding-top
+@mixin panel-title {
+  margin: 0 0 8px;
+  color: $text;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+/// 控制台页头那句说明，紧跟在 panel-title 下面
+@mixin panel-intro {
+  margin: 0 0 22px;
+  color: $text-muted;
   font-size: 12px;
-  letter-spacing: 0.08em;
+  line-height: 1.6;
 }

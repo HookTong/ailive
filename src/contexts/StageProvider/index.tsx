@@ -110,7 +110,31 @@ export function StageProvider({ children }: StageProviderProps) {
   const [backgroundUrl, setBackgroundUrl] = useState(() =>
     allBackgrounds.some((preset) => preset.url === stored.backgroundUrl) ? stored.backgroundUrl : DEFAULT_BACKGROUND_URL
   )
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(stored.backgroundMode)
+  const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>(stored.backgroundMode)
+  /**
+   * 关掉之前那一种轮换方式。存的本来就是 `none` 时（上次就是关着的）猜不出原样，退回「固定」——
+   * 这个值不落盘，它只是「这一次打开要回到哪儿」。
+   */
+  const [backgroundModeBeforeOff, setBackgroundModeBeforeOff] = useState<Exclude<BackgroundMode, 'none'>>(
+    stored.backgroundMode === 'none' ? 'fixed' : stored.backgroundMode,
+  )
+
+  /**
+   * 换轮换方式，顺手记住「最后一种铺图的方式」。
+   *
+   * 记住是必须的：从「循环」关掉背景、再打开，应该回到循环而不是降级成固定。
+   * 这里同步记而不是等关掉那一刻才记 —— 关掉之后分段控件是禁用的，
+   * 但指令 `[背景|随机]` 还能发，那一下也得算进「下次打开回到哪儿」。
+   */
+  const setBackgroundMode = useCallback((mode: BackgroundMode) => {
+    setBackgroundModeState(mode)
+    if (mode !== 'none') setBackgroundModeBeforeOff(mode)
+  }, [])
+
+  /** 开关只切 `none` 这一档：图、轮换方式、预设选中项全都原样留着 */
+  const setBackgroundVisible = useCallback((visible: boolean) => {
+    setBackgroundModeState(visible ? backgroundModeBeforeOff : 'none')
+  }, [backgroundModeBeforeOff])
 
   const [particleEnabled, setParticleEnabled] = useState(stored.particleEnabled)
   const [particlePresetConfigs, setParticlePresetConfigs] = useState<Record<ParticlePreset, ParticlePresetSettings>>(
@@ -174,16 +198,17 @@ export function StageProvider({ children }: StageProviderProps) {
     }
   }, [customFilterPresets])
 
-  // 循环切换：每停满一个间隔就换下一张预设背景。
+  // 自动切换：每停满一个间隔就换下一张预设背景。固定 / 无背景都不轮播，
+  // 循环和随机共用同一个间隔，只差挑下一张的方式（见 pickNextIndex）。
   // 依赖里带 backgroundUrl，换一张就重新计时 —— 手动点预设也会把计时器重置，
   // 不会出现「刚点完就被轮播换走」。
   useEffect(() => {
-    if (backgroundMode !== 'cycle') return
+    if (backgroundMode !== 'cycle' && backgroundMode !== 'random') return
     const timer = window.setTimeout(() => {
       setBackgroundUrl((current) => {
         const index = allBackgrounds.findIndex((preset) => preset.url === current)
-        // 当前是自定义图（不在列表里）时，从第一张开始轮
-        return allBackgrounds[(index + 1) % allBackgrounds.length].url
+        // 当前是自定义图（不在列表里）时 index = -1，pickNextIndex 会当成从 0 开始
+        return allBackgrounds[pickNextIndex(allBackgrounds.length, index, backgroundMode)].url
       })
     }, BACKGROUND_CYCLE_INTERVAL_MS)
     return () => window.clearTimeout(timer)
@@ -380,6 +405,8 @@ export function StageProvider({ children }: StageProviderProps) {
     setBackgroundUrl,
     backgroundMode,
     setBackgroundMode,
+    backgroundModeBeforeOff,
+    setBackgroundVisible,
     customBackgrounds,
     addBackground,
     removeBackground,
@@ -423,6 +450,9 @@ export function StageProvider({ children }: StageProviderProps) {
   }), [
     backgroundUrl,
     backgroundMode,
+    backgroundModeBeforeOff,
+    setBackgroundMode,
+    setBackgroundVisible,
     customBackgrounds,
     particleEnabled,
     particlePreset,

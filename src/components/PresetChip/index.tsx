@@ -13,6 +13,8 @@ export type PresetChipProps = {
    * 只有用户自己添加的项才传 —— 内置预设删不掉。
    */
   onRemove?: () => void
+  /** 整块关掉时（粒子 / 滤镜 / 舞台背景的开关）胶囊跟着不能点 */
+  disabled?: boolean
   className?: string
 }
 
@@ -26,13 +28,14 @@ export type PresetChipProps = {
  * 而胶囊里的名字动辄被省略号截断，得有个能立刻看全名的入口。
  * 外层用 block 触发器，胶囊才会撑满栅格单元。
  */
-export function PresetChip({ label, active, onSelect, onRemove, className }: PresetChipProps) {
+export function PresetChip({ label, active, onSelect, onRemove, disabled = false, className }: PresetChipProps) {
   return (
     <Tooltip block title={label}>
       <Button
         variant="chip"
         size="xs"
         active={active}
+        disabled={disabled}
         // 选中态只有颜色差异，读屏用户摸不到；同步一份到 aria-pressed 上
         aria-pressed={active}
         onClick={onSelect}

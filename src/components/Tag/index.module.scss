@@ -1,0 +1,32 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+// 静态小标签：一段字面量 + 淡底 + 小圆角。
+// 没有 hover / focus 样式 —— 它不可点，看着能点却点不动比没有交互更糟
+.tag {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: $radius-sm;
+  @include mono($fs-label);
+  line-height: 1.35;
+  // 一条指令从中间断开就看不出怎么拼了，宁可整条省略
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// 浮起底 + 主色字：放在说明区，和周围的中文一眼分得开
+.accent {
+  background: $bg-panel-raised;
+  color: $accent-text;
+}
+
+// 描边 + 凹陷底：压在舞台毛玻璃上，太亮会盖过卡片本身。
+// padding 少 1px，让描边补回同样的外框高度（和 accent 一般高）
+.neutral {
+  padding: 1px 5px;
+  border: 1px solid $border-strong;
+  background: $bg-inset;
+  color: $text-soft;
+}

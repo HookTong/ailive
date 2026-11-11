@@ -90,7 +90,7 @@ export function VoiceSetting({
 
   return (
     <section className={styles.block}>
-      <div className={styles.title}><span>说话</span><span className={styles.tinyTag}>VOLCANO TTS</span></div>
+      <div className={styles.title}><span>音色</span></div>
       <ScrollArea
         columns={3}
         gap="9px 8px"

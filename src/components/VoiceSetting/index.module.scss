@@ -1,34 +1,30 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
+// 块间距只由 margin-bottom 一处决定（和角色控制台其他块一致）。
+// 别再补 padding-top：块顶到上一块的距离会变成 22px，比「动作预设 / 外观预设」多 2px
 .block {
   margin-bottom: 20px;
-  padding-top: 2px;
 }
 
+// 块标题行：排印走 mixins 的 label-type，和角色控制台其他块标题同一套。
+// 这里不写下外边距 —— 到胶囊的 10px 由 .presets 的 margin-top 给（两处都写会相加）
 .title {
+  @include label-type;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  color: $text-muted;
-  @include mono(12px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.tinyTag {
-  color: $accent;
-  border: 1px solid $accent-line;
-  padding: 3px 6px;
-  border-radius: $radius-xs;
-  font-size: 11px;
+  gap: 10px;
 }
 
 // 音色胶囊的滚动区上下各留 5px。157px 的高度上限就按这个算（见 index.tsx），别单独改
 $preset-pad-y: 5px;
 
 // 滚动条推进面板的右留白里，胶囊右边缘和下面的「添加音色」对齐
+// 标题行到第一行胶囊要 $label-gap，但滚动区自己上边还留着 $preset-pad-y，
+// 这里减掉它 —— 和下面 .addButton 同一个算法（那个减的是 $stack-gap 里的同一份）
 .presets {
-  margin-top: 10px;
+  margin-top: $label-gap - $preset-pad-y;
   padding: $preset-pad-y 0;
   @include scroll-bleed;
 }

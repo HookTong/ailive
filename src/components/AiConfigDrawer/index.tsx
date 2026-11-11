@@ -57,6 +57,7 @@ export function AiConfigDrawer({ open, onClose }: AiConfigDrawerProps) {
       model: draft.model.trim() || DEFAULT_DOUBAO_MODEL,
       persona: draft.persona.trim() || DEFAULT_AI_PERSONA,
       autoReply: draft.autoReply,
+      nlControl: draft.nlControl,
       inputPrice: normalizePrice(draft.inputPrice, DEFAULT_AI_INPUT_PRICE),
       outputPrice: normalizePrice(draft.outputPrice, DEFAULT_AI_OUTPUT_PRICE),
     }
@@ -88,6 +89,18 @@ export function AiConfigDrawer({ open, onClose }: AiConfigDrawerProps) {
             checked={draft.autoReply}
             onChange={(checked) => setDraft({ ...draft, autoReply: checked })}
             ariaLabel="自动回复弹幕"
+          />
+        </div>
+
+        <div className={styles.row}>
+          <div className={styles.rowText}>
+            <strong>自然语言控制</strong>
+            <small>「换个赛博背景」这类弹幕也交给模型理解并执行；没写格式的弹幕会多一次调用</small>
+          </div>
+          <Switch
+            checked={draft.nlControl}
+            onChange={(checked) => setDraft({ ...draft, nlControl: checked })}
+            ariaLabel="自然语言控制"
           />
         </div>
 

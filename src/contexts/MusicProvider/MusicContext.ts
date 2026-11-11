@@ -84,6 +84,10 @@ export type MusicContextValue = {
    * 传 `false` 表示这次操作已经产生新曲目（刚添加的音乐正在播），不再恢复外面的播放。
    */
   endPreview: (restore?: boolean) => void
+  /** 开始 / 继续播放（已在放就什么都不做，和 `toggle` 的「按一下切一次」不同） */
+  play: () => void
+  /** 暂停，进度留着；没在放就什么都不做 */
+  pause: () => void
   toggle: () => void
   setVolume: (volume: number) => void
   clearError: () => void

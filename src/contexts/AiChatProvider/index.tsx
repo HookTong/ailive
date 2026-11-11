@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { createDoubaoChatReply, type DoubaoChatMessage } from '../../hooks/useAiChat/api'
+import { createDoubaoChatReply, type DoubaoChatMessage, type DoubaoChatUsage } from '../../hooks/useAiChat/api'
 import type { LiveFeedItem } from '../../hooks/useLiveServer'
-import { useChatCommand, useLiveData, useModel, useVoice, type ChatCommandResult } from '../../hooks'
-import { parseChatCommand } from '../../data/chatCommands'
+import {
+  useActionRouter,
+  useChatCommand,
+  useLiveData,
+  useModel,
+  useVoice,
+  type ChatCommandResult,
+} from '../../hooks'
+import { looksLikeCommand, parseAction, type ActionId, type ParsedAction } from '../../data/actions'
 import { loadAiChatSettings, saveAiChatSettings, type AiChatSettings } from './storage'
 import { AiChatContext, type AiChatContextValue, type AiChatStatus, type AiChatUsage, type AiReplyRecord } from './AiChatContext'
 
@@ -29,6 +36,18 @@ const GIFT_USER_COOLDOWN_MS = 8_000
  * 但完全不限的话一个人能把舞台刷成幻灯片，所以单独给一个很短的窗口。
  */
 const COMMAND_USER_COOLDOWN_MS = 3_000
+/**
+ * 自然语言理解：同一个人触发控制的冷却。
+ * 和指令那套分开记 —— 普通聊天不该消耗观众的指令额度。
+ */
+const ROUTE_USER_COOLDOWN_MS = 3_000
+/** 待理解的弹幕上限；排这么长说明在刷屏，再等下去观众早忘了自己说过什么 */
+const MAX_ROUTE_QUEUE = 4
+/** 同一条弹幕的理解结果缓存多久：刷屏时重复话很多，能省一次调用 */
+const ROUTE_CACHE_TTL_MS = 60_000
+const ROUTE_CACHE_LIMIT = 100
+/** 理解失败后的退避：Key 无效时别每条弹幕都打一次接口 */
+const ROUTE_ERROR_BACKOFF_MS = 30_000
 /** 相同内容的弹幕在这个窗口内只答一次 */
 const SAME_TEXT_WINDOW_MS = 60_000
 /** 发给模型的对话历史条数（user/assistant 成对） */
@@ -92,6 +111,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const { modelSources, characterStates } = useModel()
   const { speak, voices } = useVoice()
   const executeCommand = useChatCommand()
+  const routeAction = useActionRouter()
 
   // —— 全部用 ref 持有可变状态，泵循环只靠定时器驱动，不吃 React 渲染时机 ——
   const queueRef = useRef<QueueItem[]>([])
@@ -109,9 +129,19 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const chatCommandsRef = useRef(chatCommands)
   chatCommandsRef.current = chatCommands
 
+  // 自然语言理解：待理解队列、串行锁、短时缓存、失败退避
+  const routeQueueRef = useRef<LiveFeedItem[]>([])
+  const routingRef = useRef(false)
+  const routeCacheRef = useRef(new Map<string, { at: number; actions: ParsedAction[] }>())
+  const routeBackoffRef = useRef(0)
+
   const autoActive = settings.autoReply && settings.apiKey.trim() !== ''
   const autoActiveRef = useRef(autoActive)
   autoActiveRef.current = autoActive
+
+  /** 自然语言控制只看「开关 + Key」，和自动回复是两件事：关了回复也能让弹幕改舞台 */
+  const nlActiveRef = useRef(false)
+  nlActiveRef.current = settings.nlControl && settings.apiKey.trim() !== ''
 
   const openAiConfig = useCallback(() => setAiConfigOpen(true), [])
   const closeAiConfig = useCallback(() => setAiConfigOpen(false), [])
@@ -120,6 +150,16 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const persistSettings = useCallback((next: AiChatSettings) => {
     setSettings(next)
     saveAiChatSettings(next)
+  }, [])
+
+  /** 记账：回复和意图理解都算一次调用，别把理解的钱漏掉 */
+  const addUsage = useCallback((spent: DoubaoChatUsage) => {
+    setUsage((current) => ({
+      promptTokens: current.promptTokens + spent.promptTokens,
+      completionTokens: current.completionTokens + spent.completionTokens,
+      totalTokens: current.totalTokens + spent.totalTokens,
+      calls: current.calls + 1,
+    }))
   }, [])
 
   /** 冷却表会随观众增长，顺手清理过期项，防止内存无限膨胀 */
@@ -195,6 +235,113 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     })
   }, [pushQueue])
 
+  /** 同一个人触发自然语言控制的冷却；和指令额度分开记，普通聊天不该消耗指令配额 */
+  const allowRoute = useCallback((name: string) => {
+    const now = Date.now()
+    const key = `route:${name}`
+    const lastAt = userCooldownRef.current.get(key)
+    if (lastAt !== undefined && now - lastAt < ROUTE_USER_COOLDOWN_MS) return false
+    userCooldownRef.current.set(key, now)
+    return true
+  }, [])
+
+  /** 同一条话短时间内只理解一次：刷屏时重复话很多，能省掉大量调用 */
+  const readRouteCache = useCallback((text: string): ParsedAction[] | null => {
+    const key = normalizeText(text)
+    const hit = routeCacheRef.current.get(key)
+    if (!hit) return null
+    if (Date.now() - hit.at > ROUTE_CACHE_TTL_MS) {
+      routeCacheRef.current.delete(key)
+      return null
+    }
+    return hit.actions
+  }, [])
+
+  const writeRouteCache = useCallback((text: string, actions: ParsedAction[]) => {
+    const cache = routeCacheRef.current
+    cache.set(normalizeText(text), { at: Date.now(), actions })
+    if (cache.size <= ROUTE_CACHE_LIMIT) return
+    const now = Date.now()
+    for (const [key, entry] of cache) {
+      if (now - entry.at > ROUTE_CACHE_TTL_MS) cache.delete(key)
+    }
+    if (cache.size > ROUTE_CACHE_LIMIT) {
+      const oldest = cache.keys().next().value
+      if (oldest !== undefined) cache.delete(oldest)
+    }
+  }, [])
+
+  /**
+   * 串行地把待理解的弹幕送进模型：并发跑多条既抢额度，
+   * 也会让动作顺序说不清（两条都换背景时谁最后生效）。
+   */
+  const drainRouteQueue = useCallback(async () => {
+    if (routingRef.current) return
+    routingRef.current = true
+    try {
+      while (routeQueueRef.current.length > 0) {
+        const item = routeQueueRef.current.shift()
+        if (!item) break
+
+        let actions: ParsedAction[] = []
+        const cached = readRouteCache(item.text)
+        if (cached) {
+          actions = cached
+        } else {
+          const config = settingsRef.current
+          const enabled = enabledActionIds(chatCommandsRef.current)
+          if (enabled.length > 0 && config.apiKey.trim()) {
+            try {
+              const result = await routeAction(item.text, enabled, config)
+              actions = result.actions
+              addUsage(result.usage)
+              writeRouteCache(item.text, actions)
+            } catch (reason) {
+              // 理解失败按普通弹幕处理，别让观众觉得指令坏了；退避一会儿再试
+              routeBackoffRef.current = Date.now() + ROUTE_ERROR_BACKOFF_MS
+              setError(reason instanceof Error ? reason.message : '自然语言理解失败')
+            }
+          }
+        }
+
+        // 缓存里的动作可能是在「关掉它」之前理解的：执行前按当前开关再过一遍
+        actions = actions.filter((action) => chatCommandsRef.current[action.id] !== false)
+
+        // 不是指令：回到原来的回复队列，行为和以前完全一样
+        if (actions.length === 0) {
+          if (autoActiveRef.current) enqueue(item)
+          continue
+        }
+
+        const results = actions.map((action) => executeCommand(action))
+        enqueueCommand(item, {
+          id: results[0].id,
+          ok: results.every((result) => result.ok),
+          // 一句话里好几个动作时合成一句播报，观众才知道都改了什么
+          speech: results.map((result) => result.speech).join('；'),
+          modelId: results.find((result) => result.modelId)?.modelId ?? null,
+        })
+      }
+    } finally {
+      routingRef.current = false
+    }
+  }, [addUsage, enqueue, enqueueCommand, executeCommand, readRouteCache, routeAction, writeRouteCache])
+
+  const enqueueRoute = useCallback((item: LiveFeedItem) => {
+    // 刚失败过：退避期内直接当普通弹幕，别再打接口
+    if (Date.now() < routeBackoffRef.current) {
+      if (autoActiveRef.current) enqueue(item)
+      return
+    }
+    // 排太长说明在刷屏，再等下去动作早就过时了，直接按普通弹幕处理
+    if (routeQueueRef.current.length >= MAX_ROUTE_QUEUE) {
+      if (autoActiveRef.current) enqueue(item)
+      return
+    }
+    routeQueueRef.current.push(item)
+    void drainRouteQueue()
+  }, [drainRouteQueue, enqueue])
+
   // 监听事件流增量：feed 每 400ms 批量刷新一次，只处理没见过的高 id
   useEffect(() => {
     const feed = douyinRoom.feed
@@ -208,20 +355,28 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     if (fresh.length === 0) return
 
     for (const item of fresh) {
-      // 指令先于一切判断：它不吃弹幕冷却，也不受自动回复开关影响（没配 Key 也能用）
       if (item.kind === 'chat') {
-        const command = parseChatCommand(item.text)
-        if (command && chatCommandsRef.current[command.id] !== false) {
-          // 动作立刻执行，反馈走队列 —— 等 6 秒节流才换背景的话，观众早就发了下一条
-          if (allowCommand(item.name)) enqueueCommand(item, executeCommand(command))
+        // 指令写法的弹幕（`[关键字…]`）只走指令这一条路：形状不对、指令被关掉、在冷却里，
+        // 都到此为止 —— 不交给自然语言控制，也不当普通弹幕回一句。
+        // 观众明明在发指令，回他一段聊天只会让人以为指令坏了
+        if (looksLikeCommand(item.text)) {
+          const command = parseAction(item.text)
+          if (command && chatCommandsRef.current[command.id] !== false && allowCommand(item.name)) {
+            // 动作立刻执行，反馈走队列 —— 等 6 秒节流才换背景的话，观众早就发了下一条
+            enqueueCommand(item, executeCommand(command))
+          }
+          continue
+        }
+        if (nlActiveRef.current && allowRoute(item.name)) {
+          // 没写方括号也不一定是闲聊：交给模型判断这句话要不要动控制台
+          enqueueRoute(item)
           continue
         }
       }
-      // 被关掉的指令当普通弹幕处理：观众确实说了句话，让 AI 接一句也不突兀
       if (!autoActiveRef.current) continue
       enqueue(item)
     }
-  }, [douyinRoom.feed, allowCommand, enqueue, enqueueCommand, executeCommand])
+  }, [douyinRoom.feed, allowCommand, allowRoute, enqueue, enqueueCommand, enqueueRoute, executeCommand])
 
   /**
    * 从队列里挑下一条要处理的：优先级高者优先，同级先来先回。
@@ -276,7 +431,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
         busyRef.current = true
         if (autoActiveRef.current) setStatus('speaking')
         try {
-          // 模型控制台指令由点名的角色说；舞台指令（和找不到角色的失败）交给轮流挑人
+          // 角色控制台指令由点名的角色说；舞台指令（和找不到角色的失败）交给轮流挑人
           const target = item.modelId ? speakerFor(item.modelId) : nextSpeaker()
           if (target) await speak(item.speech ?? '', target.preset, target.modelId)
           const record: AiReplyRecord = {
@@ -308,12 +463,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
         const result = await createDoubaoChatReply(messages, config)
 
         // 记账放在去重之前：即使这条回复因为复读被丢掉，token 也是真花出去了
-        setUsage((current) => ({
-          promptTokens: current.promptTokens + result.usage.promptTokens,
-          completionTokens: current.completionTokens + result.usage.completionTokens,
-          totalTokens: current.totalTokens + result.usage.totalTokens,
-          calls: current.calls + 1,
-        }))
+        addUsage(result.usage)
 
         // 回复去重：模型最近刚说过一模一样的话就放弃，宁可不说也不复读
         const reply = result.text
@@ -357,7 +507,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     }
 
     return () => window.clearInterval(timer)
-  }, [pickNext, nextSpeaker, speakerFor, speak])
+  }, [pickNext, nextSpeaker, speakerFor, speak, addUsage])
 
   // 开关或配置变化时同步状态展示
   useEffect(() => {
@@ -391,4 +541,9 @@ function describeKind(kind: QueueItem['kind']): string {
   if (kind === 'member') return '进场'
   if (kind === 'command') return '指令'
   return '弹幕'
+}
+
+/** 只把「没被关掉」的动作交给模型；缺省视为启用 */
+function enabledActionIds(switches: Record<ActionId, boolean>): ActionId[] {
+  return (Object.keys(switches) as ActionId[]).filter((id) => switches[id] !== false)
 }

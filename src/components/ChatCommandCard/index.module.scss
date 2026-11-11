@@ -82,28 +82,12 @@
   letter-spacing: 0.08em;
 }
 
-// 同一类的几条例子自动换行排开，不用一行一条（19 条全竖着排会把卡片撑得很长）
+// 同一类的几条例子自动换行排开，不用一行一条（全竖着排会把卡片撑得很长）。
+// 模式组已经折成一条，这里剩下的都是「一条指令一个 Tag」
 .commands {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-}
-
-// 例子**不是按钮**：只给静态底色的等宽字体块，别用胶囊那套 hover ——
-// 看着能点却点不动比没有交互更糟
-.command {
-  max-width: 100%;
-  padding: 3px 6px;
-  border: 1px solid $border-strong;
-  border-radius: $radius-sm;
-  background: $bg-inset;
-  color: $text-soft;
-  @include mono(11px);
-  line-height: 1.35;
-  // 一条指令从中间断开就看不出怎么拼了，宁可整条省略
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 @media (max-width: 760px) {

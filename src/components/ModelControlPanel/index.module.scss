@@ -15,44 +15,28 @@ $pad-x: 24px;
   @include scroll-thin;
 }
 
-.eyebrow {
-  @include mono(12px);
-  color: $text-faint;
-  letter-spacing: 0.16em;
-}
-
+// 页头两行（标题 + 说明）走 mixins 里的 panel-title / panel-intro，
+// 和右侧舞台控制台同一套 —— 两栏并排，字号和间距不能各写一份
 .title {
-  margin: 14px 0 10px;
-  font-size: 25px;
-  letter-spacing: -0.04em;
+  @include panel-title;
 }
 
 .intro {
-  margin: 0 0 24px;
-  color: $text-muted;
-  font-size: 13px;
-  line-height: 1.7;
+  @include panel-intro;
 }
 
 .block {
   margin-bottom: 20px;
 }
 
+// 块标题行：排印走 mixins 的 label-type，和右侧舞台控制台的节标题同一套。
+// 这里不写下外边距 —— 到内容的 10px 由内容自己的 margin-top 给（两处都写会相加）
 .labelRow {
+  @include label-type;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  color: $text-muted;
-  @include mono(12px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.tinyTag {
-  color: $accent;
-  border: 1px solid $accent-line;
-  padding: 3px 6px;
-  border-radius: $radius-xs;
-  font-size: 11px;
+  gap: 10px;
 }
 
 .count {
@@ -72,7 +56,7 @@ $pad-x: 24px;
 
 .picker .trigger {
   width: 100%;
-  margin-top: 12px;
+  margin-top: $label-gap;
   display: flex;
   gap: 11px;
   align-items: center;
@@ -225,7 +209,7 @@ $pad-x: 24px;
 // 动作预设：外面不套框，每一行自己带边框。
 // 滚动条推进面板的右留白里，行块左右边缘才能和上面的「动作预设 / 8」、下面的按钮对齐
 .motionList {
-  margin-top: 10px;
+  margin-top: $label-gap;
   @include scroll-bleed;
 }
 
@@ -310,7 +294,7 @@ $pad-x: 24px;
 // 外观预设：和粒子 / 滤镜那几组一样是胶囊网格。
 // 滚动条推进面板的右留白里，胶囊右边缘才能和下面的「清除外观」对齐
 .expressionList {
-  margin-top: 10px;
+  margin-top: $label-gap;
   @include scroll-bleed;
 }
 

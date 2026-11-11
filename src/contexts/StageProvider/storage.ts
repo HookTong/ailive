@@ -53,7 +53,7 @@ const readRotateMode = (value: unknown): PresetRotateMode =>
   (value === 'cycle' || value === 'random' ? value : 'fixed')
 
 const readBackgroundMode = (value: unknown): BackgroundMode =>
-  (value === 'cycle' || value === 'none' ? value : 'fixed')
+  (value === 'cycle' || value === 'random' || value === 'none' ? value : 'fixed')
 
 /** `type="color"` 和预设色点都只产出 `#rrggbb`，别的形状（rgb()、颜色名）一律不认 */
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i
