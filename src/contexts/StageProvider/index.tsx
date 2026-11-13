@@ -9,9 +9,22 @@ import {
   type BackgroundPreset,
   type PresetRotateMode,
 } from './presets'
-import { StageContext, type BackgroundMode, type StageContextValue } from './StageContext'
+import {
+  OVERLAY_OPACITY_MAX,
+  OVERLAY_OPACITY_MIN,
+  OVERLAY_SCALE_MAX,
+  OVERLAY_SCALE_MIN,
+  StageContext,
+  type BackgroundMode,
+  type OverlayOpacities,
+  type OverlayScaleKey,
+  type OverlayScales,
+  type StageContextValue,
+} from './StageContext'
 import {
   createParticlePresetConfigs,
+  DEFAULT_OVERLAY_OPACITIES,
+  DEFAULT_OVERLAY_SCALES,
   loadStageConsole,
   saveStageConsole,
   toParticleOverrides,
@@ -163,6 +176,38 @@ export function StageProvider({ children }: StageProviderProps) {
   const [filterSaturation, setFilterSaturation] = useState(restoredFilter.saturation)
   const [filterBlur, setFilterBlur] = useState(restoredFilter.blur)
   const [vignette, setVignette] = useState(restoredFilter.vignette)
+  const [overlayScales, setOverlayScales] = useState<OverlayScales>(stored.overlayScales)
+  const [overlayOpacities, setOverlayOpacities] = useState<OverlayOpacities>(stored.overlayOpacities)
+
+  /** 四块浮层各自调，互不影响 —— 弹幕刷得快就调大弹幕，概览数据多就调大概览 */
+  const setOverlayScale = useCallback((key: OverlayScaleKey, value: number) => {
+    const next = Math.min(OVERLAY_SCALE_MAX, Math.max(OVERLAY_SCALE_MIN, value))
+    setOverlayScales((current) => (current[key] === next ? current : { ...current, [key]: next }))
+  }, [])
+
+  /** 透明度同理：挡着模型就把某一块调淡，别把整排都调了 */
+  const setOverlayOpacity = useCallback((key: OverlayScaleKey, value: number) => {
+    const next = Math.min(OVERLAY_OPACITY_MAX, Math.max(OVERLAY_OPACITY_MIN, value))
+    setOverlayOpacities((current) => (current[key] === next ? current : { ...current, [key]: next }))
+  }, [])
+
+  /**
+   * 浮层复位用的令牌。位置存在各卡自己的 `useDragPosition` 里（面板够不着），
+   * 所以这里只把令牌 +1，卡片看到数字变了就把 `translate` 归零。
+   * 令牌不落盘 —— 它表示「刚被点了一下」，不是一份配置，刷新页面时不该重放。
+   */
+  const [overlayResetToken, setOverlayResetToken] = useState(0)
+
+  /** 「浮层大小」块的复位：四块回 100%，卡片回默认位置。位置没有单独的块，跟着大小走 */
+  const resetOverlayScales = useCallback(() => {
+    setOverlayScales({ ...DEFAULT_OVERLAY_SCALES })
+    setOverlayResetToken((token) => token + 1)
+  }, [])
+
+  /** 「浮层透明度」块的复位：四块回不透明。位置不归它管，别顺手把卡片挪回去 */
+  const resetOverlayOpacities = useCallback(() => {
+    setOverlayOpacities({ ...DEFAULT_OVERLAY_OPACITIES })
+  }, [])
 
   // 舞台设置落盘。载荷没变时 saveStageConsole 自己会跳过（切背景这类动作很频繁）
   useEffect(() => {
@@ -176,6 +221,8 @@ export function StageProvider({ children }: StageProviderProps) {
       filterEnabled,
       filterPreset,
       filterMode,
+      overlayScales,
+      overlayOpacities,
     })
   }, [
     backgroundUrl,
@@ -187,6 +234,8 @@ export function StageProvider({ children }: StageProviderProps) {
     filterEnabled,
     filterPreset,
     filterMode,
+    overlayScales,
+    overlayOpacities,
   ])
 
   // Persist custom filter presets
@@ -398,6 +447,11 @@ export function StageProvider({ children }: StageProviderProps) {
     setFilterEnabledState(true)
     setFilterMode('fixed')
     setVignette(true)
+    // 浮层缩放也算舞台设置，重置要跟着回到原始大小
+    setOverlayScales({ ...DEFAULT_OVERLAY_SCALES })
+    setOverlayOpacities({ ...DEFAULT_OVERLAY_OPACITIES })
+    // 位置同理：整块舞台都重置了，卡片还赖在拖过去的地方说不过去
+    setOverlayResetToken((token) => token + 1)
   }
 
   const value = useMemo<StageContextValue>(() => ({
@@ -446,6 +500,13 @@ export function StageProvider({ children }: StageProviderProps) {
     setFilterBlur,
     addCustomFilterPreset,
     removeCustomFilterPreset,
+    overlayScales,
+    setOverlayScale,
+    overlayOpacities,
+    setOverlayOpacity,
+    overlayResetToken,
+    resetOverlayScales,
+    resetOverlayOpacities,
     resetStage,
   }), [
     backgroundUrl,
@@ -471,6 +532,13 @@ export function StageProvider({ children }: StageProviderProps) {
     filterBlur,
     vignette,
     customFilterPresets,
+    overlayScales,
+    setOverlayScale,
+    overlayOpacities,
+    setOverlayOpacity,
+    overlayResetToken,
+    resetOverlayScales,
+    resetOverlayOpacities,
     // 不放进依赖的话，value 会一直攥着第一次渲染时那个闭包，
     // 里面的 filterPreset / customFilterPresets 都是旧的，兜底判断会失效
     handleFilterEnabledChange,

@@ -12,6 +12,10 @@ UA = (
     "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
 )
 
+# 匿名访客只需要这两个 cookie：ttwid 是设备票据，msToken 是签名令牌。
+# 其余一律是登录态（sessionid / sid_guard / uid_tt / bd-ticket-guard-* …）。
+_GUEST_COOKIE_KEYS = ("ttwid", "msToken")
+
 
 def parse_cookie(cookie_str: str) -> dict:
     cookies = {}
@@ -40,6 +44,19 @@ class Auth:
     @property
     def cookie_str(self) -> str:
         return "; ".join(f"{k}={v}" for k, v in self.cookie.items())
+
+    @property
+    def guest_cookie(self) -> dict:
+        """只保留匿名访客能用的那几个 cookie，**丢掉全部登录态**。
+
+        为什么必须丢：`/webcast/im/fetch/` 只要请求里带 sessionid，就一律返回
+        `200 + 空 body`，并在响应头 `x-vc-bdturing-parameters` 里要求滑块验证
+        （实测 2026-11）。同一时刻用同一份 ttwid、不带登录态去请求则正常返回
+        protobuf。监听只要公开弹幕，不需要账号身份，所以取初始帧一律走匿名。
+
+        WebSocket 那条链路不受影响（带登录态也能收），见 listener.py。
+        """
+        return {k: v for k, v in self.cookie.items() if k in _GUEST_COOKIE_KEYS and v}
 
     @property
     def logged_in(self) -> bool:

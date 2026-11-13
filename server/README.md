@@ -19,6 +19,7 @@
 | TLS | 全局 `verify=False` | 正常校验 |
 | 输出 | 直接 print 到 stdout，不可编程 | `on_event` 回调，支持 `--json` 输出 |
 | `/webcast/im/fetch/` 签名 | 带 `a_bogus`，实际返回 200 + 空 body | 先不带（实测可用），失败再带一次兜底 |
+| 取初始帧的 cookie | 全量带上（含 sessionid） | 只带 `ttwid` + `msToken`，登录态会触发风控滑块验证 |
 | 解帧压缩 | 按 `payloadEncoding == 'gzip'` 判断，但该字段值是 `'pb'`，永远解不开 | 按 gzip 魔数 `1f 8b` 判断 |
 
 ## 目录
@@ -87,12 +88,16 @@ LiveListener("571821134948", Auth(cookie_str), on_event=on_event).run()
 
 事件类型：`chat` / `gift` / `member` / `like` / `follow` / `room_stats`。
 
-## 实测踩到的两个坑
+## 实测踩到的三个坑
 
-抽离过程中这两个问题会让监听**完全收不到消息**，而且都不报错，只表现为「连上了但没数据」：
+抽离过程中这三个问题会让监听**完全收不到消息**，而且都不报错，只表现为「连上了但没数据」：
 
 1. **`/webcast/im/fetch/` 不能带 `a_bogus`**。带上会返回 `200` + 空 body + `content-type: application/json`，属于静默拒绝；不带则正常返回几百 KB 的 protobuf 初始帧。上游那份 `a_bogus` 算法对这个接口已经失效。
 2. **`PushFrame.payloadEncoding` 的值是 `'pb'`，但 payload 其实是 gzip 压缩的**（首字节 `1f 8b`）。按字段名判断 `== 'gzip'` 永远不成立，于是把压缩数据直接丢给 protobuf 解析，报 `Wire format was corrupt`。现在按魔数判断。
+3. **取初始帧不能带登录态 cookie**。请求里只要有 `sessionid`，`/webcast/im/fetch/` 就固定回 `200` + 空 body，并在响应头里挂
+   `x-vc-bdturing-parameters: {"type":"verify","subtype":"slide",...}` —— 这是风控要滑块验证，不是「房间没开播」。
+   同一份 `ttwid`、去掉登录态后立刻正常返回 protobuf。所以取帧一律走匿名（`Auth.guest_cookie`，只带 `ttwid` + `msToken`），
+   登录态只留给 WebSocket（那条链路带不带都能收）。
 
 ## 接入前端（桥接服务）
 

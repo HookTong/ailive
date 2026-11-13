@@ -40,6 +40,23 @@ $pad-x: 24px;
   font-weight: 400;
 }
 
+// 块标题行右侧的「复位」文字按钮。
+// 静止就用主色：它原来是一段灰色说明文字，光靠悬停变色认不出是按钮 ——
+// 两个字的宽度不值得再配边框，颜色是唯一能说明「这里能点」的信号
+.resetOverlay {
+  @include mono($fs-body);
+  letter-spacing: 0.08em;
+  color: $accent-text;
+
+  &:hover:not(:disabled) {
+    color: $accent-bright;
+  }
+
+  &:active:not(:disabled) {
+    color: $accent;
+  }
+}
+
 // 预设到下面那行按钮的间距，取全局的 $stack-gap。
 // 只在这一层给、行自己不再加 margin —— 两行的盒模型不一样：
 // 按钮行是 block 级 grid（相邻外边距会合并取 max），
@@ -85,6 +102,23 @@ $pad-x: 24px;
     flex: 1;
     margin-top: 0;
   }
+}
+
+// 四块浮层的缩放滑块。块标题行到内容用全局的 $label-gap，
+// 第一个滑块自带的 12px 上外边距在这里压掉，别和它叠成 22px；
+// 滑块彼此之间就靠各自那 12px 分开。
+.overlaySliders {
+  margin-top: $label-gap;
+
+  > :first-child {
+    margin-top: 0;
+  }
+}
+
+// 「展开单独调整」。和上面那根统一滑块隔 12px —— 滑块自己没有下外边距，
+// 这里不给的话按钮会贴着轨道。下边距归零：展开后那组滑块自己带 $label-gap
+.overlayToggle {
+  margin: 12px 0 0;
 }
 
 .musicBlock audio {

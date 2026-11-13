@@ -1,9 +1,35 @@
 import { PARTICLE_PRESETS, type ParticlePreset, type ParticlePresetSettings } from '../../components/Atmosphere'
 import type { FilterPreset } from '../../components/FilterSetting'
 import { DEFAULT_BACKGROUND_URL, type PresetRotateMode } from './presets'
-import type { BackgroundMode } from './StageContext'
+import {
+  OVERLAY_OPACITY_MAX,
+  OVERLAY_OPACITY_MIN,
+  OVERLAY_SCALE_KEYS,
+  OVERLAY_SCALE_MAX,
+  OVERLAY_SCALE_MIN,
+  type BackgroundMode,
+  type OverlayOpacities,
+  type OverlayScaleKey,
+  type OverlayScales,
+} from './StageContext'
 
 export const STAGE_CONSOLE_STORAGE_KEY = 'ailive.stage-console'
+
+/** 四块浮层的默认缩放：都是原始大小 */
+export const DEFAULT_OVERLAY_SCALES: OverlayScales = {
+  overview: 1,
+  giftMotion: 1,
+  chat: 1,
+  chatCommand: 1,
+}
+
+/** 四块浮层的默认透明度：都不透明 */
+export const DEFAULT_OVERLAY_OPACITIES: OverlayOpacities = {
+  overview: 1,
+  giftMotion: 1,
+  chat: 1,
+  chatCommand: 1,
+}
 
 /** 舞台设置的默认值。背景 / 粒子 / 滤镜三块各自初始状态的唯一来源 */
 export const DEFAULT_STAGE_CONSOLE = {
@@ -15,6 +41,8 @@ export const DEFAULT_STAGE_CONSOLE = {
   filterEnabled: true,
   filterPreset: 'standard' as FilterPreset,
   filterMode: 'fixed' as PresetRotateMode,
+  overlayScales: DEFAULT_OVERLAY_SCALES,
+  overlayOpacities: DEFAULT_OVERLAY_OPACITIES,
 }
 
 /** 每个预设各自被调过的参数，没动过的键不写 */
@@ -35,9 +63,18 @@ export type StoredStageConsole = {
   /** 可能是 `custom:123`：能不能用要等自定义滤镜列表读出来才知道，这里只保证是字符串 */
   filterPreset: FilterPreset
   filterMode: PresetRotateMode
+  /** 四块浮层各自的缩放倍数 */
+  overlayScales: OverlayScales
+  /** 四块浮层各自的透明度 */
+  overlayOpacities: OverlayOpacities
 }
 
-const EMPTY: StoredStageConsole = { ...DEFAULT_STAGE_CONSOLE, particleOverrides: {} }
+const EMPTY: StoredStageConsole = {
+  ...DEFAULT_STAGE_CONSOLE,
+  particleOverrides: {},
+  overlayScales: { ...DEFAULT_OVERLAY_SCALES },
+  overlayOpacities: { ...DEFAULT_OVERLAY_OPACITIES },
+}
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
@@ -54,6 +91,37 @@ const readRotateMode = (value: unknown): PresetRotateMode =>
 
 const readBackgroundMode = (value: unknown): BackgroundMode =>
   (value === 'cycle' || value === 'random' || value === 'none' ? value : 'fixed')
+
+/**
+ * 四块浮层的缩放。逐项读、逐项夹 —— 老数据里可能只有其中两个键，
+ * 也可能存着上一版滑块的边界外的值。
+ */
+function readOverlayScales(value: unknown): OverlayScales {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  const read = (key: OverlayScaleKey) =>
+    readNumber(raw[key], DEFAULT_OVERLAY_SCALES[key], OVERLAY_SCALE_MIN, OVERLAY_SCALE_MAX)
+  return {
+    overview: read('overview'),
+    giftMotion: read('giftMotion'),
+    chat: read('chat'),
+    chatCommand: read('chatCommand'),
+  }
+}
+
+/**
+ * 四块浮层的透明度。和缩放同一套读法：逐项读、逐项夹到当前范围里。
+ */
+function readOverlayOpacities(value: unknown): OverlayOpacities {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  const read = (key: OverlayScaleKey) =>
+    readNumber(raw[key], DEFAULT_OVERLAY_OPACITIES[key], OVERLAY_OPACITY_MIN, OVERLAY_OPACITY_MAX)
+  return {
+    overview: read('overview'),
+    giftMotion: read('giftMotion'),
+    chat: read('chat'),
+    chatCommand: read('chatCommand'),
+  }
+}
 
 /** `type="color"` 和预设色点都只产出 `#rrggbb`，别的形状（rgb()、颜色名）一律不认 */
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i
@@ -154,6 +222,8 @@ export function loadStageConsole(): StoredStageConsole {
         ? record.filterPreset as FilterPreset
         : DEFAULT_STAGE_CONSOLE.filterPreset,
       filterMode: readRotateMode(record.filterMode),
+      overlayScales: readOverlayScales(record.overlayScales),
+      overlayOpacities: readOverlayOpacities(record.overlayOpacities),
     }
   } catch {
     return EMPTY
@@ -172,6 +242,13 @@ function toStoredConsole(console: StoredStageConsole): Partial<StoredStageConsol
   if (console.filterEnabled !== DEFAULT_STAGE_CONSOLE.filterEnabled) stored.filterEnabled = console.filterEnabled
   if (console.filterPreset !== DEFAULT_STAGE_CONSOLE.filterPreset) stored.filterPreset = console.filterPreset
   if (console.filterMode !== DEFAULT_STAGE_CONSOLE.filterMode) stored.filterMode = console.filterMode
+  // 四个数很小，只要有一项动过就整组写，不必逐项压差异
+  if (OVERLAY_SCALE_KEYS.some((key) => console.overlayScales[key] !== DEFAULT_OVERLAY_SCALES[key])) {
+    stored.overlayScales = console.overlayScales
+  }
+  if (OVERLAY_SCALE_KEYS.some((key) => console.overlayOpacities[key] !== DEFAULT_OVERLAY_OPACITIES[key])) {
+    stored.overlayOpacities = console.overlayOpacities
+  }
   return stored
 }
 

@@ -1,4 +1,4 @@
-import { useDragPosition, useMusic } from '../../hooks'
+import { useDragPosition, useMusic, useStage } from '../../hooks'
 import { NowPlayingCard } from '../NowPlayingCard'
 import { IncomeCard } from '../IncomeCard'
 import { GiftRankCard } from '../GiftRankCard'
@@ -12,14 +12,16 @@ import styles from './index.module.scss'
  */
 export function LiveOverview() {
   const { track, isPlaying, currentTime, duration, analyser } = useMusic()
-  const { ref, transform, handlers } = useDragPosition({ draggingClassName: styles.dragging })
+  // 缩放变了要重新夹位置，见 useDragPosition 的 scale 参数
+  const { overlayScales, overlayResetToken } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition({ draggingClassName: styles.dragging, scale: overlayScales.overview, resetToken: overlayResetToken })
 
   return (
     <div
       ref={ref}
       className={styles.cards}
       aria-label="舞台信息卡片"
-      style={{ transform }}
+      style={{ transform, zIndex }}
       {...handlers}
     >
       <NowPlayingCard

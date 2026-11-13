@@ -17,15 +17,12 @@
   gap: 10px;
 }
 
-// 音色胶囊的滚动区上下各留 5px。157px 的高度上限就按这个算（见 index.tsx），别单独改
-$preset-pad-y: 5px;
-
-// 滚动条推进面板的右留白里，胶囊右边缘和下面的「添加音色」对齐
-// 标题行到第一行胶囊要 $label-gap，但滚动区自己上边还留着 $preset-pad-y，
-// 这里减掉它 —— 和下面 .addButton 同一个算法（那个减的是 $stack-gap 里的同一份）
+// 滚动条推进面板的右留白里，胶囊右边缘和下面的「添加音色」对齐。
+// 容器**不带上下内边距**（和角色控制台的「外观预设」同一个盒子模型）：
+// 多一层 5px padding，滚到顶 / 底时胶囊和标题、按钮之间就会莫名多出一截空白，
+// 「4 行」的高度上限也得把这 10px 算进去（见 index.tsx 的 maxHeight）
 .presets {
-  margin-top: $label-gap - $preset-pad-y;
-  padding: $preset-pad-y 0;
+  margin-top: $label-gap;
   @include scroll-bleed;
 }
 
@@ -40,10 +37,9 @@ $preset-pad-y: 5px;
   width: 100%;
 }
 
-// 胶囊底边到按钮的距离要等于 $stack-gap，但 .presets 自己还留着 $preset-pad-y
-// 的下内边距，所以这里减掉它 —— 否则视觉上比右侧「添加背景」少 5px
+// 胶囊底边到按钮的距离 = $stack-gap。容器已经没有下内边距，不用再减
 .addButton {
-  margin-top: $stack-gap - $preset-pad-y;
+  margin-top: $stack-gap;
 }
 
 // 「添加音色 → 输入框 → 测试说话」这一竖线用同一个间距，

@@ -12,7 +12,14 @@ import { Switch } from '../Switch'
 import { cx } from '../../utils/cx'
 import { useMusic, useStage } from '../../hooks'
 import { BACKGROUND_PRESETS, PRESET_ROTATE_OPTIONS } from '../../contexts/StageProvider/presets'
-import type { BackgroundMode } from '../../contexts/StageProvider/StageContext'
+import {
+  OVERLAY_OPACITY_MAX,
+  OVERLAY_OPACITY_MIN,
+  OVERLAY_SCALE_MAX,
+  OVERLAY_SCALE_MIN,
+  type BackgroundMode,
+  type OverlayScaleKey,
+} from '../../contexts/StageProvider/StageContext'
 import type { MusicLoopMode } from '../../contexts/MusicProvider/MusicContext'
 import styles from './index.module.scss'
 
@@ -30,6 +37,32 @@ const MUSIC_LOOP_OPTIONS: readonly SegmentedOption<MusicLoopMode>[] = [
   { value: 'list', label: '列表循环' },
   { value: 'shuffle', label: '随机播放' },
 ]
+
+// 两组滑块（大小 / 透明度）共用的文案。顺序就是舞台上的摆放顺序：
+// 概览在左上，礼物动作左下，弹幕右上，指令右下
+const OVERLAY_SLIDERS: ReadonlyArray<{ key: OverlayScaleKey; label: string }> = [
+  { key: 'overview', label: '概览' },
+  { key: 'giftMotion', label: '礼物动作' },
+  { key: 'chat', label: '弹幕' },
+  { key: 'chatCommand', label: '指令' },
+]
+
+/**
+ * 「全部」滑块的状态：`value` 是滑块位置，`mixed` 表示四块当前并不一致。
+ *
+ * 只在挂载时读一次。之后这个滑块**只向下写、不向上读** —— 拖它把四块一起设成这个数，
+ * 单独拖某一块时位置原地不动，只把 `mixed` 立起来，文案从百分比换成「单独调节」。
+ * 否则每调一块它都跟着跳，等真想「一起调」时又得重新找位置。
+ */
+type UnifiedState = { value: number; mixed: boolean }
+
+function initialUnified(values: number[]): UnifiedState {
+  const mixed = values.some((value) => value !== values[0])
+  return {
+    value: mixed ? values.reduce((sum, value) => sum + value, 0) / values.length : values[0],
+    mixed,
+  }
+}
 
 export function StageControlPanel() {
   const {
@@ -75,11 +108,56 @@ export function StageControlPanel() {
     setFilterBlur,
     addCustomFilterPreset,
     removeCustomFilterPreset,
+    overlayScales,
+    setOverlayScale,
+    overlayOpacities,
+    setOverlayOpacity,
+    resetOverlayScales,
+    resetOverlayOpacities,
     resetStage,
   } = useStage()
 
   const [backgroundModalOpen, setBackgroundModalOpen] = useState(false)
   const [musicModalOpen, setMusicModalOpen] = useState(false)
+  // 逐块调整默认收起：四块一起放大是常态，单独调是少数情况。
+  // 和「展开细粒度控制」一样不落盘 —— 它只是这一屏的展开状态
+  const [showScaleDetails, setShowScaleDetails] = useState(false)
+  const [showOpacityDetails, setShowOpacityDetails] = useState(false)
+
+  // 「全部」滑块自己的值。只在挂载时从四块推一次，之后独立 —— 见 initialUnified
+  const [scaleAll, setScaleAll] = useState(() => initialUnified(OVERLAY_SLIDERS.map(({ key }) => overlayScales[key])))
+  const [opacityAll, setOpacityAll] = useState(() => initialUnified(OVERLAY_SLIDERS.map(({ key }) => overlayOpacities[key])))
+
+  /** 统一滑块一动就四块一起写，四块回到同一个数，`mixed` 随之清掉。
+   *  逐个 set 用的是函数式更新，四次会依次叠上去 */
+  const handleAllScalesChange = (value: number) => {
+    setScaleAll({ value, mixed: false })
+    for (const { key } of OVERLAY_SLIDERS) setOverlayScale(key, value)
+  }
+  const handleAllOpacitiesChange = (value: number) => {
+    setOpacityAll({ value, mixed: false })
+    for (const { key } of OVERLAY_SLIDERS) setOverlayOpacity(key, value)
+  }
+
+  /** 单独拖某一块：只写那一块，统一滑块位置不动，仅标记「四块已不一致」 */
+  const handleScaleChange = (key: OverlayScaleKey, value: number) => {
+    setOverlayScale(key, value)
+    setScaleAll((current) => (current.mixed ? current : { ...current, mixed: true }))
+  }
+  const handleOpacityChange = (key: OverlayScaleKey, value: number) => {
+    setOverlayOpacity(key, value)
+    setOpacityAll((current) => (current.mixed ? current : { ...current, mixed: true }))
+  }
+
+  /** 每块管自己的复位。滑块也一起拉回 100%，不然它还停在旧数值上，一碰就把四块拽回去 */
+  const resetScaleGroup = () => {
+    setScaleAll({ value: 1, mixed: false })
+    resetOverlayScales()
+  }
+  const resetOpacityGroup = () => {
+    setOpacityAll({ value: 1, mixed: false })
+    resetOverlayOpacities()
+  }
 
   // 内置预设在前，用户自己添加的排在后面
   const allBackgrounds = useMemo(
@@ -113,6 +191,9 @@ export function StageControlPanel() {
   const handleResetStage = () => {
     resetMusic()
     resetStage()
+    // resetStage 已经把四块设回 100%，滑块自己也得跟上，否则一碰就把它们拽回旧数值
+    setScaleAll({ value: 1, mixed: false })
+    setOpacityAll({ value: 1, mixed: false })
   }
 
   return (
@@ -268,6 +349,105 @@ export function StageControlPanel() {
             onChange={setVolume}
           />
         </div>
+      </section>
+
+      {/* 放在音乐之后：舞台控制台最后一组「看的效果」设置，再往下就是重置 */}
+      <section className={styles.block}>
+        <div className={styles.blockTitle}>
+          <span>浮层大小</span>
+          {/* 原来这里是「手机观看调大」的说明。改成一键复位：四路调过之后
+              很难再一个个拖回 100%，位置更是没地方归零 —— 位置没有单独的块，归这里管 */}
+          <Button variant="bare" className={styles.resetOverlay} onClick={resetScaleGroup}>复位</Button>
+        </div>
+        {/* 默认只有一根统一滑块：四块一起放大是常态，逐块调是少数情况，
+            八根滑块天天摊在面板上只会把常用的那两根淹掉 */}
+        <div className={styles.overlaySliders}>
+          <Slider
+            label="全部"
+            valueText={scaleAll.mixed ? '单独调节' : `${Math.round(scaleAll.value * 100)}%`}
+            min={OVERLAY_SCALE_MIN}
+            max={OVERLAY_SCALE_MAX}
+            step={0.05}
+            value={scaleAll.value}
+            onChange={handleAllScalesChange}
+            ariaLabel="全部浮层大小"
+          />
+        </div>
+        <Button
+          variant="chip"
+          size="xs"
+          block
+          className={styles.overlayToggle}
+          aria-expanded={showScaleDetails}
+          onClick={() => { setShowScaleDetails((current) => !current) }}
+        >
+          {showScaleDetails ? '收起单独调节' : '展开单独调节'}
+        </Button>
+        {showScaleDetails && (
+          <div className={styles.overlaySliders}>
+            {OVERLAY_SLIDERS.map(({ key, label }) => (
+              <Slider
+                key={key}
+                label={label}
+                valueText={`${Math.round(overlayScales[key] * 100)}%`}
+                min={OVERLAY_SCALE_MIN}
+                max={OVERLAY_SCALE_MAX}
+                step={0.05}
+                value={overlayScales[key]}
+                onChange={(value) => { handleScaleChange(key, value) }}
+                ariaLabel={`${label}浮层大小`}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 和大小分成两块：八行滑块挤在一个块里，看不出哪四行管哪件事 */}
+      <section className={styles.block}>
+        <div className={styles.blockTitle}>
+          <span>浮层透明度</span>
+          {/* 只复位透明度，不动大小和位置 —— 两块各管各的，不用猜该点哪个 */}
+          <Button variant="bare" className={styles.resetOverlay} onClick={resetOpacityGroup}>复位</Button>
+        </div>
+        <div className={styles.overlaySliders}>
+          <Slider
+            label="全部"
+            valueText={opacityAll.mixed ? '单独调节' : `${Math.round(opacityAll.value * 100)}%`}
+            min={OVERLAY_OPACITY_MIN}
+            max={OVERLAY_OPACITY_MAX}
+            step={0.05}
+            value={opacityAll.value}
+            onChange={handleAllOpacitiesChange}
+            ariaLabel="全部浮层透明度"
+          />
+        </div>
+        <Button
+          variant="chip"
+          size="xs"
+          block
+          className={styles.overlayToggle}
+          aria-expanded={showOpacityDetails}
+          onClick={() => { setShowOpacityDetails((current) => !current) }}
+        >
+          {showOpacityDetails ? '收起单独调节' : '展开单独调节'}
+        </Button>
+        {showOpacityDetails && (
+          <div className={styles.overlaySliders}>
+            {OVERLAY_SLIDERS.map(({ key, label }) => (
+              <Slider
+                key={key}
+                label={label}
+                valueText={`${Math.round(overlayOpacities[key] * 100)}%`}
+                min={OVERLAY_OPACITY_MIN}
+                max={OVERLAY_OPACITY_MAX}
+                step={0.05}
+                value={overlayOpacities[key]}
+                onChange={(value) => { handleOpacityChange(key, value) }}
+                ariaLabel={`${label}浮层透明度`}
+              />
+            ))}
+          </div>
+        )}
       </section>
       {/* 底部操作：和左侧角色控制台的「重置角色」同一套结构（分隔线 + 18px 上留白） */}
       <div className={styles.footer}>

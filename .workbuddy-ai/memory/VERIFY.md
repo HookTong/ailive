@@ -10,7 +10,15 @@
 ## Playwright
 
 - 脚本在 `%TEMP%\pwcheck`，`channel: 'chrome'`，args `--use-gl=angle --use-angle=swiftshader`，访问 `localhost:5173`；重负载页 ~17fps。
+- **项目里没装 playwright**，裸 `import { chromium } from 'playwright'` 会 `ERR_MODULE_NOT_FOUND`。它躺在 npx 缓存里，用
+  `const require = createRequire('C:/Users/Lenovo/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules/')` 再 `require('playwright')`。
+  （`_npx` 下那串哈希目录名可能变，`find .../npm-cache/_npx -maxdepth 3 -name playwright -type d` 找一下。）
+- **`chromium.launch()` 不带 channel 会报 `Executable doesn't exist at ...ms-playwright\chromium_headless_shell-1248\...`** ——
+  那套自带的浏览器根本没下载（`ms-playwright` 目录是空的）。本机只有系统 Chrome，所以必须 `chromium.launch({ channel: 'chrome' })`。
 - CSS 模块类名哈希化：**只用 `aria-label` / `role` / `data-*` 定位**。`Segmented` = `radiogroup` + `radio`（`aria-checked`）；`Modal` = `section[role=dialog]`；`Switch` = 原生 checkbox `role=switch`（用 `isChecked()`，**没有 `aria-checked`**）。
+- **一定要先 `page.route('**://fonts.googleapis.com/**', r => r.abort())`**。`index.html` 里那条 Google Fonts 样式表在国内网络会挂起，
+  而 `<link rel=stylesheet>` 阻塞脚本执行 → `DOMContentLoaded` 几十秒都不来，`page.goto(..., { waitUntil: 'domcontentloaded' })` 直接超时；
+  诡异的是 `page.title()` 能读到（HTML 已解析），容易误判成「dev server 挂了」。拦掉之后 commit 13ms、dcl 秒到。
 - 挂载 ~2.8s（Live2D 模型更晚，~2.8s 后才 ready）。
 - mock 直播流：`addInitScript` 替换 `EventSource`，按 `delay` 定时 `onmessage`。
 - **假的 `EventSource.close()` 必须把定时器清掉**（`this.closed = true; timers.forEach(clearTimeout)`）。StrictMode 会建两个实例，第一个实例的 cleanup 调 `close()`；如果 `close(){}` 是空的，两条时间线都会跑完 —— 每条弹幕被派发两次，第二次撞上 `route:` 3 秒冷却会掉进自动回复，看起来像「命中路由还回了一句」的 bug。

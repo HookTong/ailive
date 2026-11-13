@@ -83,7 +83,7 @@ export function AiConfigDrawer({ open, onClose }: AiConfigDrawerProps) {
         <div className={styles.row}>
           <div className={styles.rowText}>
             <strong>自动回复弹幕</strong>
-            <small>礼物答谢 &gt; 进场欢迎 &gt; 弹幕聊天，按优先级排队轮流回答</small>
+            <small>礼物答谢 &gt; 进场欢迎 &gt; 弹幕聊天，排队轮流回答，一条说完才轮到下一条</small>
           </div>
           <Switch
             checked={draft.autoReply}
@@ -95,7 +95,7 @@ export function AiConfigDrawer({ open, onClose }: AiConfigDrawerProps) {
         <div className={styles.row}>
           <div className={styles.rowText}>
             <strong>自然语言控制</strong>
-            <small>「换个赛博背景」这类弹幕也交给模型理解并执行；没写格式的弹幕会多一次调用</small>
+            <small>只有「[AI控制]换个赛博背景」这种写法才交给模型理解；没写前缀的一律当普通聊天，不额外调用</small>
           </div>
           <Switch
             checked={draft.nlControl}

@@ -13,6 +13,32 @@ import type { BackgroundPreset, PresetRotateMode } from './presets'
  */
 export type BackgroundMode = 'fixed' | 'cycle' | 'random' | 'none'
 
+/**
+ * 舞台四块浮层。直播时观众多半用手机看竖屏，卡片上的字经常小到看不清，
+ * 所以四块各自能单独放大 —— 弹幕刷得快就调大弹幕，概览数据多就调大概览。
+ */
+export type OverlayScaleKey = 'overview' | 'giftMotion' | 'chat' | 'chatCommand'
+
+/** 四块浮层各自的缩放倍数，1 = 原始大小 */
+export type OverlayScales = Record<OverlayScaleKey, number>
+
+/** 缩放范围：再小字就糊成一团，再大会盖住半个舞台 */
+export const OVERLAY_SCALE_MIN = 0.6
+export const OVERLAY_SCALE_MAX = 2
+
+/** 面板上的四行滑块，顺序就是舞台上的摆放顺序 */
+export const OVERLAY_SCALE_KEYS: readonly OverlayScaleKey[] = ['overview', 'giftMotion', 'chat', 'chatCommand']
+
+/** 四块浮层各自的透明度，1 = 不透明 */
+export type OverlayOpacities = Record<OverlayScaleKey, number>
+
+/**
+ * 透明度范围：再低卡片就只剩个影子，手指找不到落点（真要隐藏用工具条的显隐开关）。
+ * 下限 0.2 还能看出轮廓。
+ */
+export const OVERLAY_OPACITY_MIN = 0.2
+export const OVERLAY_OPACITY_MAX = 1
+
 export type StageContextValue = {
   backgroundUrl: string
   setBackgroundUrl: (url: string) => void
@@ -78,6 +104,24 @@ export type StageContextValue = {
    * 内置预设不在可删范围内（列表里也没有它们的删除入口）。
    */
   removeCustomFilterPreset: (id: FilterPreset) => void
+  /** 四块浮层各自的缩放倍数 */
+  overlayScales: OverlayScales
+  setOverlayScale: (key: OverlayScaleKey, value: number) => void
+  /** 四块浮层各自的透明度 */
+  overlayOpacities: OverlayOpacities
+  setOverlayOpacity: (key: OverlayScaleKey, value: number) => void
+  /**
+   * 复位令牌：每点一次「复位」加一。
+   *
+   * 四张卡的位置是各自 `useDragPosition` 里的局部 state，面板拿不到它们，
+   * 只能靠这个数字变化让每张卡自己 `translate(0, 0)` 回到 CSS 默认位置。
+   * 只增不减，且不落盘 —— 它是「刚刚被点了一下」这件事本身，不是配置。
+   */
+  overlayResetToken: number
+  /** 浮层大小回到 100%，四张卡回到默认位置（位置只有这一个出口，跟着大小走） */
+  resetOverlayScales: () => void
+  /** 浮层透明度回到不透明 */
+  resetOverlayOpacities: () => void
   resetStage: () => void
 }
 

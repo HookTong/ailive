@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useDragPosition, useLiveData, useModel } from '../../hooks'
+import { useDragPosition, useLiveData, useModel, useStage } from '../../hooks'
 import { DOUYIN_GIFTS, giftIcon } from '../../data/gifts'
 import { giftMotionTargets } from '../../data/giftMotions'
 import { Card } from '../Card'
@@ -27,7 +27,8 @@ export function GiftMotionCard() {
   const { modelSources, characterStates } = useModel()
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，交互元素由 useDragPosition 内部的
   // INTERACTIVE 守卫排除（这个面板里没有按钮，所以等于整块都是拖拽区）
-  const { ref, transform, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging })
+  const { overlayScales, overlayResetToken } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.giftMotion, resetToken: overlayResetToken })
 
   // 配了动作的礼物 → 每个模型各做什么。没配动作的模型不进这一行，
   // 一个模型都解析不出来的礼物（换过模型、动作没了）整条也不显示
@@ -126,7 +127,7 @@ export function GiftMotionCard() {
       as="aside"
       ref={ref}
       className={styles.root}
-      style={{ transform }}
+      style={{ transform, zIndex }}
       {...handlers}
       aria-label="礼物动作"
       padding="sm"

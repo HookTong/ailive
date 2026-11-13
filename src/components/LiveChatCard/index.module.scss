@@ -12,6 +12,9 @@
   flex-direction: column;
   width: 268px;
   max-height: min(66%, 540px);
+  // 整块等比放大：字号、行高、头像一起变，手机上看才真的变大
+  zoom: var(--overlay-zoom-chat, 1);
+  opacity: var(--overlay-alpha-chat, 1);
   color: $text-soft;
   font-size: 12px;
   overflow: hidden;

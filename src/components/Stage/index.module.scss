@@ -7,6 +7,13 @@
   overflow: hidden;
   background: linear-gradient(145deg, $bg-panel-raised, $bg-deep);
 
+  // 四块浮层的缩放倍数由 Stage 以内联样式下发（舞台控制台里一块一块调），
+  // 这里只给个兜底，卡片自己写 `zoom: var(--overlay-zoom-xxx, 1)`
+  --overlay-zoom-overview: 1;
+  --overlay-zoom-gift: 1;
+  --overlay-zoom-chat: 1;
+  --overlay-zoom-command: 1;
+
   &::before {
     content: '';
     position: absolute;

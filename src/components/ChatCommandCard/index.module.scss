@@ -21,6 +21,9 @@
   display: flex;
   flex-direction: column;
   max-height: min(66%, 540px);
+  // 整块等比放大：字号、行高、标签一起变，手机上看才真的变大
+  zoom: var(--overlay-zoom-command, 1);
+  opacity: var(--overlay-alpha-command, 1);
   overflow: hidden;
   // 底下的直播概览可能被这张卡盖住，底色比普通卡片再实一点，
   // 否则两层毛玻璃叠在一起，底下的数字会透上来糊成一片

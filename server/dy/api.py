@@ -1,5 +1,6 @@
 """只保留直播间监听必需的接口：取房间标识、拉取初始 IM 帧。"""
 
+import json
 import re
 import urllib.parse
 
@@ -67,6 +68,9 @@ def get_live_info(auth, web_rid: str) -> dict:
 
     html = resp.text
     ttwid = resp.cookies.get("ttwid") or auth.cookie.get("ttwid")
+    if ttwid:
+        # 页面下发的是最新设备票据，后面的取帧请求跟着用这一份
+        auth.cookie["ttwid"] = ttwid
 
     room_id = _pick(html, r'\\"roomId\\":\\"(\d+)\\"', r'"roomId":"(\d+)"')
     user_unique_id = _pick(
@@ -101,12 +105,29 @@ def get_live_info(auth, web_rid: str) -> dict:
     }
 
 
+def _needs_verify(resp) -> bool:
+    """抖音风控：200 + 空 body，响应头里点名要滑块验证。
+
+    `x-vc-bdturing-parameters` 形如 `{"code":"10000","type":"verify",
+    "subtype":"slide",...}`。看到这个就不是「房间没开播」，是请求本身被拦了。
+    """
+    raw = resp.headers.get("x-vc-bdturing-parameters")
+    if not raw:
+        return False
+    try:
+        return json.loads(raw).get("type") == "verify"
+    except (ValueError, AttributeError):
+        return False
+
+
 def fetch_initial_frame(auth, room_id: str, user_unique_id: str, referer: str) -> bytes:
     """GET /webcast/im/fetch/ 拿到 cursor 和 internal_ext（protobuf 响应）。
 
-    实测（2026-11）：这个接口**不能**带 a_bogus。带上会返回 200 + 空 body +
-    content-type: application/json，属于静默拒绝；不带则正常返回 protobuf。
-    所以默认先不带，失败再带一次做兜底——平台以后反向调整也不用改代码。
+    两个维度各试一遍，共 4 次：
+      · 身份：**先匿名，后登录**。带 sessionid 会被风控要求滑块验证（见 auth.guest_cookie），
+        匿名则正常返回；登录态留作兜底，万一平台以后改了规则也不用手改代码。
+      · 签名：先不带 a_bogus，再带一次。实测（2026-11）这个接口**不能**带 a_bogus，
+        带上会 200 + 空 body + content-type: application/json，属于静默拒绝。
     """
     params = {
         "resp_content_type": "protobuf",
@@ -154,30 +175,42 @@ def fetch_initial_frame(auth, room_id: str, user_unique_id: str, referer: str) -
         headers["x-secsdk-csrf-token"] = csrf
 
     last_error = None
-    for signed in (False, True):
-        query = dict(params)
-        if signed:
-            query["a_bogus"] = a_bogus(urllib.parse.urlencode(params), "")
-        try:
-            resp = _session.get(
-                f"{LIVE_URL}/webcast/im/fetch/",
-                headers=headers,
-                params=query,
-                cookies=auth.cookie,
-                timeout=15,
-            )
-        except requests.RequestException as exc:
-            last_error = f"网络错误: {exc}"
-            continue
+    blocked = False
+    for label, cookies in (("匿名", auth.guest_cookie), ("登录", auth.cookie)):
+        for signed in (False, True):
+            query = dict(params)
+            if signed:
+                query["a_bogus"] = a_bogus(urllib.parse.urlencode(params), "")
+            try:
+                resp = _session.get(
+                    f"{LIVE_URL}/webcast/im/fetch/",
+                    headers=headers,
+                    params=query,
+                    cookies=cookies,
+                    timeout=15,
+                )
+            except requests.RequestException as exc:
+                last_error = f"网络错误: {exc}"
+                continue
 
-        if resp.status_code != 200:
-            last_error = f"HTTP {resp.status_code}"
-            continue
-        if resp.content:
-            return resp.content
-        # 200 + 空 body：房间未开播，或签名/风控拦截
-        last_error = "返回空响应"
+            if resp.status_code != 200:
+                last_error = f"{label}请求 HTTP {resp.status_code}"
+                continue
+            if resp.content:
+                return resp.content
+            # 200 + 空 body：要么被风控点名验证，要么房间没开播
+            if _needs_verify(resp):
+                blocked = True
+                last_error = f"{label}请求被风控要求滑块验证"
+            else:
+                last_error = f"{label}请求返回空响应"
 
+    if blocked:
+        raise LiveRoomError(
+            "被抖音风控拦截：/webcast/im/fetch/ 返回 200 但 body 为空，"
+            "响应头要求滑块验证（x-vc-bdturing-parameters: type=verify）。"
+            "不是房间没开播 —— 换个网络重试，或在浏览器里打开该直播间过一次验证。"
+        )
     raise LiveRoomError(
         f"拉取初始帧失败（{last_error}）。常见原因：房间未开播、cookie 失效、或被风控。"
     )

@@ -9,7 +9,7 @@ import {
   useVoice,
   type ChatCommandResult,
 } from '../../hooks'
-import { looksLikeCommand, parseAction, type ActionId, type ParsedAction } from '../../data/actions'
+import { looksLikeCommand, parseAction, parseAiControl, type ActionId, type ParsedAction } from '../../data/actions'
 import { loadAiChatSettings, saveAiChatSettings, type AiChatSettings } from './storage'
 import { AiChatContext, type AiChatContextValue, type AiChatStatus, type AiChatUsage, type AiReplyRecord } from './AiChatContext'
 
@@ -25,8 +25,18 @@ const MAX_QUEUE = 10
 const MIN_REPLY_INTERVAL_MS = 6000
 /** 调用出错后的退避间隔，比正常间隔更长一点 */
 const ERROR_BACKOFF_MS = 15000
-/** 同一个观众的弹幕冷却：连发弹幕也只答一条 */
-const CHAT_USER_COOLDOWN_MS = 45_000
+/**
+ * 同一个观众的弹幕冷却：连发弹幕也只答一条。
+ *
+ * 原来设 45s，实际效果是「回他一句，然后 45 秒里他说的十几条全部静默」——
+ * 正常聊天的人 3~4 秒一条，被这条冷却伤得最狠（实测 18 条只回 2 条，间隔精确 45.0s）。
+ *
+ * 真正的目标是「别让一个人占满队列」，那件事交给下面 `enqueue` 里的
+ * 「队列里已经有他的弹幕就先不加」更精准。这里只留一个**不超过全局回复间隔**的窗口：
+ * 冷却再长也快不过 `MIN_REPLY_INTERVAL_MS`，等于不额外限制同一个人，
+ * 也就不用担心他多花 token —— 总闸是全局节流，改小它只是决定「名额分给谁」。
+ */
+const CHAT_USER_COOLDOWN_MS = 6_000
 /** 进场欢迎冷却：同一个人反复进出不重复欢迎 */
 const MEMBER_USER_COOLDOWN_MS = 10 * 60_000
 /** 礼物答谢冷却：礼物连击（combo）合并成一次答谢 */
@@ -41,6 +51,16 @@ const COMMAND_USER_COOLDOWN_MS = 3_000
  * 和指令那套分开记 —— 普通聊天不该消耗观众的指令额度。
  */
 const ROUTE_USER_COOLDOWN_MS = 3_000
+/**
+ * 自然语言理解的**全局**最小间隔。
+ *
+ * 回复那条链路有 `MIN_REPLY_INTERVAL_MS`（6s）兜着，理解这条只有「每人 3s」+
+ * 「队列最多 4 条」—— 队列一空就继续，实际速度等于模型响应速度（约 1 次/秒）。
+ * 而每次理解都要重发一份跟弹幕长短无关的大 prompt：27 个工具定义 ≈ 1900 token +
+ * 状态快照 ≈ 500 + 系统提示 ≈ 170，单次 2400 token 起（实测）。
+ * 2s 一次是「观众等得起」和「账单扛得住」的折中。
+ */
+const MIN_ROUTE_INTERVAL_MS = 2_000
 /** 待理解的弹幕上限；排这么长说明在刷屏，再等下去观众早忘了自己说过什么 */
 const MAX_ROUTE_QUEUE = 4
 /** 同一条弹幕的理解结果缓存多久：刷屏时重复话很多，能省一次调用 */
@@ -48,8 +68,12 @@ const ROUTE_CACHE_TTL_MS = 60_000
 const ROUTE_CACHE_LIMIT = 100
 /** 理解失败后的退避：Key 无效时别每条弹幕都打一次接口 */
 const ROUTE_ERROR_BACKOFF_MS = 30_000
-/** 相同内容的弹幕在这个窗口内只答一次 */
-const SAME_TEXT_WINDOW_MS = 60_000
+/**
+ * 相同内容的弹幕在这个窗口内只答一次。
+ * 原 60s 太长：「666」「哈哈哈」这类短句全站一分钟只答一次，观众会觉得没人理他；
+ * 30s 仍能省掉刷屏时的重复调用。
+ */
+const SAME_TEXT_WINDOW_MS = 30_000
 /** 发给模型的对话历史条数（user/assistant 成对） */
 const HISTORY_PAIRS = 8
 /** AI 生成内容去重：与最近几条回复相同就放弃这条 */
@@ -134,6 +158,8 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const routingRef = useRef(false)
   const routeCacheRef = useRef(new Map<string, { at: number; actions: ParsedAction[] }>())
   const routeBackoffRef = useRef(0)
+  /** 上一次真正打模型的时间，给全局节流用（命中缓存的不算） */
+  const lastRouteAtRef = useRef(0)
 
   const autoActive = settings.autoReply && settings.apiKey.trim() !== ''
   const autoActiveRef = useRef(autoActive)
@@ -173,8 +199,11 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  /** 入队并按上限淘汰：满了先丢最旧的非礼物事件，礼物尽量保住 */
-  const pushQueue = useCallback((item: QueueItem) => {
+  /**
+   * 入队并按上限淘汰：满了先丢最旧的非礼物事件，礼物尽量保住。
+   * 返回这条是否还留在队列里 —— 被挤掉的那条没被回复，不该消耗观众的冷却额度。
+   */
+  const pushQueue = useCallback((item: QueueItem): boolean => {
     const queue = queueRef.current
     queue.push(item)
     while (queue.length > MAX_QUEUE) {
@@ -183,6 +212,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     }
     setPendingCount(queue.length)
     pruneCooldowns()
+    return queue.includes(item)
   }, [pruneCooldowns])
 
   const enqueue = useCallback((item: LiveFeedItem) => {
@@ -193,21 +223,30 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
         : CHAT_USER_COOLDOWN_MS
     const cooldowns = userCooldownRef.current
 
+    // 队列里已经有这个人的弹幕在等：他还没被回复，新的一句排进去也只会被后面的顶掉。
+    // 「一个人连发占满队列」靠这一条挡，比按时间窗屏蔽精确得多
+    if (item.kind === 'chat' && queueRef.current.some(
+      (queued) => queued.kind === 'chat' && queued.name === item.name,
+    )) return
+
     // 同类事件同一观众的冷却（礼物连击合并、弹幕连发只答一条、反复进出只欢迎一次）
     const userKey = `${item.kind}:${item.name}`
     const lastAt = cooldowns.get(userKey)
     if (lastAt !== undefined && now - lastAt < cooldown) return
-    cooldowns.set(userKey, now)
 
     // 同内容弹幕冷却：不同观众刷同一句话，只答第一句
+    let textKey = ''
     if (item.kind === 'chat') {
-      const textKey = normalizeText(item.text)
+      textKey = normalizeText(item.text)
       const seenAt = textSeenRef.current.get(textKey)
       if (seenAt !== undefined && now - seenAt < SAME_TEXT_WINDOW_MS) return
-      textSeenRef.current.set(textKey, now)
     }
 
-    pushQueue({ kind: item.kind, name: item.name, text: item.text, count: item.count, at: item.at })
+    const kept = pushQueue({ kind: item.kind, name: item.name, text: item.text, count: item.count, at: item.at })
+    // 冷却和「同文本」都只在真排进队列后才算数，被上限挤掉的那条什么都没发生
+    if (!kept) return
+    cooldowns.set(userKey, now)
+    if (textKey) textSeenRef.current.set(textKey, now)
   }, [pushQueue])
 
   /**
@@ -243,6 +282,16 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     if (lastAt !== undefined && now - lastAt < ROUTE_USER_COOLDOWN_MS) return false
     userCooldownRef.current.set(key, now)
     return true
+  }, [])
+
+  /**
+   * 全局节流：距上次真调用不足间隔就先等着。
+   * 等的时候 `routingRef` 还是 true，新弹幕只会进队列，不会插队打接口。
+   */
+  const waitForRouteSlot = useCallback(async () => {
+    const wait = MIN_ROUTE_INTERVAL_MS - (Date.now() - lastRouteAtRef.current)
+    if (wait > 0) await new Promise((resolve) => { window.setTimeout(resolve, wait) })
+    lastRouteAtRef.current = Date.now()
   }, [])
 
   /** 同一条话短时间内只理解一次：刷屏时重复话很多，能省掉大量调用 */
@@ -291,6 +340,8 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
           const config = settingsRef.current
           const enabled = enabledActionIds(chatCommandsRef.current)
           if (enabled.length > 0 && config.apiKey.trim()) {
+            // 真打接口才占节流名额；命中缓存的那条不花钱，也不该拖慢后面的
+            await waitForRouteSlot()
             try {
               const result = await routeAction(item.text, enabled, config)
               actions = result.actions
@@ -325,7 +376,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     } finally {
       routingRef.current = false
     }
-  }, [addUsage, enqueue, enqueueCommand, executeCommand, readRouteCache, routeAction, writeRouteCache])
+  }, [addUsage, enqueue, enqueueCommand, executeCommand, readRouteCache, routeAction, waitForRouteSlot, writeRouteCache])
 
   const enqueueRoute = useCallback((item: LiveFeedItem) => {
     // 刚失败过：退避期内直接当普通弹幕，别再打接口
@@ -367,9 +418,16 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
           }
           continue
         }
-        if (nlActiveRef.current && allowRoute(item.name)) {
-          // 没写方括号也不一定是闲聊：交给模型判断这句话要不要动控制台
-          enqueueRoute(item)
+        // 只有 `[AI控制]换个赛博背景` 这种写法才送模型理解。没写前缀的一律当普通聊天 ——
+        // 单次理解要重发一整张工具表 + 状态快照（≈2400 token），不该为每条闲聊都付一遍
+        const aiText = parseAiControl(item.text)
+        if (aiText !== null) {
+          // 只写了个前缀、后面什么都没有：当没写，既不调接口也不回一句
+          if (!aiText) continue
+          // 写了前缀就是明说「这是控制指令」，关掉 / 冷却 / 队列满都不落普通回复
+          if (nlActiveRef.current && allowRoute(item.name)) {
+            enqueueRoute({ ...item, text: aiText })
+          }
           continue
         }
       }

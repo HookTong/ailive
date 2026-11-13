@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Live2D, type Live2DLoadState, type Live2DModelConfig } from '../Live2D'
 import { Atmosphere } from '../Atmosphere'
 import { LiveOverview } from '../LiveOverview'
@@ -135,6 +135,8 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
     filterSaturation,
     filterBlur,
     vignette,
+    overlayScales,
+    overlayOpacities,
   } = useStage()
 
   const { douyinRoom } = useLiveData()
@@ -155,7 +157,22 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
   }
 
   return (
-    <div className={styles.preview}>
+    <div
+      className={styles.preview}
+      // 四块浮层各自的缩放倍数和透明度。卡片只写
+      // `zoom: var(--overlay-zoom-xxx, 1)` / `opacity: var(--overlay-alpha-xxx, 1)`，
+      // 档位在「舞台控制台」里一块一块调 —— 弹幕刷得快就调大弹幕，概览挡着模型就调淡概览
+      style={{
+        '--overlay-zoom-overview': overlayScales.overview,
+        '--overlay-zoom-gift': overlayScales.giftMotion,
+        '--overlay-zoom-chat': overlayScales.chat,
+        '--overlay-zoom-command': overlayScales.chatCommand,
+        '--overlay-alpha-overview': overlayOpacities.overview,
+        '--overlay-alpha-gift': overlayOpacities.giftMotion,
+        '--overlay-alpha-chat': overlayOpacities.chat,
+        '--overlay-alpha-command': overlayOpacities.chatCommand,
+      } as CSSProperties}
+    >
       <StageBackground
         // 「无背景」只是不显示，选中的地址还留着，切回固定就能恢复
         url={backgroundMode === 'none' ? '' : backgroundUrl}

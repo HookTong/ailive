@@ -90,13 +90,14 @@ export function VoiceSetting({
 
   return (
     <section className={styles.block}>
-      <div className={styles.title}><span>音色</span></div>
+      <div className={styles.title}><span>人声音色</span></div>
       <ScrollArea
         columns={3}
         gap="9px 8px"
-        // 高度刚好装 4 行，不多不少：上下各 5px 内边距（见 .presets）+ 4×30px 胶囊 + 3×9px 行距 = 157px。
-        // 少 3px（老值 154）就会在「正好 4 行」时冒出滚动条，还把第 4 行切掉一截
-        maxHeight="157px"
+        // 高度刚好装 4 行，不多不少：4×30px 胶囊 + 3×9px 行距 = 147px。
+        // 容器不带上下内边距（和「外观预设」同一个盒子模型），所以不用再给 padding 留位置；
+        // 少 1px 就会在「正好 4 行」时冒出滚动条，还把第 4 行切掉一截
+        maxHeight="147px"
         className={styles.presets}
         role="group"
         ariaLabel="人声风格预设"

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Card } from '../Card'
 import { Tag } from '../Tag'
-import { useDragPosition, useLiveData } from '../../hooks'
+import { useAiChat, useDragPosition, useLiveData, useStage } from '../../hooks'
 import { ACTIONS, modeGroupTemplate, type ActionGroupId, type ActionMeta } from '../../data/actions'
 import styles from './index.module.scss'
 
@@ -76,8 +76,12 @@ function entriesOf(actions: ActionMeta[]): CommandEntry[] {
  */
 export function ChatCommandCard() {
   const { chatCommands } = useLiveData()
+  // 自然语言控制开了没：开了才在卡上多列一行 `[AI控制]$自然语言`
+  const { settings } = useAiChat()
+  const aiControl = settings.nlControl && settings.apiKey.trim() !== ''
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，交互元素由 useDragPosition 内部的守卫排除
-  const { ref, transform, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging })
+  const { overlayScales, overlayResetToken } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.chatCommand, resetToken: overlayResetToken })
 
   const groups = useMemo(() => {
     // 按「第一次出现」的顺序归组：ACTIONS 本身就是 外观 → 音色 → 背景 → 特效 → 滤镜 → 音乐
@@ -100,15 +104,15 @@ export function ChatCommandCard() {
     }))
   }, [chatCommands])
 
-  // 指令全被关掉时整块不出现，别留一张空卡片
-  if (groups.length === 0) return null
+  // 指令全被关掉、也没开自然语言控制时整块不出现，别留一张空卡片
+  if (groups.length === 0 && !aiControl) return null
 
   return (
     <Card
       as="aside"
       ref={ref}
       className={styles.root}
-      style={{ transform }}
+      style={{ transform, zIndex }}
       {...handlers}
       aria-label="弹幕指令"
       padding="sm"
@@ -116,8 +120,12 @@ export function ChatCommandCard() {
       extra={<span className={styles.count}>{groups.length} 类</span>}
       headerProps={{ className: styles.headRow }}
     >
+      {/* 自然语言不是动作、不进 ACTIONS，塞一行进列表会把最后一条挤到折叠线以下
+          （卡片已经顶到 540px 上限），所以并进这句说明里 */}
       <p className={styles.hint}>
-        观众发这些就能远程操作；斜杠表示任选一个，「$」开头的值写个大概也能认出来
+        {aiControl
+          ? '斜杠表示任选一个，「$」开头的值写个大概也能认出来；说「[AI控制]」加一句话也能操作'
+          : '观众发这些就能远程操作；斜杠表示任选一个，「$」开头的值写个大概也能认出来'}
       </p>
       <ul className={styles.list}>
         {groups.map((group) => (

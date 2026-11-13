@@ -544,6 +544,28 @@ export function looksLikeCommand(text: string): boolean {
 }
 
 /**
+ * 自然语言控制的触发前缀。**只有 `[AI控制]换个赛博背景` 这种写法才会送给模型理解** ——
+ * 没写前缀的弹幕一律当普通聊天，不再为每条闲聊付一次「工具表 + 状态快照」。
+ *
+ * 前缀本身**不是动作**，不进 `ACTIONS`：它没有可执行的东西，只是告诉程序
+ * 「这句话请你理解一下」。所以 `looksLikeCommand` 认不出它（关键字表里没有），
+ * 两边不会打架。
+ */
+// 括号内允许空格、AI 大小写随意：观众手打容易多打个空格，不该因此静默失效
+const AI_CONTROL_RE = /^\[\s*AI\s*控制\s*\]/i
+
+/**
+ * 取出 `[AI控制]` 后面的自然语言。
+ * 不是这个前缀返回 `null`；只写了前缀、后面什么都没有则返回空串（调用方据此整条忽略）。
+ */
+export function parseAiControl(text: string): string | null {
+  const trimmed = text.trim()
+  const matched = AI_CONTROL_RE.exec(trimmed)
+  if (!matched) return null
+  return trimmed.slice(matched[0].length).trim()
+}
+
+/**
  * 把一条弹幕解析成动作。形状只有一条规则：**方括号里全是固定值，方括号外面全是变量**。
  *
  * `[外观|清除]$角色名称` —— 方括号两段必须和 `match` 一模一样（多一段少一段都不行），

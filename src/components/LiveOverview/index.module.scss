@@ -7,6 +7,9 @@
   top: 18px;
   left: 24px;
   width: min(560px, calc(100% - 48px));
+  // 整块等比放大：字号、间距、圆角一起变，手机上看才真的变大
+  zoom: var(--overlay-zoom-overview, 1);
+  opacity: var(--overlay-alpha-overview, 1);
   color: $text;
   pointer-events: auto;
   text-shadow: $text-shadow;
@@ -32,7 +35,10 @@
   .cards {
     top: 10px;
     left: 10px;
-    width: min(560px, calc(100% - 20px));
+    // 窄屏没有余量分档，直接铺满。
+    // `100%` 在 zoom 元素里已经按缩放折算过（Chromium 会先把包含块除以 zoom），
+    // 所以这里照旧写，别再自己除一次
+    width: calc(100% - 20px);
   }
 
   .grid {

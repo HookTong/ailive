@@ -176,9 +176,9 @@ export function ChatCommandSetting({ commands, onToggle }: ChatCommandSettingPro
   return (
     <div className={styles.root}>
       {/* 整段写在一行：JSX 的换行会折叠成一个空格，中文里的「。（」之间不该有缝。
-          每句只高亮一处，五句五个重点，再多就等于没重点 */}
+          每句只高亮一处，三句三个重点，再多就等于没重点 */}
       <p className={styles.intro}>
-        观众发送下面格式的弹幕就能<strong>远程操作控制台</strong>，每条指令都会让模型说一句话播报结果（没找到配置也会说）。<strong>方括号里是固定写法</strong>，要一字不差，斜杠表示任选一个；方括号外面是变量，多个用「&gt;」隔开。<strong>「$」符号开头表示变量</strong>，变量名称不用写全：记得个大概、多打几个字、错一个字都能对上。指令<strong>不依赖 AI 自动回复开关</strong>，优先级排在礼物答谢、进场欢迎之后，普通弹幕之前。没写方括号的自然语言（比如「换个赛博背景」）由「AI 配置」里的<strong>「自然语言控制」</strong>负责，那里可以单独关掉。
+        观众发下面格式的弹幕就能远程操作控制台，每条都会让模型播报一句结果。<strong>方括号里是固定写法</strong>，要一字不差，斜杠表示任选一个；外面是变量，多个用「&gt;」隔开，<strong>「$」开头的变量名写个大概就行</strong>。想让模型听懂自然语言，写成<strong>「[AI控制]换个赛博背景」</strong>，开关在「AI 配置」里。
       </p>
       <div className={styles.example}>
         <span>示例</span>

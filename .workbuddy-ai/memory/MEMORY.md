@@ -13,12 +13,12 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 
 - 控制台纵向堆叠 `$stack-gap`（12px）；块间距唯一来源 `.block { margin-bottom: 20px }`，组件自带 `margin-top`（Slider 12px）用两级选择器压回 0。**块自己别再补 `padding-top`** —— 块顶位置由上一块的 `margin-bottom` 定，多一份 padding 就和邻居对不齐（`VoiceSetting` 曾多 2px）。
 - 两个控制台面板的**第一行就是标题**（`角色控制台` / `舞台控制台`），**都是 `<h2>`**，上面没有 eyebrow 小字了；`.title` / `.intro` 都走 mixins 的 `panel-title` / `panel-intro`（**两栏并排，字号间距必须同一套，别各写一份**，曾经 25px vs 20px 悄悄跑偏）。上外边距归零，顶到面板的 `padding-top: 28px`。验证脚本定位面板用 `hasText: '舞台控制台'` / `'角色控制台'`，别再用 `STAGE CONTROL`。
-- **块标题行 → 内容 = `$label-gap`（10px）**，比 `$stack-gap` 紧 2px：标题是这一组的标签，贴着自己的内容才读得出归属。**两个面板八个块全部统一**：角色控制台（`.labelRow` + 内容自己的 `margin-top: $label-gap`）和舞台控制台（`section-title` 混入的 `margin-bottom: $label-gap`）。**滚动容器自带上下 padding 的要减掉它**（`margin-top: $label-gap - $preset-pad-y`）。
+- **块标题行 → 内容 = `$label-gap`（10px）**，比 `$stack-gap` 紧 2px：标题是这一组的标签，贴着自己的内容才读得出归属。**两个面板八个块全部统一**：角色控制台（`.labelRow` + 内容自己的 `margin-top: $label-gap`）和舞台控制台（`section-title` 混入的 `margin-bottom: $label-gap`）。**预设网格容器一律不带上下 padding**（和「外观预设」同一盒子模型），别靠减 padding 凑数。
 - 块标题行统一：`.title` / `.labelRow` / `section-title` 都 `@include label-type`（等宽 `$fs-body`、`letter-spacing .08em`、`$text-soft`）+ `flex` + `space-between` + `align-items:center` + `gap:10px`。**颜色字号别再各写一份** —— 曾经角色控制台用 `$text-muted`、舞台用 `$text-soft`，并排一眼看得出。**右边不挂角标**（`LIVE2D` / `VOLCANO TTS` 都已删，`.tinyTag` 随之清掉）。
 - `Button` 是 inline-flex，**外边距盒算进行盒高度**：下外边距归零，量间距用 `getBoundingClientRect()` 差；要特定高度别传 `size`，压 variant 用两级选择器。永不换行（nowrap + `flex-shrink:0`），省略文字包 `<span min-width:0>`，`.xs` padding 4px。
 - 滚动条只在指针进容器时显形：靠 `data-scroll-hover`（Chromium 不因容器 hover 重解析 thumb）。`useHoverScrollbar` 从 `pointerover` 往上找最近滚动祖先，**遇 `position:fixed` 停**。12px 从 padding box 切走：最外层减 `padding-right`，嵌在别人留白里用 `@include scroll-bleed`，**外层右留白 ≥12px**；`scroll-thin` 必带 `scrollbar-gutter: stable`。
 - 滑块 6px = `border: 3px solid transparent` + `background-clip: padding-box`，**只能写 `background-color`**。
-- 预设网格 `max-height` 必须整数排：4 排 = 30×4+5×3 = **135px**（`PRESET_GRID_MAX_HEIGHT` 五处共用）；带上下 5px padding 是 157px。滚动区自己留了上下 padding 时，**和上下的间距都要减掉它**（`margin-top: $stack-gap - $preset-pad-y`）—— 否则标题行到第一排胶囊会变成 15px 而不是 12px（`VoiceSetting` 踩过）。
+- 预设网格 `max-height` 必须整数排：30px 胶囊 + 5px 行距 → 4 排 = **135px**（`PRESET_GRID_MAX_HEIGHT`，背景/特效/滤镜/音乐/外观共用）。**音色那格行距是 9px，单独写 `147px`**（4×30+3×9），同样 4 排不多不少。**容器不要再加上下 padding** —— 加了就得把高度和上下间距全减一遍（`VoiceSetting` 曾为 5px padding 写 157px + `margin-top: $label-gap - $preset-pad-y`，现已删干净）。
 - `Segmented` 外层类只写 `margin`（`.modeSwitch{margin-top:12px}` 四处统一）；禁用整块 `.disabled{opacity:.5}`，别再给 `.option:disabled` 写透明度。`Tabs` 下划线 `.tab::after` 左右贴 0（别用 border，撑出 2px）。
 - `Input` 步进器只在 `:focus-within` 出现；错误描边挂 `aria-invalid`；`className` 落内层 `<input>`。必填三件套：`名称<RequiredMark />` + `aria-invalid/aria-describedby` + `.fieldHint`。
 
@@ -27,7 +27,13 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 - `Modal` 在 `Drawer` 外层（40>31）；抽屉内容区 `overflow:auto`；`scrollable={false}` 时内容自己撑满。`DropdownSelect` 菜单绝对定位无 portal，含下拉的区域不能 `overflow:auto`。
 - `Tooltip` portal 到 body（Drawer 的 `transform` 会成为 `fixed` 包含块）；`.popup` 显式声明字体颜色；`title` 是 `ReactNode`，多行用 `.tipLine + .tipLine { border-top }`。
 - 直播配置抽屉：礼物行 `padding: 5px 0` 贴边；弹幕指令那 12px 内边距画在 `.list` 边框**里面**，别用负边距。`Card` 的 `headerProps` 别用 `.head`。
-- 舞台浮层自己取数，容器只摆放和整块拖动；卡片 `.root { min-height:154px }`。四块：概览（左上 560）、弹幕（右上 `top:16 right:16` z9）、礼物动作（左下）、弹幕指令（右下）；后三 268 宽 + `max-height:min(66%,540px)` + 底 `#09232bf2`，右侧两块重叠是已知取舍。
+- 舞台浮层自己取数，容器只摆放和整块拖动；卡片 `.root { min-height:154px }`。四块：概览（左上）、弹幕（右上 `top:16 right:16` z9）、礼物动作（左下）、弹幕指令（右下）；右侧两块重叠是已知取舍。**拖过哪张哪张排最前**：`useDragPosition` 里模块级 `topZIndex`（起始 9）在 `pointerdown` 时 `++` 写进内联 `zIndex`，松手不还原（一放手就缩回邻居底下等于白拖），`resetToken` 变化时清成 `undefined` 落回 CSS 的 8/9。计数器必须放模块级，四张卡要共享同一个顺序；赋值点在 `INTERACTIVE` 守卫之后 —— 点卡片里的按钮不算拖这张卡。
+- 四块浮层的**大小是等比缩放**（直播用手机看要能看清字），用 `zoom` 不用 `transform: scale()`：`zoom` 是布局级缩放，文字按放大后尺寸重新栅格化**不糊**，padding/圆角/图标/行高一起放大。倍数存 `StageContext.overlayScales`（`overview|giftMotion|chat|chatCommand`，0.6~2，默认 1，`ailive.stage-console` 落盘），`Stage` 在 `.preview` 上内联下发 `--overlay-zoom-overview/-gift/-chat/-command`，四张卡各写一行 `zoom: var(--overlay-zoom-xxx, 1)`；滑杆在「舞台控制台 → 浮层大小」，**这一块是面板最后一块（背景音乐之后）**，所以 `.block:last-of-type` 的「紧贴分隔线」样式归它，挪位置时不用改 CSS。**宽度/max-height 仍写死**（268 / `min(66%, 540px)` / 560 / 220），别再引回档位变量。
+- 浮层「复位」是块标题行右侧的 `variant="bare"` 文字按钮，**两块各有一个、各管各的**：`resetOverlayScales()`（四块回 100% + 令牌 +1 让位置归零）/ `resetOverlayOpacities()`（只回不透明，不动位置）。**位置没有单独的块，归「浮层大小」管**。位置在各卡自己的 `useDragPosition` 局部 state 里，面板够不着，只能靠 `overlayResetToken` 单向通知 —— 卡片传 `useDragPosition({ resetToken })`，数字一变就 `translate(0,0)`；令牌只增不减、**不落盘**。`resetStage()`（重置舞台）两样 + 位置一起复位。文字按钮静止就得用 `$accent-text`，灰字会被当成说明标签（原来那格就是「手机观看调大」）。展开按钮文案是「展开/收起单独调节」。
+- 浮层**透明度**和大小完全同一套：`overlayOpacities`（`OVERLAY_OPACITY_MIN 0.2 ~ 1`，默认 1，落 `ailive.stage-console` 的 `overlayOpacities`），`Stage` 下发 `--overlay-alpha-overview/-gift/-chat/-command`，卡片写 `opacity: var(--overlay-alpha-xxx, 1)`。下限 0.2 而不是 0：再低手指找不到落点，真要隐藏用工具条的显隐开关。
+- 两块面板**默认只有一根「全部」滑块**，四根单独滑块挂在 `variant="chip"` 的「展开单独调整」按钮后面（照 `ParticleSetting` 的「展开细粒度控制」），展开状态是局部 state、不落盘。**「全部」是单向的：只向下写、不向上读** —— 它有自己的 `useState`（`{ value, mixed }`，`initialUnified()` 只在挂载时从四块推一次，四块不一致退到平均值并置 `mixed`），拖动时 `for…of OVERLAY_SLIDERS` 逐个 `setOverlayScale`（函数式更新依次叠加）并把 `mixed` 清掉；单独拖某一块**不动它的位置**，只把 `mixed` 立起来，文案从百分比换成**「单独调节」**。复位 / 重置舞台要把它一起设回 `{ value: 1, mixed: false }`，否则它还停在旧数值、一碰就把四块拽回去。`OVERLAY_SLIDERS` 是两组滑块共用的 key+文案表。
+- **`zoom` 的三个坑**：① `offsetLeft` / `offsetWidth` 是**布局值**，`clientWidth` / `getBoundingClientRect()` 是**屏幕值**，差一个 zoom 倍数；`transform: translate` 里的 px 还会被浏览器再乘一次 zoom —— `useDragPosition` 全部换算到布局坐标（`stage.clientWidth / zoom`、`(clientX - stageRect.left) / zoom`）。② `zoom` 不改布局尺寸，**ResizeObserver 看不到**，必须靠显式 `scale` 参数 + `useEffect` 依赖触发 clamp。③ 百分比已折算（Chromium 先把包含块除以 zoom），`calc(100% - 20px)` 照旧写，别自己再除一次。
+- `useDragPosition` 的「尺寸变了把位置夹回舞台」观察器**绑在第一次 pointerdown 里，不是 effect**：`GiftMotionCard` / `ChatCommandCard` 没配内容时整块 `return null`，挂载那一刻 `ref` 还是 null，`useEffect(..., [])` 只跑一次就永远绑不上（实测拖到边上再切大档会溢出 44px）。且只认**宽度**变化 —— 高度是内容驱动的（弹幕一多就长高），跟着夹会每条弹幕跳一下。
 - 小标签分两种：静态字面量用 `Tag`（`tone` accent 浮起底 / neutral 描边、`as` 默认 code、**不可点**、单行省略）；能点的用 `PresetChip`（自带 Tooltip，调用点别套）。`ChipRemove` 要 `stopPropagation` + `data-tooltip-ignore`；带角标胶囊补 `&::before { flex:0 0 14px }` 才真居中；`active` 同步 `aria-pressed`；长文字包 `.label`；「×」用两条 7×1 细线 + `grid-area:1/1` + ±45°。
 - 胶囊 hover 中性提亮（`$bg-hover` + `$border-strong`）、active 才是绿底；多选组里选中项 hover 用 `.chip.active:hover:not(:disabled)`。
 
@@ -37,6 +43,7 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 - 三份 console storage：`ailive.model-console` / `ailive.stage-console` / `ailive.music-console`。`DEFAULT_*` 是默认值唯一来源；`loadX` 逐项校验、读不懂退默认；`saveX` 只写差异、全默认 `removeItem`；`lastWritten` 比对载荷。
 - 恢复配置必须在 `useState(懒初始化)` 里做（放 effect 会先渲染默认背景再换图）；读回值要校验「还在不在」（背景 URL / 滤镜 id / 模型 id 在不在列表里），粒子滑杆初值取 `configs[存储预设]`。粒子参数按预设分别记（`particleOverrides`）；音乐只恢复选中不恢复播放。
 - 抽屉草稿同步用 `wasOpenRef` 判上升沿，**面板改的是草稿、点「完成」才提交**。`LiveDataProvider` 持有唯一 SSE；`MIN_REPLY_INTERVAL_MS = 6000`。
+- 弹幕冷却别按「时间窗屏蔽」写：`CHAT_USER_COOLDOWN_MS` 曾是 45s，等于「回他一句、然后 45 秒里他说的十几条全静默」（实测 18 条只回 2 条，间隔精确 45.0s）。现在 6s（= 全局节流，等于不额外限制同一个人），**「别让一个人占满队列」改由 `enqueue` 里「队列已有他的 chat 就先不加」挡**。总闸始终是 `MIN_REPLY_INTERVAL_MS`，改小每人冷却只是决定名额分给谁、不多花 token。`SAME_TEXT_WINDOW_MS` 60s → 30s（短句全站一分钟只答一次太伤）。
 - 自定义项 = 内置 + 用户数组，`id.startsWith('custom:')` 区分可删。删「正在用的那一个」要同时收使用方（背景退默认、滤镜退标准、音乐暂停 + 清 `audioRef` + 退默认）；`blob:` 先停播再 revoke。
 - 播放/轮播读最新列表用 `ref`；返回 `Promise<boolean>` 的上下文方法别顺手设全局 error；试听必须独立播放器（独立 audio + analyser + 状态）。`MusicContext` 的 `toggle` 只给按钮（按一下切一次），**指令走幂等的 `play()` / `pause()`** —— 连发两次「播放」不该把歌停掉。
 - 礼物目录外 = `giftPrices` ∪ 本次 `giftTotals` − 内置；`blob:` 不能持久化，读写都过滤；交出去的对象 URL 不再 revoke（`committedRef`）。图标 = `public/gifts/<icon>.svg` + `src/data/gifts.ts`（OpenMoji 72×72 + 2px 描边），按单价升序插；目录外渲染 `?`；`giftPrice()` 先查用户价。
@@ -63,6 +70,12 @@ React 18 + TS + Vite + PIXI.js + pixi-live2d-display + Sass 的 Live2D AI 直播
 
 - **细节全在 `COMMANDS.md`（同目录）**：格式 `[固定值|固定值]变量>变量`、`ACTIONS` 动作表、匹配规则、拦截顺序、面板分组、LLM 工具表与路由队列。动这块先读它。
 - 只需记住三条底线：① 动作表 `src/data/actions.ts` 是唯一真相，新增动作只加一条；② **方括号里全是固定值（一字不差），外面全是变量（模糊匹配）**；③ 指令写法的弹幕不管成败都只走指令，不落自动回复。
+- 自然语言理解**很贵**：单次固定 ≈2450 token（工具表 1740 + 快照 500 + 提示 170），是普通回复的 3.7 倍。所以**只有 `[AI控制]+一句话` 才送模型**（`parseAiControl`），没前缀的弹幕一律当普通聊天；`MIN_ROUTE_INTERVAL_MS`（全局 2s，只有真调接口才占名额）兜上限。别再按「总弹幕密度」判刷屏 —— 加了前缀之后会误伤忙房间里的正常控制。
+
+## 直播桥接服务（server/）
+
+- 前端只连 `127.0.0.1:8787`（vite 代理 `/api`），cookie 只在 `server/.env` 的 `DY_LIVE_COOKIES`。
+- **取初始帧不能带登录态 cookie**：`/webcast/im/fetch/` 见到 `sessionid` 就回 200 + 空 body，响应头 `x-vc-bdturing-parameters` 点名滑块验证。取帧走 `Auth.guest_cookie`（只 `ttwid` + `msToken`），登录态只留给 WebSocket。改完要重启桥接进程才生效。
 
 ## 构建与验证
 

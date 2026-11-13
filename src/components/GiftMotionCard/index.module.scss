@@ -1,7 +1,7 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
-// 独立浮动的礼物动作面板：宽度和弹幕面板对齐（268），默认落在舞台左下角。
+// 独立浮动的礼物动作面板：宽度和弹幕面板对齐，默认落在舞台左下角。
 // 整块可拖动（handlers 挂在 Card 根节点上），定位交给这里，外观来自 Card。
 .root {
   position: absolute;
@@ -19,6 +19,9 @@
   display: flex;
   flex-direction: column;
   max-height: min(66%, 540px);
+  // 整块等比放大：字号、行高、图标一起变，手机上看才真的变大
+  zoom: var(--overlay-zoom-gift, 1);
+  opacity: var(--overlay-alpha-gift, 1);
   overflow: hidden;
   // 面板内容多时会往上长，可能盖住直播概览的卡片。底色比普通卡片再实一点，
   // 否则两层毛玻璃叠在一起，底下的数字会透上来糊成一片

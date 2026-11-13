@@ -20,6 +20,7 @@ type StageToolbarProps = {
 /**
  * 舞台顶部工具条：左边 LIVE PREVIEW 标识，右边几个文字按钮。
  * 概览、礼物动作、弹幕、指令四块浮层各有各的开关，互不影响。
+ * 大小不在这里 —— 四块各有一个缩放滑块，放在「舞台控制台」里。
  */
 export function StageToolbar({
   showOverview,
