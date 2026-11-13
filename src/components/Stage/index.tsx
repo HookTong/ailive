@@ -106,19 +106,11 @@ type StageProps = {
   activeModelId?: string
   onActivateModel?: (id: string) => void
   onModelStateChange?: (id: string, state: Live2DLoadState, message?: string) => void
-  /** 左上角的直播概览卡片组 */
-  showOverview?: boolean
-  /** 「礼物动作」浮动面板 */
-  showGiftMotions?: boolean
-  /** 是否显示弹幕面板 */
-  showChat?: boolean
-  /** 「弹幕指令」速查卡 */
-  showChatCommands?: boolean
   /** 只渲染模型本身：弹窗预览用，不带背景、滤镜、粒子、信息卡和聊天 */
   bare?: boolean
 }
 
-export function Stage({ models, activeModelId, onActivateModel, onModelStateChange, showOverview = true, showGiftMotions = true, showChat = true, showChatCommands = true, bare = false }: StageProps) {
+export function Stage({ models, activeModelId, onActivateModel, onModelStateChange, bare = false }: StageProps) {
   const {
     backgroundUrl,
     backgroundMode,
@@ -137,6 +129,7 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
     vignette,
     overlayScales,
     overlayOpacities,
+    overlayVisible,
   } = useStage()
 
   const { douyinRoom } = useLiveData()
@@ -189,10 +182,12 @@ export function Stage({ models, activeModelId, onActivateModel, onModelStateChan
         color={particleColor}
         size={particleSize}
       />
-      {showOverview && <LiveOverview />}
-      {showGiftMotions && <GiftMotionCard />}
-      {showChatCommands && <ChatCommandCard />}
-      {showChat && <LiveChatCard live={douyinRoom} />}
+      {/* 四块浮层的显隐也在舞台控制台里，一块一个开关 —— 原来那排开关在顶部工具条上，
+          调大小要低头去面板、藏卡片要抬头去工具条，来回找 */}
+      {overlayVisible.overview && <LiveOverview />}
+      {overlayVisible.giftMotion && <GiftMotionCard />}
+      {overlayVisible.chatCommand && <ChatCommandCard />}
+      {overlayVisible.chat && <LiveChatCard live={douyinRoom} />}
       <Live2D models={models} activeModelId={activeModelId} onActivateModel={onActivateModel} onModelStateChange={onModelStateChange} />
       <div className={cx(styles.vignette, filterEnabled && vignette && styles.vignetteActive)} />
     </div>

@@ -13,8 +13,8 @@ import styles from './index.module.scss'
 export function LiveOverview() {
   const { track, isPlaying, currentTime, duration, analyser } = useMusic()
   // 缩放变了要重新夹位置，见 useDragPosition 的 scale 参数
-  const { overlayScales, overlayResetToken } = useStage()
-  const { ref, transform, zIndex, handlers } = useDragPosition({ draggingClassName: styles.dragging, scale: overlayScales.overview, resetToken: overlayResetToken })
+  const { overlayScales, overlayResetTokens } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition({ draggingClassName: styles.dragging, scale: overlayScales.overview, resetToken: overlayResetTokens.overview })
 
   return (
     <div

@@ -55,6 +55,13 @@ $pad-x: 24px;
   &:active:not(:disabled) {
     color: $accent;
   }
+
+  // 卡片被隐藏时这颗也点不动。必须显式撤掉主色 ——
+  // `.bare` 本身没有禁用态，光靠 `disabled` 属性它还是那颗绿字
+  &:disabled {
+    color: $text-faint;
+    cursor: not-allowed;
+  }
 }
 
 // 预设到下面那行按钮的间距，取全局的 $stack-gap。
@@ -104,9 +111,9 @@ $pad-x: 24px;
   }
 }
 
-// 四块浮层的缩放滑块。块标题行到内容用全局的 $label-gap，
-// 第一个滑块自带的 12px 上外边距在这里压掉，别和它叠成 22px；
-// 滑块彼此之间就靠各自那 12px 分开。
+// 四块浮层的两根滑块（大小 / 透明度）。块标题行到内容用全局的 $label-gap，
+// 第一根滑块自带的 12px 上外边距在这里压掉，别和它叠成 22px；
+// 两根滑块之间就靠第二根自己那 12px 分开。
 .overlaySliders {
   margin-top: $label-gap;
 
@@ -115,10 +122,18 @@ $pad-x: 24px;
   }
 }
 
-// 「展开单独调整」。和上面那根统一滑块隔 12px —— 滑块自己没有下外边距，
-// 这里不给的话按钮会贴着轨道。下边距归零：展开后那组滑块自己带 $label-gap
-.overlayToggle {
-  margin: 12px 0 0;
+// 卡片被隐藏时那两根滑块：和粒子 / 滤镜关掉时同一档 0.42。
+// 只管滑块那一组 —— 标题行上的开关必须保持原样，否则看不出这里还能再打开
+.cardDisabled {
+  opacity: 0.42;
+}
+
+// 卡片操作区标题行右侧：「复位」+ 显隐开关。
+// 两者都是「这一张卡」的动作，凑成一组靠右，别和左边的卡片名抢
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .musicBlock audio {

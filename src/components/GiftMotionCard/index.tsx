@@ -27,8 +27,8 @@ export function GiftMotionCard() {
   const { modelSources, characterStates } = useModel()
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，交互元素由 useDragPosition 内部的
   // INTERACTIVE 守卫排除（这个面板里没有按钮，所以等于整块都是拖拽区）
-  const { overlayScales, overlayResetToken } = useStage()
-  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.giftMotion, resetToken: overlayResetToken })
+  const { overlayScales, overlayResetTokens } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.giftMotion, resetToken: overlayResetTokens.giftMotion })
 
   // 配了动作的礼物 → 每个模型各做什么。没配动作的模型不进这一行，
   // 一个模型都解析不出来的礼物（换过模型、动作没了）整条也不显示

@@ -33,11 +33,27 @@ export const OVERLAY_SCALE_KEYS: readonly OverlayScaleKey[] = ['overview', 'gift
 export type OverlayOpacities = Record<OverlayScaleKey, number>
 
 /**
- * 透明度范围：再低卡片就只剩个影子，手指找不到落点（真要隐藏用工具条的显隐开关）。
+ * 透明度范围：再低卡片就只剩个影子，手指找不到落点（真要隐藏用每块自己的开关）。
  * 下限 0.2 还能看出轮廓。
  */
 export const OVERLAY_OPACITY_MIN = 0.2
 export const OVERLAY_OPACITY_MAX = 1
+
+/**
+ * 四块浮层各自的显示 / 隐藏。
+ * 原来这四个开关在舞台工具条上，现在跟着「卡片大小 / 透明度」一起收进舞台控制台，
+ * 每块卡片一个操作区（开关 + 两根滑块），调的时候不用在顶栏和面板之间来回找。
+ */
+export type OverlayVisibility = Record<OverlayScaleKey, boolean>
+
+/**
+ * 每块浮层各自的复位令牌：点哪一块的「复位」就只加那一个数。
+ *
+ * 位置是各卡 `useDragPosition` 里的局部 state，面板够不着，只能靠这个数字变化
+ * 让那张卡自己 `translate(0, 0)`。做成四份而不是一份 —— 复位一块时不该把
+ * 另外三张拖到别处的卡片也弹回原位。
+ */
+export type OverlayResetTokens = Record<OverlayScaleKey, number>
 
 export type StageContextValue = {
   backgroundUrl: string
@@ -110,18 +126,19 @@ export type StageContextValue = {
   /** 四块浮层各自的透明度 */
   overlayOpacities: OverlayOpacities
   setOverlayOpacity: (key: OverlayScaleKey, value: number) => void
+  /** 四块浮层各自的显示 / 隐藏，只影响渲染，不碰大小和透明度 */
+  overlayVisible: OverlayVisibility
+  setOverlayVisible: (key: OverlayScaleKey, visible: boolean) => void
   /**
-   * 复位令牌：每点一次「复位」加一。
+   * 复位令牌：每块各一个，点一次那一块的「复位」就加一。
    *
-   * 四张卡的位置是各自 `useDragPosition` 里的局部 state，面板拿不到它们，
-   * 只能靠这个数字变化让每张卡自己 `translate(0, 0)` 回到 CSS 默认位置。
+   * 卡片位置在各自 `useDragPosition` 的局部 state 里，面板拿不到，
+   * 只能靠这个数字变化让那张卡自己 `translate(0, 0)` 回到 CSS 默认位置。
    * 只增不减，且不落盘 —— 它是「刚刚被点了一下」这件事本身，不是配置。
    */
-  overlayResetToken: number
-  /** 浮层大小回到 100%，四张卡回到默认位置（位置只有这一个出口，跟着大小走） */
-  resetOverlayScales: () => void
-  /** 浮层透明度回到不透明 */
-  resetOverlayOpacities: () => void
+  overlayResetTokens: OverlayResetTokens
+  /** 单块复位：大小 / 透明度回默认，位置回默认，**开关不动**（那是另一个明确的动作） */
+  resetOverlayCard: (key: OverlayScaleKey) => void
   resetStage: () => void
 }
 

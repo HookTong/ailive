@@ -17,14 +17,17 @@ import {
   StageContext,
   type BackgroundMode,
   type OverlayOpacities,
+  type OverlayResetTokens,
   type OverlayScaleKey,
   type OverlayScales,
+  type OverlayVisibility,
   type StageContextValue,
 } from './StageContext'
 import {
   createParticlePresetConfigs,
   DEFAULT_OVERLAY_OPACITIES,
   DEFAULT_OVERLAY_SCALES,
+  DEFAULT_OVERLAY_VISIBLE,
   loadStageConsole,
   saveStageConsole,
   toParticleOverrides,
@@ -178,6 +181,7 @@ export function StageProvider({ children }: StageProviderProps) {
   const [vignette, setVignette] = useState(restoredFilter.vignette)
   const [overlayScales, setOverlayScales] = useState<OverlayScales>(stored.overlayScales)
   const [overlayOpacities, setOverlayOpacities] = useState<OverlayOpacities>(stored.overlayOpacities)
+  const [overlayVisible, setOverlayVisibleState] = useState<OverlayVisibility>(stored.overlayVisible)
 
   /** 四块浮层各自调，互不影响 —— 弹幕刷得快就调大弹幕，概览数据多就调大概览 */
   const setOverlayScale = useCallback((key: OverlayScaleKey, value: number) => {
@@ -191,22 +195,31 @@ export function StageProvider({ children }: StageProviderProps) {
     setOverlayOpacities((current) => (current[key] === next ? current : { ...current, [key]: next }))
   }, [])
 
-  /**
-   * 浮层复位用的令牌。位置存在各卡自己的 `useDragPosition` 里（面板够不着），
-   * 所以这里只把令牌 +1，卡片看到数字变了就把 `translate` 归零。
-   * 令牌不落盘 —— 它表示「刚被点了一下」，不是一份配置，刷新页面时不该重放。
-   */
-  const [overlayResetToken, setOverlayResetToken] = useState(0)
-
-  /** 「浮层大小」块的复位：四块回 100%，卡片回默认位置。位置没有单独的块，跟着大小走 */
-  const resetOverlayScales = useCallback(() => {
-    setOverlayScales({ ...DEFAULT_OVERLAY_SCALES })
-    setOverlayResetToken((token) => token + 1)
+  /** 显隐：只切渲染，大小 / 透明度 / 位置全部原样留着，重新打开还是关之前的样子 */
+  const setOverlayVisible = useCallback((key: OverlayScaleKey, visible: boolean) => {
+    setOverlayVisibleState((current) => (current[key] === visible ? current : { ...current, [key]: visible }))
   }, [])
 
-  /** 「浮层透明度」块的复位：四块回不透明。位置不归它管，别顺手把卡片挪回去 */
-  const resetOverlayOpacities = useCallback(() => {
-    setOverlayOpacities({ ...DEFAULT_OVERLAY_OPACITIES })
+  /**
+   * 浮层复位用的令牌，四块各一个。位置存在各卡自己的 `useDragPosition` 里（面板够不着），
+   * 所以这里只把那一块的令牌 +1，卡片看到数字变了就把 `translate` 归零。
+   * 令牌不落盘 —— 它表示「刚被点了一下」，不是一份配置，刷新页面时不该重放。
+   */
+  const [overlayResetTokens, setOverlayResetTokens] = useState<OverlayResetTokens>({
+    overview: 0,
+    giftMotion: 0,
+    chat: 0,
+    chatCommand: 0,
+  })
+
+  /**
+   * 单块「复位」：大小和透明度回默认、卡片回默认位置。
+   * **不动开关** —— 显隐有自己那个 Switch，复位顺手把藏起来的卡片放出来会很意外。
+   */
+  const resetOverlayCard = useCallback((key: OverlayScaleKey) => {
+    setOverlayScales((current) => ({ ...current, [key]: DEFAULT_OVERLAY_SCALES[key] }))
+    setOverlayOpacities((current) => ({ ...current, [key]: DEFAULT_OVERLAY_OPACITIES[key] }))
+    setOverlayResetTokens((current) => ({ ...current, [key]: current[key] + 1 }))
   }, [])
 
   // 舞台设置落盘。载荷没变时 saveStageConsole 自己会跳过（切背景这类动作很频繁）
@@ -223,6 +236,7 @@ export function StageProvider({ children }: StageProviderProps) {
       filterMode,
       overlayScales,
       overlayOpacities,
+      overlayVisible,
     })
   }, [
     backgroundUrl,
@@ -236,6 +250,7 @@ export function StageProvider({ children }: StageProviderProps) {
     filterMode,
     overlayScales,
     overlayOpacities,
+    overlayVisible,
   ])
 
   // Persist custom filter presets
@@ -450,8 +465,16 @@ export function StageProvider({ children }: StageProviderProps) {
     // 浮层缩放也算舞台设置，重置要跟着回到原始大小
     setOverlayScales({ ...DEFAULT_OVERLAY_SCALES })
     setOverlayOpacities({ ...DEFAULT_OVERLAY_OPACITIES })
-    // 位置同理：整块舞台都重置了，卡片还赖在拖过去的地方说不过去
-    setOverlayResetToken((token) => token + 1)
+    // 显隐也是：整块舞台都重置了，卡片还藏着说不过去
+    setOverlayVisibleState({ ...DEFAULT_OVERLAY_VISIBLE })
+    // 位置同理：整块舞台都重置了，卡片还赖在拖过去的地方说不过去。
+    // 四块一起 +1，和单块复位区分开
+    setOverlayResetTokens((current) => ({
+      overview: current.overview + 1,
+      giftMotion: current.giftMotion + 1,
+      chat: current.chat + 1,
+      chatCommand: current.chatCommand + 1,
+    }))
   }
 
   const value = useMemo<StageContextValue>(() => ({
@@ -504,9 +527,10 @@ export function StageProvider({ children }: StageProviderProps) {
     setOverlayScale,
     overlayOpacities,
     setOverlayOpacity,
-    overlayResetToken,
-    resetOverlayScales,
-    resetOverlayOpacities,
+    overlayVisible,
+    setOverlayVisible,
+    overlayResetTokens,
+    resetOverlayCard,
     resetStage,
   }), [
     backgroundUrl,
@@ -536,9 +560,10 @@ export function StageProvider({ children }: StageProviderProps) {
     setOverlayScale,
     overlayOpacities,
     setOverlayOpacity,
-    overlayResetToken,
-    resetOverlayScales,
-    resetOverlayOpacities,
+    overlayVisible,
+    setOverlayVisible,
+    overlayResetTokens,
+    resetOverlayCard,
     // 不放进依赖的话，value 会一直攥着第一次渲染时那个闭包，
     // 里面的 filterPreset / customFilterPresets 都是旧的，兜底判断会失效
     handleFilterEnabledChange,

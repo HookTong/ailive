@@ -15,28 +15,14 @@ import { AiChatContext, type AiChatContextValue, type AiChatStatus, type AiChatU
 
 /**
  * 事件优先级：礼物答谢最要紧，进场欢迎次之，弹幕指令只比普通弹幕高一点，普通弹幕垫底。
- * 指令的反馈也走这条队列，所以它和礼物 / 进场一样受 MIN_REPLY_INTERVAL_MS 节流。
+ * 指令的反馈也走这条队列，所以它和礼物 / 进场一样受「回复间隔」节流。
  */
 const KIND_PRIORITY: Record<QueueItem['kind'], number> = { gift: 30, member: 20, command: 15, chat: 10 }
 
 /** 队列长度上限；满了先丢最旧的低优先级事件，礼物尽量不丢 */
 const MAX_QUEUE = 10
-/** 两次回复之间的最小间隔：串行说话本身已经是节流，这里再兜一层，避免连续喋喋不休 */
-const MIN_REPLY_INTERVAL_MS = 6000
 /** 调用出错后的退避间隔，比正常间隔更长一点 */
 const ERROR_BACKOFF_MS = 15000
-/**
- * 同一个观众的弹幕冷却：连发弹幕也只答一条。
- *
- * 原来设 45s，实际效果是「回他一句，然后 45 秒里他说的十几条全部静默」——
- * 正常聊天的人 3~4 秒一条，被这条冷却伤得最狠（实测 18 条只回 2 条，间隔精确 45.0s）。
- *
- * 真正的目标是「别让一个人占满队列」，那件事交给下面 `enqueue` 里的
- * 「队列里已经有他的弹幕就先不加」更精准。这里只留一个**不超过全局回复间隔**的窗口：
- * 冷却再长也快不过 `MIN_REPLY_INTERVAL_MS`，等于不额外限制同一个人，
- * 也就不用担心他多花 token —— 总闸是全局节流，改小它只是决定「名额分给谁」。
- */
-const CHAT_USER_COOLDOWN_MS = 6_000
 /** 进场欢迎冷却：同一个人反复进出不重复欢迎 */
 const MEMBER_USER_COOLDOWN_MS = 10 * 60_000
 /** 礼物答谢冷却：礼物连击（combo）合并成一次答谢 */
@@ -54,7 +40,7 @@ const ROUTE_USER_COOLDOWN_MS = 3_000
 /**
  * 自然语言理解的**全局**最小间隔。
  *
- * 回复那条链路有 `MIN_REPLY_INTERVAL_MS`（6s）兜着，理解这条只有「每人 3s」+
+ * 回复那条链路有「回复间隔」（默认 6s）兜着，理解这条只有「每人 3s」+
  * 「队列最多 4 条」—— 队列一空就继续，实际速度等于模型响应速度（约 1 次/秒）。
  * 而每次理解都要重发一份跟弹幕长短无关的大 prompt：27 个工具定义 ≈ 1900 token +
  * 状态快照 ≈ 500 + 系统提示 ≈ 170，单次 2400 token 起（实测）。
@@ -68,18 +54,16 @@ const ROUTE_CACHE_TTL_MS = 60_000
 const ROUTE_CACHE_LIMIT = 100
 /** 理解失败后的退避：Key 无效时别每条弹幕都打一次接口 */
 const ROUTE_ERROR_BACKOFF_MS = 30_000
-/**
- * 相同内容的弹幕在这个窗口内只答一次。
- * 原 60s 太长：「666」「哈哈哈」这类短句全站一分钟只答一次，观众会觉得没人理他；
- * 30s 仍能省掉刷屏时的重复调用。
- */
-const SAME_TEXT_WINDOW_MS = 30_000
 /** 发给模型的对话历史条数（user/assistant 成对） */
 const HISTORY_PAIRS = 8
 /** AI 生成内容去重：与最近几条回复相同就放弃这条 */
 const REPLY_DEDUP_LIMIT = 5
-/** 展示用的回复记录上限 */
-const REPLY_RECORD_LIMIT = 12
+/**
+ * 展示用的回复记录上限。不封顶的话长跑一整天能攒到上千条 ——
+ * 抽屉打开期间每次新回复都要重渲染整张列表，收益却早就没有了（没人翻几百条以前的话）。
+ * 50 条大约够回看最近一小时。
+ */
+const REPLY_RECORD_LIMIT = 50
 
 type QueueItem = {
   kind: 'gift' | 'member' | 'chat' | 'command'
@@ -153,6 +137,12 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const chatCommandsRef = useRef(chatCommands)
   chatCommandsRef.current = chatCommands
 
+  // 只有真的连着直播间（state === 'live'）才算「有人在看」。
+  // 断开 / 掉线 / 下播 / 连接中都按「没人看」处理：这批弹幕已经没有观众了
+  const liveConnected = douyinRoom.state === 'live'
+  const liveRef = useRef(liveConnected)
+  liveRef.current = liveConnected
+
   // 自然语言理解：待理解队列、串行锁、短时缓存、失败退避
   const routeQueueRef = useRef<LiveFeedItem[]>([])
   const routingRef = useRef(false)
@@ -204,6 +194,9 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
    * 返回这条是否还留在队列里 —— 被挤掉的那条没被回复，不该消耗观众的冷却额度。
    */
   const pushQueue = useCallback((item: QueueItem): boolean => {
+    // 没连着直播就不再收：断开那一刻可能还有一批 flush 在路上，
+    // 收下来只会让台上对着空气继续回
+    if (!liveRef.current) return false
     const queue = queueRef.current
     queue.push(item)
     while (queue.length > MAX_QUEUE) {
@@ -220,7 +213,8 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     const now = Date.now()
     const cooldown = item.kind === 'gift' ? GIFT_USER_COOLDOWN_MS
       : item.kind === 'member' ? MEMBER_USER_COOLDOWN_MS
-        : CHAT_USER_COOLDOWN_MS
+        // 可调：面板「节流参数」里的「同一观众冷却」
+        : settingsRef.current.throttle.userCooldownMs
     const cooldowns = userCooldownRef.current
 
     // 队列里已经有这个人的弹幕在等：他还没被回复，新的一句排进去也只会被后面的顶掉。
@@ -239,7 +233,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     if (item.kind === 'chat') {
       textKey = normalizeText(item.text)
       const seenAt = textSeenRef.current.get(textKey)
-      if (seenAt !== undefined && now - seenAt < SAME_TEXT_WINDOW_MS) return
+      if (seenAt !== undefined && now - seenAt < settingsRef.current.throttle.sameTextWindowMs) return
     }
 
     const kept = pushQueue({ kind: item.kind, name: item.name, text: item.text, count: item.count, at: item.at })
@@ -437,6 +431,19 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   }, [douyinRoom.feed, allowCommand, allowRoute, enqueue, enqueueCommand, enqueueRoute, executeCommand])
 
   /**
+   * 连接断了就把手上没做完的活停掉：清空待回复队列、清空待理解队列。
+   * **正在说的那一句不打断**，让它把话说完再自然收尾 —— 半句话被掐掉比多等两秒难听得多。
+   * 不清队列的话泵每秒还在取下一条 —— 点了「断开」，台上却继续对着空气回弹幕。
+   * 重连也走这里：重连时 feed 本来就会清空，留着旧队列等于在回一批已经翻篇的消息。
+   */
+  useEffect(() => {
+    if (liveConnected) return
+    queueRef.current = []
+    routeQueueRef.current = []
+    setPendingCount(0)
+  }, [liveConnected])
+
+  /**
    * 从队列里挑下一条要处理的：优先级高者优先，同级先来先回。
    * `allowAi` 为 false（没配 Key / 关了自动回复）时只挑指令 —— 指令反馈是确定的文案，
    * 不需要模型，关着自动回复也该能用。
@@ -480,7 +487,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     async function pump() {
       if (busyRef.current) return
       const sinceReply = Date.now() - lastReplyAtRef.current
-      if (sinceReply < MIN_REPLY_INTERVAL_MS) return
+      if (sinceReply < settingsRef.current.throttle.replyIntervalMs) return
       const item = pickNext(autoActiveRef.current)
       if (!item) return
 
@@ -523,6 +530,10 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
         // 记账放在去重之前：即使这条回复因为复读被丢掉，token 也是真花出去了
         addUsage(result.usage)
 
+        // 等接口的这几秒里连接可能已经断了：这条回复已经没人在听，别再开口。
+        // 不拦的话断开瞬间正在路上的那一条还会念出来（队列清了也没用，它已经出队了）
+        if (!liveRef.current) return
+
         // 回复去重：模型最近刚说过一模一样的话就放弃，宁可不说也不复读
         const reply = result.text
         const normalized = normalizeText(reply)
@@ -555,8 +566,10 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
         lastReplyAtRef.current = Date.now()
         setError('')
       } catch (reason) {
-        // 出错退避久一点，避免 Key 无效时每秒打一次接口
-        lastReplyAtRef.current = Date.now() - MIN_REPLY_INTERVAL_MS + ERROR_BACKOFF_MS
+        // 出错退避久一点，避免 Key 无效时每秒打一次接口。
+        // 取 max：用户把间隔调到 60s 时，退避不该反而让重试变得更快
+        const interval = settingsRef.current.throttle.replyIntervalMs
+        lastReplyAtRef.current = Date.now() - interval + Math.max(ERROR_BACKOFF_MS, interval)
         setError(reason instanceof Error ? reason.message : '豆包请求失败')
       } finally {
         busyRef.current = false

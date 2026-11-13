@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Stage, type StageModel } from './components/Stage'
 import { ModelControlPanel } from './components/ModelControlPanel'
 import { StageControlPanel } from './components/StageControlPanel'
-import { StageToolbar } from './components/StageToolbar'
 import { TopBar } from './components/TopBar'
 import { ThemeProvider, ModelProvider, StageProvider, VoiceProvider, LiveDataProvider, MusicProvider, AiChatProvider } from './contexts'
 import { useLiveData, useModel, useVoice, useHoverScrollbar, GIFT_MOTION_ANY_MODEL, resolveGiftMotion } from './hooks'
@@ -29,11 +28,8 @@ function AppContent() {
   // 全局只挂一次：指针进哪个滚动容器，哪个容器才露出滚动条
   useHoverScrollbar()
 
-  // 舞台上的四块浮层各自独立开关：概览卡片组、礼物动作面板、弹幕指令速查卡、弹幕面板
-  const [showOverview, setShowOverview] = useState(true)
-  const [showGiftMotions, setShowGiftMotions] = useState(true)
-  const [showChatCommands, setShowChatCommands] = useState(true)
-  const [showLiveChat, setShowLiveChat] = useState(true)
+  // 全屏按钮在顶栏上，要全屏的却是中间这块舞台 —— 把节点传下去，别用 querySelector 猜
+  const stagePanelRef = useRef<HTMLElement>(null)
 
   const modelSource = modelSources.find((source) => source.id === activeModelId)
 
@@ -185,28 +181,15 @@ function AppContent() {
 
   return (
     <main className="shell">
-      <TopBar />
+      <TopBar stagePanelRef={stagePanelRef} />
       <section className="workspace">
         <ModelControlPanel />
-        <section className="stagePanel">
-          <StageToolbar
-            showOverview={showOverview}
-            showGiftMotions={showGiftMotions}
-            showLiveChat={showLiveChat}
-            showChatCommands={showChatCommands}
-            onToggleOverview={() => setShowOverview((visible) => !visible)}
-            onToggleGiftMotions={() => setShowGiftMotions((visible) => !visible)}
-            onToggleLiveChat={() => setShowLiveChat((visible) => !visible)}
-            onToggleChatCommands={() => setShowChatCommands((visible) => !visible)}
-          />
+        {/* 工具条已经拆掉：四块浮层的显隐和大小时隔都在右侧「舞台控制台」里，全屏挪到了顶栏 */}
+        <section className="stagePanel" ref={stagePanelRef}>
           <Stage
             models={stageModels}
             activeModelId={activeModelId}
             onActivateModel={setActiveModelId}
-            showOverview={showOverview}
-            showGiftMotions={showGiftMotions}
-            showChat={showLiveChat}
-            showChatCommands={showChatCommands}
           />
         </section>
         <StageControlPanel />

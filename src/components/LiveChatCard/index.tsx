@@ -75,8 +75,8 @@ export function LiveChatCard({ live }: LiveChatCardProps) {
   const listRef = useRef<HTMLUListElement>(null)
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，
   // 交互元素由 useDragPosition 内部的 INTERACTIVE 守卫自动排除
-  const { overlayScales, overlayResetToken } = useStage()
-  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.chat, resetToken: overlayResetToken })
+  const { overlayScales, overlayResetTokens } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.chat, resetToken: overlayResetTokens.chat })
 
   const { state, room, error, feed, stats } = live
   const { douyinRoomId, handleDouyinRoomChange } = useLiveData()

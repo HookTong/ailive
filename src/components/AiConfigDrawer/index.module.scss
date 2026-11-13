@@ -1,9 +1,16 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
-// 撑满抽屉内容区，让「最近回复」能吃掉底部剩余高度。
-// 用 min-height 而不是 height：内容超高时自己长高、交给 body 滚动，子项也不会被 flex 压扁。
+// 配置参数这一页：一串填表项，高度由内容决定，超出交给标签页的 panel 滚。
+// 不用再撑满 100% —— 滚动容器从抽屉 body 换成了 Tabs 的 panel
 .content {
+  display: flex;
+  flex-direction: column;
+}
+
+// 回复历史这一页：撑满 panel，让列表自己吃掉剩余高度（列表内部滚）。
+// 百分比 min-height 按 panel 的内容盒算，正好贴到它的下沿，不会多出一截
+.historyPane {
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -66,38 +73,108 @@
   }
 }
 
+// 「当前状态」现在挂在回复历史页的底部，是列表下面那条固定的状态栏：
+// 列表自己滚，这行始终露在外面。10px 把两者分开 ——
+// 不画分隔线，抽屉底部的操作栏已经有一条 border-top，挨这么近会成双线
 .status {
-  margin: 2px 0 0;
+  flex: 0 0 auto;
+  margin: 10px 0 0;
   color: $text-muted;
   @include mono(12px);
 }
 
-.history {
-  display: flex;
-  // flex-basis 用 0 而不是 auto：这样内容区不会被列表撑高、连累整个 body 一起滚，
-  // 剩余空间全部由这里吸收，只有列表自己滚
-  flex: 1 1 0;
-  flex-direction: column;
-  min-height: 160px;
-  margin-top: 12px;
+// 节流参数：和上面那串「填表项」分开，一条细线加一点留白。
+// 上边距比下边距大 —— 它属于「下面的组」，不是上一个字段的一部分
+.section {
+  margin: 18px 0 14px;
+  padding-top: 16px;
+  border-top: 1px solid $border-soft;
+}
 
-  ul {
-    display: grid;
-    flex: 1 1 0;
-    gap: 6px;
-    // 不写死高度：剩多少就多高，抽屉越高看到的回复越多
-    min-height: 0;
-    margin: 6px 0 0;
-    padding: 0;
-    overflow-y: auto;
-    list-style: none;
-    // 关键：grid 默认 align-content 是 stretch，行数少时会把多余高度平摊给每一行，
-    // 三条回复就能被撑成三块 200px 高的空卡片。改成 start 让行按内容高度排、空白留在底部
-    align-content: start;
-    // 滚动条推进抽屉面板的 22px 右留白里，否则每条回复右边都比左边少 12px
-    @include scroll-bleed;
-    @include scroll-thin;
+// 标题行：左边「节流参数」后面直接跟一句说明，右边是「复位」。
+// 说明不再单独占一行 —— 两行都灰扑扑的，看着像两个标题
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: $text-muted;
+  @include mono(12px);
+
+  // 紧跟标题的那句说明：字号比标题小一档、颜色再暗一档，一眼能分出主次
+  em {
+    margin-left: 8px;
+    color: $text-faint;
+    font-style: normal;
+    font-size: $fs-label;
+    letter-spacing: 0;
   }
+}
+
+// 标题右侧的「复位」文字按钮。和舞台控制台那两处同一个做法：
+// 静止就用主色 —— 灰字放在标题行里会被当成又一句说明，认不出是按钮
+.resetThrottle {
+  @include mono($fs-body);
+  letter-spacing: 0.08em;
+  color: $accent-text;
+
+  &:hover:not(:disabled) {
+    color: $accent-bright;
+  }
+
+  &:active:not(:disabled) {
+    color: $accent;
+  }
+}
+
+// 每根滑块 + 它下面那行「影响范围」。组间距交给 gap，滑块自己的 12px 上边距压回 0
+.throttleList {
+  display: grid;
+  gap: 14px;
+  margin-top: $label-gap;
+}
+
+.throttleItem {
+  > :first-child {
+    margin-top: 0;
+  }
+}
+
+// 影响范围：抬头单独提亮一档（`scope`），后面是具体说明。
+// 比滑块标签小一号、暗一档 —— 它挂在轨道下面，跟标签一样大的话会被当成第二行标签
+.throttleHint {
+  margin: 4px 0 0;
+  color: $text-faint;
+  font-size: $fs-label;
+  line-height: 1.5;
+
+  strong {
+    color: $text-muted;
+    font-weight: 400;
+  }
+}
+
+// 回复列表。没有标题行 —— 标签栏上已经写着「回复历史」了，再来一行「最近回复」是重复
+.historyList {
+  display: grid;
+  flex: 1 1 0;
+  gap: 6px;
+  // 不写死高度：剩多少就多高，抽屉越高看到的回复越多
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  // 单列必须写 minmax(0, 1fr)：默认的 auto 列会被 li 的 min-content 撑开 ——
+  // 一句长弹幕就能把**所有**卡片顶得比面板还宽（横向滚动条 + 提问的省略号全部失效）
+  grid-template-columns: minmax(0, 1fr);
+  // 关键：grid 默认 align-content 是 stretch，行数少时会把多余高度平摊给每一行，
+  // 三条回复就能被撑成三块 200px 高的空卡片。改成 start 让行按内容高度排、空白留在底部
+  align-content: start;
+  // 滚动条落进 panel 预留的 12px 槽（scrollbar-gutter: stable），
+  // 列表右边缘才和上面的标签栏对齐
+  @include scroll-bleed;
+  @include scroll-thin;
 
   li {
     display: grid;
@@ -108,6 +185,29 @@
     background: $bg-panel-raised;
     // li 自己也是 grid，同样要挡住 stretch
     align-content: start;
+    // 同理：li 的 auto 列也会被里面那行 nowrap 的提问撑开，卡片直接溢出边框
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  // 提问那一行：左边提问单行省略，右边回复时间。两段都是 11px 等宽，靠颜色分主次
+  .historyMeta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+
+    // 单行省略的 flex 子项必须让出收缩权 —— 不然它宁可溢出也不缩，把时间顶出卡片
+    small {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    time {
+      flex: 0 0 auto;
+      color: $text-faint;
+      @include mono($fs-label);
+      // 等宽字体本来就是对齐的，这行是防字体回退时数字宽度不一、时间一列左右跳
+      font-variant-numeric: tabular-nums;
+    }
   }
 
   small {
@@ -124,7 +224,17 @@
   }
 }
 
-.historyTitle {
-  color: $text-muted;
-  @include mono(12px);
+// 空态：一条都没回过时别留一块空白，说清这里会出现什么。
+// 撑满整页居中 —— 贴在顶上会像一句被落下的说明
+.historyEmpty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 48px;
+  color: $text-dim;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
 }

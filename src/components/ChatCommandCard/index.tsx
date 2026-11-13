@@ -80,8 +80,8 @@ export function ChatCommandCard() {
   const { settings } = useAiChat()
   const aiControl = settings.nlControl && settings.apiKey.trim() !== ''
   // 整张卡片都能拖：handlers 挂在 Card 根节点上，交互元素由 useDragPosition 内部的守卫排除
-  const { overlayScales, overlayResetToken } = useStage()
-  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.chatCommand, resetToken: overlayResetToken })
+  const { overlayScales, overlayResetTokens } = useStage()
+  const { ref, transform, zIndex, handlers } = useDragPosition<HTMLElement>({ draggingClassName: styles.dragging, scale: overlayScales.chatCommand, resetToken: overlayResetTokens.chatCommand })
 
   const groups = useMemo(() => {
     // 按「第一次出现」的顺序归组：ACTIONS 本身就是 外观 → 音色 → 背景 → 特效 → 滤镜 → 音乐

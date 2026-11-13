@@ -11,6 +11,7 @@ import {
   type OverlayOpacities,
   type OverlayScaleKey,
   type OverlayScales,
+  type OverlayVisibility,
 } from './StageContext'
 
 export const STAGE_CONSOLE_STORAGE_KEY = 'ailive.stage-console'
@@ -31,7 +32,15 @@ export const DEFAULT_OVERLAY_OPACITIES: OverlayOpacities = {
   chatCommand: 1,
 }
 
-/** 舞台设置的默认值。背景 / 粒子 / 滤镜三块各自初始状态的唯一来源 */
+/** 四块浮层的默认显隐：都显示 */
+export const DEFAULT_OVERLAY_VISIBLE: OverlayVisibility = {
+  overview: true,
+  giftMotion: true,
+  chat: true,
+  chatCommand: true,
+}
+
+/** 舞台设置的默认值。背景 / 粒子 / 滤镜 / 浮层各自的初始状态都从这儿来 */
 export const DEFAULT_STAGE_CONSOLE = {
   backgroundUrl: DEFAULT_BACKGROUND_URL,
   backgroundMode: 'fixed' as BackgroundMode,
@@ -43,6 +52,7 @@ export const DEFAULT_STAGE_CONSOLE = {
   filterMode: 'fixed' as PresetRotateMode,
   overlayScales: DEFAULT_OVERLAY_SCALES,
   overlayOpacities: DEFAULT_OVERLAY_OPACITIES,
+  overlayVisible: DEFAULT_OVERLAY_VISIBLE,
 }
 
 /** 每个预设各自被调过的参数，没动过的键不写 */
@@ -67,6 +77,8 @@ export type StoredStageConsole = {
   overlayScales: OverlayScales
   /** 四块浮层各自的透明度 */
   overlayOpacities: OverlayOpacities
+  /** 四块浮层各自的显隐 */
+  overlayVisible: OverlayVisibility
 }
 
 const EMPTY: StoredStageConsole = {
@@ -74,6 +86,7 @@ const EMPTY: StoredStageConsole = {
   particleOverrides: {},
   overlayScales: { ...DEFAULT_OVERLAY_SCALES },
   overlayOpacities: { ...DEFAULT_OVERLAY_OPACITIES },
+  overlayVisible: { ...DEFAULT_OVERLAY_VISIBLE },
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
@@ -115,6 +128,18 @@ function readOverlayOpacities(value: unknown): OverlayOpacities {
   const raw = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
   const read = (key: OverlayScaleKey) =>
     readNumber(raw[key], DEFAULT_OVERLAY_OPACITIES[key], OVERLAY_OPACITY_MIN, OVERLAY_OPACITY_MAX)
+  return {
+    overview: read('overview'),
+    giftMotion: read('giftMotion'),
+    chat: read('chat'),
+    chatCommand: read('chatCommand'),
+  }
+}
+
+/** 四块浮层的显隐。只认真正的布尔值，读不懂就当作「显示」 */
+function readOverlayVisible(value: unknown): OverlayVisibility {
+  const raw = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  const read = (key: OverlayScaleKey) => readBoolean(raw[key], DEFAULT_OVERLAY_VISIBLE[key])
   return {
     overview: read('overview'),
     giftMotion: read('giftMotion'),
@@ -224,6 +249,7 @@ export function loadStageConsole(): StoredStageConsole {
       filterMode: readRotateMode(record.filterMode),
       overlayScales: readOverlayScales(record.overlayScales),
       overlayOpacities: readOverlayOpacities(record.overlayOpacities),
+      overlayVisible: readOverlayVisible(record.overlayVisible),
     }
   } catch {
     return EMPTY
@@ -248,6 +274,10 @@ function toStoredConsole(console: StoredStageConsole): Partial<StoredStageConsol
   }
   if (OVERLAY_SCALE_KEYS.some((key) => console.overlayOpacities[key] !== DEFAULT_OVERLAY_OPACITIES[key])) {
     stored.overlayOpacities = console.overlayOpacities
+  }
+  // 同理：只要有一块被藏起来就整组写。默认全显示，全显示时不留键
+  if (OVERLAY_SCALE_KEYS.some((key) => console.overlayVisible[key] !== DEFAULT_OVERLAY_VISIBLE[key])) {
+    stored.overlayVisible = console.overlayVisible
   }
   return stored
 }

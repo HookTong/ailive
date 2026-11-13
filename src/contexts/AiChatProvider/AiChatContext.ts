@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { AiChatSettings } from './storage'
 
-/** 一条已完成的回复记录（按时间倒序，最多保留若干条） */
+/** 一条已完成的回复记录（按时间倒序，最多保留 50 条） */
 export type AiReplyRecord = {
   at: number
   /** command = 弹幕指令的执行结果反馈，文案是确定的，没经过模型 */
@@ -36,7 +36,7 @@ export type AiChatContextValue = {
   status: AiChatStatus
   /** 排队等回复的事件数 */
   pendingCount: number
-  /** 最近的 AI 回复（新的在前） */
+  /** 最近的 AI 回复（新的在前，最多 50 条） */
   replies: AiReplyRecord[]
   /** 累计 token 用量，含被去重丢弃的回复（那些 token 也真花了） */
   usage: AiChatUsage
